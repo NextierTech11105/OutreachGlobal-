@@ -102,3 +102,6 @@ export * from "./signalhouse-tracking.schema";
 
 // ===== SMS SEND BATCHES (Outbound Campaign Tracking) =====
 export * from "./sms-send-batches.schema";
+
+// ===== GROWTH OS: MEETINGS ENGINE =====
+export * from "./meetings.schema";

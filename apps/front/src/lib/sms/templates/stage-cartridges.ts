@@ -22,7 +22,12 @@
 
 export type Stage = "initial" | "nudger" | "nurture" | "retarget" | "closer";
 export type Tone = "professional" | "friendly" | "casual" | "urgent" | "warm";
-export type Intent = "book_call" | "get_response" | "qualify" | "close_deal" | "re_engage";
+export type Intent =
+  | "book_call"
+  | "get_response"
+  | "qualify"
+  | "close_deal"
+  | "re_engage";
 
 export interface Cartridge {
   id: string;
@@ -61,7 +66,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "book_call",
     worker: "GIANNA",
-    template: "{{firstName}}, helping {{industry}} companies grow revenue. Quick call this week? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, helping {{industry}} companies grow revenue. Quick call this week? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "industry"],
   },
@@ -71,7 +77,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "book_call",
     worker: "GIANNA",
-    template: "Hi {{firstName}}, noticed {{company}} - I work with similar businesses. 10 min chat? {{OPT_OUT}}",
+    template:
+      "Hi {{firstName}}, noticed {{company}} - I work with similar businesses. 10 min chat? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -81,7 +88,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "book_call",
     worker: "GIANNA",
-    template: "Hey {{firstName}}! Working with {{industry}} in {{city}}. Would love to connect! {{OPT_OUT}}",
+    template:
+      "Hey {{firstName}}! Working with {{industry}} in {{city}}. Would love to connect! {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "industry", "city"],
   },
@@ -91,7 +99,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "get_response",
     worker: "GIANNA",
-    template: "{{firstName}}, we help save time AND money. Free for a quick call this week? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, we help save time AND money. Free for a quick call this week? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -101,7 +110,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "casual",
     intent: "get_response",
     worker: "GIANNA",
-    template: "{{firstName}}, quick question about {{company}} - got 2 min? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, quick question about {{company}} - got 2 min? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -111,7 +121,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "casual",
     intent: "book_call",
     worker: "GIANNA",
-    template: "Hey {{firstName}}, saw {{company}} is growing - I might be able to help. Call? {{OPT_OUT}}",
+    template:
+      "Hey {{firstName}}, saw {{company}} is growing - I might be able to help. Call? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -121,7 +132,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "urgent",
     intent: "book_call",
     worker: "GIANNA",
-    template: "{{firstName}}, your competitors are already using this. Don't miss out - call? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, your competitors are already using this. Don't miss out - call? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -131,7 +143,8 @@ export const INITIAL_CARTRIDGES: Cartridge[] = [
     tone: "warm",
     intent: "get_response",
     worker: "GIANNA",
-    template: "Hi {{firstName}}! Thought of {{company}} today - would love to share an idea. {{OPT_OUT}}",
+    template:
+      "Hi {{firstName}}! Thought of {{company}} today - would love to share an idea. {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -148,7 +161,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "get_response",
     worker: "CATHY",
-    template: "{{firstName}}, following up - still interested in discussing {{company}}'s growth? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, following up - still interested in discussing {{company}}'s growth? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -158,7 +172,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "book_call",
     worker: "CATHY",
-    template: "Hi {{firstName}}, wanted to reconnect. Is this week better for a quick chat? {{OPT_OUT}}",
+    template:
+      "Hi {{firstName}}, wanted to reconnect. Is this week better for a quick chat? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -168,7 +183,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "get_response",
     worker: "CATHY",
-    template: "{{firstName}}! Just checking in - did you get my last message? {{OPT_OUT}}",
+    template:
+      "{{firstName}}! Just checking in - did you get my last message? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -178,7 +194,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "book_call",
     worker: "CATHY",
-    template: "Hey {{firstName}}, bumping this up - would love to connect when you're free! {{OPT_OUT}}",
+    template:
+      "Hey {{firstName}}, bumping this up - would love to connect when you're free! {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -188,7 +205,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "casual",
     intent: "get_response",
     worker: "CATHY",
-    template: "{{firstName}}, not sure if you saw my text - still open to a quick chat? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, not sure if you saw my text - still open to a quick chat? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -198,7 +216,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "casual",
     intent: "get_response",
     worker: "CATHY",
-    template: "Hey {{firstName}}, circling back - is now a bad time? {{OPT_OUT}}",
+    template:
+      "Hey {{firstName}}, circling back - is now a bad time? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -208,7 +227,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "urgent",
     intent: "book_call",
     worker: "CATHY",
-    template: "{{firstName}}, last chance this week - got 5 min for a quick call? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, last chance this week - got 5 min for a quick call? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -218,7 +238,8 @@ export const NUDGER_CARTRIDGES: Cartridge[] = [
     tone: "warm",
     intent: "get_response",
     worker: "CATHY",
-    template: "{{firstName}}, hope all is well! Still thinking about {{company}} - any interest? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, hope all is well! Still thinking about {{company}} - any interest? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -235,7 +256,8 @@ export const NURTURE_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "get_response",
     worker: "SYSTEM",
-    template: "{{firstName}}, sharing a quick tip that's helped {{industry}} businesses grow. Interested? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, sharing a quick tip that's helped {{industry}} businesses grow. Interested? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "industry"],
   },
@@ -245,7 +267,8 @@ export const NURTURE_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "qualify",
     worker: "SYSTEM",
-    template: "Hi {{firstName}}, {{company}} came up in research - timing better now to connect? {{OPT_OUT}}",
+    template:
+      "Hi {{firstName}}, {{company}} came up in research - timing better now to connect? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -255,7 +278,8 @@ export const NURTURE_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "get_response",
     worker: "SYSTEM",
-    template: "{{firstName}}! Thought of you - just helped a {{industry}} company hit big goals. {{OPT_OUT}}",
+    template:
+      "{{firstName}}! Thought of you - just helped a {{industry}} company hit big goals. {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "industry"],
   },
@@ -265,7 +289,8 @@ export const NURTURE_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "get_response",
     worker: "SYSTEM",
-    template: "Hey {{firstName}}, hope 2026 is treating you well! Still here if you need anything. {{OPT_OUT}}",
+    template:
+      "Hey {{firstName}}, hope 2026 is treating you well! Still here if you need anything. {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -275,7 +300,8 @@ export const NURTURE_CARTRIDGES: Cartridge[] = [
     tone: "casual",
     intent: "get_response",
     worker: "SYSTEM",
-    template: "{{firstName}}, been a while! Anything new at {{company}} I should know about? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, been a while! Anything new at {{company}} I should know about? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -285,7 +311,8 @@ export const NURTURE_CARTRIDGES: Cartridge[] = [
     tone: "warm",
     intent: "get_response",
     worker: "SYSTEM",
-    template: "{{firstName}}, just wanted to check in and see how things are going. Need anything? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, just wanted to check in and see how things are going. Need anything? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -302,7 +329,8 @@ export const RETARGET_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "re_engage",
     worker: "CATHY",
-    template: "{{firstName}}, we spoke {{daysSince}} days ago. Things have changed - worth revisiting? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, we spoke {{daysSince}} days ago. Things have changed - worth revisiting? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "daysSince"],
   },
@@ -312,7 +340,8 @@ export const RETARGET_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "book_call",
     worker: "CATHY",
-    template: "Hi {{firstName}}, reaching back out - is {{company}} still looking to grow? {{OPT_OUT}}",
+    template:
+      "Hi {{firstName}}, reaching back out - is {{company}} still looking to grow? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -322,7 +351,8 @@ export const RETARGET_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "re_engage",
     worker: "CATHY",
-    template: "{{firstName}}! Long time - we've added new features you'd love. Quick catch-up? {{OPT_OUT}}",
+    template:
+      "{{firstName}}! Long time - we've added new features you'd love. Quick catch-up? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -332,7 +362,8 @@ export const RETARGET_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "get_response",
     worker: "CATHY",
-    template: "Hey {{firstName}}, remember me? Thought I'd check back in on {{company}}. {{OPT_OUT}}",
+    template:
+      "Hey {{firstName}}, remember me? Thought I'd check back in on {{company}}. {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -342,7 +373,8 @@ export const RETARGET_CARTRIDGES: Cartridge[] = [
     tone: "casual",
     intent: "re_engage",
     worker: "CATHY",
-    template: "{{firstName}}, it's been a while! Timing better now for that chat? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, it's been a while! Timing better now for that chat? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -352,7 +384,8 @@ export const RETARGET_CARTRIDGES: Cartridge[] = [
     tone: "urgent",
     intent: "book_call",
     worker: "CATHY",
-    template: "{{firstName}}, Q1 is here - is {{company}} ready to grow this year? Let's talk! {{OPT_OUT}}",
+    template:
+      "{{firstName}}, Q1 is here - is {{company}} ready to grow this year? Let's talk! {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -369,7 +402,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "{{firstName}}, ready to move forward? I can get you started today. {{OPT_OUT}}",
+    template:
+      "{{firstName}}, ready to move forward? I can get you started today. {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -379,7 +413,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "professional",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "Hi {{firstName}}, based on our chat, I think we're a great fit. Next steps? {{OPT_OUT}}",
+    template:
+      "Hi {{firstName}}, based on our chat, I think we're a great fit. Next steps? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -389,7 +424,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "{{firstName}}! Excited to work together - shall I send over the details? {{OPT_OUT}}",
+    template:
+      "{{firstName}}! Excited to work together - shall I send over the details? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -399,7 +435,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "friendly",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "Hey {{firstName}}, ready to make this happen? Let's lock in your spot! {{OPT_OUT}}",
+    template:
+      "Hey {{firstName}}, ready to make this happen? Let's lock in your spot! {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -409,7 +446,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "urgent",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "{{firstName}}, offer expires soon - can we finalize today? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, offer expires soon - can we finalize today? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -419,7 +457,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "urgent",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "{{firstName}}, last day for our special rate - should I hold your spot? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, last day for our special rate - should I hold your spot? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -429,7 +468,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "warm",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "{{firstName}}, it was great talking - feel confident we can help {{company}}. Ready? {{OPT_OUT}}",
+    template:
+      "{{firstName}}, it was great talking - feel confident we can help {{company}}. Ready? {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName", "company"],
   },
@@ -439,7 +479,8 @@ export const CLOSER_CARTRIDGES: Cartridge[] = [
     tone: "warm",
     intent: "close_deal",
     worker: "SABRINA",
-    template: "Hi {{firstName}}, thanks for your time! Ready to get started when you are. {{OPT_OUT}}",
+    template:
+      "Hi {{firstName}}, thanks for your time! Ready to get started when you are. {{OPT_OUT}}",
     maxChars: 160,
     variables: ["firstName"],
   },
@@ -478,7 +519,9 @@ export function getCartridgesByTone(tone: Tone): Cartridge[] {
 /**
  * Get cartridges by worker
  */
-export function getCartridgesByWorker(worker: Cartridge["worker"]): Cartridge[] {
+export function getCartridgesByWorker(
+  worker: Cartridge["worker"],
+): Cartridge[] {
   return ALL_CARTRIDGES.filter((c) => c.worker === worker);
 }
 
@@ -487,14 +530,17 @@ export function getCartridgesByWorker(worker: Cartridge["worker"]): Cartridge[] 
  */
 export function renderCartridge(
   cartridge: Cartridge,
-  vars: CartridgeVariables
+  vars: CartridgeVariables,
 ): { message: string; charCount: number; valid: boolean } {
   let message = cartridge.template;
 
   // Replace variables
   message = message.replace(/\{\{firstName\}\}/g, vars.firstName || "there");
   message = message.replace(/\{\{company\}\}/g, vars.company || "your company");
-  message = message.replace(/\{\{industry\}\}/g, vars.industry || "your industry");
+  message = message.replace(
+    /\{\{industry\}\}/g,
+    vars.industry || "your industry",
+  );
   message = message.replace(/\{\{city\}\}/g, vars.city || "your area");
   message = message.replace(/\{\{daysSince\}\}/g, String(vars.daysSince || 30));
   message = message.replace(/\{\{brand\}\}/g, vars.brand || "NEXTIER");
@@ -520,13 +566,19 @@ export function getRandomCartridge(stage: Stage): Cartridge {
 /**
  * Remix cartridge - swap tone while keeping structure
  */
-export function remixCartridge(cartridgeId: string, newTone: Tone): Cartridge | null {
+export function remixCartridge(
+  cartridgeId: string,
+  newTone: Tone,
+): Cartridge | null {
   const original = ALL_CARTRIDGES.find((c) => c.id === cartridgeId);
   if (!original) return null;
 
   // Find similar cartridge with new tone
   const alternatives = ALL_CARTRIDGES.filter(
-    (c) => c.stage === original.stage && c.tone === newTone && c.intent === original.intent
+    (c) =>
+      c.stage === original.stage &&
+      c.tone === newTone &&
+      c.intent === original.intent,
   );
 
   return alternatives.length > 0
@@ -537,7 +589,10 @@ export function remixCartridge(cartridgeId: string, newTone: Tone): Cartridge | 
 /**
  * Validate cartridge length after rendering
  */
-export function validateCartridge(cartridge: Cartridge, vars: CartridgeVariables): {
+export function validateCartridge(
+  cartridge: Cartridge,
+  vars: CartridgeVariables,
+): {
   valid: boolean;
   charCount: number;
   overflow: number;
@@ -563,18 +618,21 @@ export function validateCartridge(cartridge: Cartridge, vars: CartridgeVariables
  * Standard stage sequence
  */
 export const STAGE_SEQUENCE: Stage[] = [
-  "initial",   // Day 0 - First touch (GIANNA)
-  "nudger",    // Day 2 - Follow-up (CATHY)
-  "nudger",    // Day 5 - Second follow-up (CATHY)
-  "nurture",   // Day 14 - Nurture touch
-  "retarget",  // Day 30+ - Re-engagement
-  "closer",    // After positive response (SABRINA)
+  "initial", // Day 0 - First touch (GIANNA)
+  "nudger", // Day 2 - Follow-up (CATHY)
+  "nudger", // Day 5 - Second follow-up (CATHY)
+  "nurture", // Day 14 - Nurture touch
+  "retarget", // Day 30+ - Re-engagement
+  "closer", // After positive response (SABRINA)
 ];
 
 /**
  * Get next stage in sequence
  */
-export function getNextStage(currentStage: Stage, daysSinceFirst: number): Stage {
+export function getNextStage(
+  currentStage: Stage,
+  daysSinceFirst: number,
+): Stage {
   if (daysSinceFirst < 2) return "initial";
   if (daysSinceFirst < 7) return "nudger";
   if (daysSinceFirst < 30) return "nurture";
@@ -584,7 +642,9 @@ export function getNextStage(currentStage: Stage, daysSinceFirst: number): Stage
 /**
  * Get worker for stage
  */
-export function getWorkerForStage(stage: Stage): "GIANNA" | "CATHY" | "SABRINA" | "SYSTEM" {
+export function getWorkerForStage(
+  stage: Stage,
+): "GIANNA" | "CATHY" | "SABRINA" | "SYSTEM" {
   switch (stage) {
     case "initial":
       return "GIANNA";

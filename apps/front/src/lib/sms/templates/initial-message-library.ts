@@ -29,8 +29,10 @@
 export const COMPLIANCE_FOOTERS = {
   standard: "Reply STOP to opt out",
   branded: (brand: string) => `Reply STOP to opt out from ${brand}`,
-  full: (brand: string) => `Msg&data rates apply. Reply STOP to opt out from ${brand}`,
-  help: (brand: string) => `Reply HELP for info or STOP to opt out from ${brand}`,
+  full: (brand: string) =>
+    `Msg&data rates apply. Reply STOP to opt out from ${brand}`,
+  help: (brand: string) =>
+    `Reply HELP for info or STOP to opt out from ${brand}`,
 } as const;
 
 // =============================================================================
@@ -88,7 +90,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "New Release Hook",
     category: "opener",
     tone: "friendly",
-    template: "Hi {{firstName}}, we think you'll love our new release! Let's book a call and discuss soon. {{compliance}}",
+    template:
+      "Hi {{firstName}}, we think you'll love our new release! Let's book a call and discuss soon. {{compliance}}",
     variables: ["firstName", "compliance"],
     charCount: 115,
     segments: 1,
@@ -99,7 +102,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Time & Money Value",
     category: "opener",
     tone: "professional",
-    template: "{{firstName}}, we're here to save you time AND money. Let me know when you're free for a quick call. {{compliance}}",
+    template:
+      "{{firstName}}, we're here to save you time AND money. Let me know when you're free for a quick call. {{compliance}}",
     variables: ["firstName", "compliance"],
     charCount: 118,
     segments: 1,
@@ -110,7 +114,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Quick Question",
     category: "opener",
     tone: "casual",
-    template: "Hey {{firstName}}, quick question about {{company}} - got 2 min for a call this week? {{compliance}}",
+    template:
+      "Hey {{firstName}}, quick question about {{company}} - got 2 min for a call this week? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 98,
     segments: 1,
@@ -121,7 +126,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Noticed Something",
     category: "opener",
     tone: "professional",
-    template: "{{firstName}}, noticed {{company}} is growing - I help businesses like yours scale faster. Quick chat? {{compliance}}",
+    template:
+      "{{firstName}}, noticed {{company}} is growing - I help businesses like yours scale faster. Quick chat? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 118,
     segments: 1,
@@ -132,7 +138,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Local Connection",
     category: "opener",
     tone: "friendly",
-    template: "Hi {{firstName}}! Working with several {{industry}} companies in {{city}}. Would love to connect. {{compliance}}",
+    template:
+      "Hi {{firstName}}! Working with several {{industry}} companies in {{city}}. Would love to connect. {{compliance}}",
     variables: ["firstName", "industry", "city", "compliance"],
     charCount: 112,
     segments: 1,
@@ -145,7 +152,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Results Focus",
     category: "value",
     tone: "professional",
-    template: "{{firstName}}, businesses like {{company}} are seeing 3x results with our approach. Worth a quick call? {{compliance}}",
+    template:
+      "{{firstName}}, businesses like {{company}} are seeing 3x results with our approach. Worth a quick call? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 115,
     segments: 1,
@@ -156,7 +164,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Efficiency Play",
     category: "value",
     tone: "professional",
-    template: "{{firstName}}, we help {{industry}} businesses cut costs by 40%. Free to chat this week? {{compliance}}",
+    template:
+      "{{firstName}}, we help {{industry}} businesses cut costs by 40%. Free to chat this week? {{compliance}}",
     variables: ["firstName", "industry", "compliance"],
     charCount: 102,
     segments: 1,
@@ -167,7 +176,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Competitive Edge",
     category: "value",
     tone: "urgent",
-    template: "{{firstName}}, your competitors are already using this. Don't get left behind - quick call? {{compliance}}",
+    template:
+      "{{firstName}}, your competitors are already using this. Don't get left behind - quick call? {{compliance}}",
     variables: ["firstName", "compliance"],
     charCount: 105,
     segments: 1,
@@ -178,7 +188,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Revenue Impact",
     category: "value",
     tone: "professional",
-    template: "{{firstName}}, I've helped similar {{industry}} companies add $50K+ monthly. Got 15 min? {{compliance}}",
+    template:
+      "{{firstName}}, I've helped similar {{industry}} companies add $50K+ monthly. Got 15 min? {{compliance}}",
     variables: ["firstName", "industry", "compliance"],
     charCount: 104,
     segments: 1,
@@ -189,7 +200,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Pain Point",
     category: "value",
     tone: "friendly",
-    template: "{{firstName}}, struggling with growth? We solve that for {{industry}} businesses daily. Let's talk! {{compliance}}",
+    template:
+      "{{firstName}}, struggling with growth? We solve that for {{industry}} businesses daily. Let's talk! {{compliance}}",
     variables: ["firstName", "industry", "compliance"],
     charCount: 113,
     segments: 1,
@@ -202,7 +214,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Direct Ask",
     category: "question",
     tone: "casual",
-    template: "{{firstName}}, are you the right person to talk to about growth at {{company}}? {{compliance}}",
+    template:
+      "{{firstName}}, are you the right person to talk to about growth at {{company}}? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 94,
     segments: 1,
@@ -213,7 +226,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Time Check",
     category: "question",
     tone: "friendly",
-    template: "Hi {{firstName}}! Do you have 10 min this week for a quick intro call? {{compliance}}",
+    template:
+      "Hi {{firstName}}! Do you have 10 min this week for a quick intro call? {{compliance}}",
     variables: ["firstName", "compliance"],
     charCount: 83,
     segments: 1,
@@ -224,7 +238,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Interest Gauge",
     category: "question",
     tone: "professional",
-    template: "{{firstName}}, would you be open to exploring how we help {{industry}} businesses grow? {{compliance}}",
+    template:
+      "{{firstName}}, would you be open to exploring how we help {{industry}} businesses grow? {{compliance}}",
     variables: ["firstName", "industry", "compliance"],
     charCount: 102,
     segments: 1,
@@ -235,7 +250,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Priority Check",
     category: "question",
     tone: "professional",
-    template: "{{firstName}}, is scaling {{company}} a priority for you right now? Happy to share ideas. {{compliance}}",
+    template:
+      "{{firstName}}, is scaling {{company}} a priority for you right now? Happy to share ideas. {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 104,
     segments: 1,
@@ -246,7 +262,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Challenges Probe",
     category: "question",
     tone: "friendly",
-    template: "Hey {{firstName}}, what's {{company}}'s biggest challenge right now? I might be able to help. {{compliance}}",
+    template:
+      "Hey {{firstName}}, what's {{company}}'s biggest challenge right now? I might be able to help. {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 108,
     segments: 1,
@@ -259,7 +276,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Intriguing Hook",
     category: "curiosity",
     tone: "casual",
-    template: "{{firstName}}, saw something interesting about {{company}} - can I share on a quick call? {{compliance}}",
+    template:
+      "{{firstName}}, saw something interesting about {{company}} - can I share on a quick call? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 103,
     segments: 1,
@@ -270,7 +288,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Idea Tease",
     category: "curiosity",
     tone: "friendly",
-    template: "{{firstName}}, I have an idea that could really help {{company}}. 5 min to chat? {{compliance}}",
+    template:
+      "{{firstName}}, I have an idea that could really help {{company}}. 5 min to chat? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 95,
     segments: 1,
@@ -281,7 +300,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Research Find",
     category: "curiosity",
     tone: "professional",
-    template: "{{firstName}}, did some research on {{industry}} in {{city}} - found something you'd want to know. Call? {{compliance}}",
+    template:
+      "{{firstName}}, did some research on {{industry}} in {{city}} - found something you'd want to know. Call? {{compliance}}",
     variables: ["firstName", "industry", "city", "compliance"],
     charCount: 117,
     segments: 1,
@@ -292,7 +312,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Secret Sauce",
     category: "curiosity",
     tone: "casual",
-    template: "{{firstName}}, found the secret to {{industry}} growth - want me to share it? {{compliance}}",
+    template:
+      "{{firstName}}, found the secret to {{industry}} growth - want me to share it? {{compliance}}",
     variables: ["firstName", "industry", "compliance"],
     charCount: 92,
     segments: 1,
@@ -303,7 +324,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Quick Insight",
     category: "curiosity",
     tone: "professional",
-    template: "{{firstName}}, have a quick insight for {{company}} that's helped similar businesses. Interested? {{compliance}}",
+    template:
+      "{{firstName}}, have a quick insight for {{company}} that's helped similar businesses. Interested? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 113,
     segments: 1,
@@ -316,7 +338,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Straight Shooter",
     category: "direct",
     tone: "professional",
-    template: "{{firstName}}, I help {{industry}} businesses grow. Worth a 15 min call to see if we're a fit? {{compliance}}",
+    template:
+      "{{firstName}}, I help {{industry}} businesses grow. Worth a 15 min call to see if we're a fit? {{compliance}}",
     variables: ["firstName", "industry", "compliance"],
     charCount: 108,
     segments: 1,
@@ -327,7 +350,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "No BS",
     category: "direct",
     tone: "casual",
-    template: "{{firstName}}, no sales pitch - just want to see if I can help {{company}}. Quick call? {{compliance}}",
+    template:
+      "{{firstName}}, no sales pitch - just want to see if I can help {{company}}. Quick call? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 101,
     segments: 1,
@@ -338,7 +362,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Decision Maker",
     category: "direct",
     tone: "professional",
-    template: "{{firstName}}, I work with {{industry}} decision makers like you. Got time for a brief intro? {{compliance}}",
+    template:
+      "{{firstName}}, I work with {{industry}} decision makers like you. Got time for a brief intro? {{compliance}}",
     variables: ["firstName", "industry", "compliance"],
     charCount: 108,
     segments: 1,
@@ -349,7 +374,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Value First",
     category: "direct",
     tone: "friendly",
-    template: "{{firstName}}, I'll give you free insights on {{company}} - no strings attached. Call me? {{compliance}}",
+    template:
+      "{{firstName}}, I'll give you free insights on {{company}} - no strings attached. Call me? {{compliance}}",
     variables: ["firstName", "company", "compliance"],
     charCount: 106,
     segments: 1,
@@ -360,7 +386,8 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
     name: "Partnership Ask",
     category: "direct",
     tone: "professional",
-    template: "{{firstName}}, exploring partnerships with {{industry}} leaders in {{state}}. Interested in connecting? {{compliance}}",
+    template:
+      "{{firstName}}, exploring partnerships with {{industry}} leaders in {{state}}. Interested in connecting? {{compliance}}",
     variables: ["firstName", "industry", "state", "compliance"],
     charCount: 118,
     segments: 1,
@@ -375,14 +402,18 @@ export const INITIAL_MESSAGE_LIBRARY: InitialMessageTemplate[] = [
 /**
  * Get templates by category
  */
-export function getTemplatesByCategory(category: InitialMessageTemplate["category"]): InitialMessageTemplate[] {
+export function getTemplatesByCategory(
+  category: InitialMessageTemplate["category"],
+): InitialMessageTemplate[] {
   return INITIAL_MESSAGE_LIBRARY.filter((t) => t.category === category);
 }
 
 /**
  * Get templates by tone
  */
-export function getTemplatesByTone(tone: InitialMessageTemplate["tone"]): InitialMessageTemplate[] {
+export function getTemplatesByTone(
+  tone: InitialMessageTemplate["tone"],
+): InitialMessageTemplate[] {
   return INITIAL_MESSAGE_LIBRARY.filter((t) => t.tone === tone);
 }
 
@@ -392,7 +423,7 @@ export function getTemplatesByTone(tone: InitialMessageTemplate["tone"]): Initia
 export function renderTemplate(
   template: InitialMessageTemplate,
   variables: TemplateVariables,
-  brandName: string = "NEXTIER"
+  brandName: string = "NEXTIER",
 ): string {
   let rendered = template.template;
 
@@ -401,17 +432,32 @@ export function renderTemplate(
 
   rendered = rendered.replace(/\{\{firstName\}\}/g, vars.firstName || "there");
   rendered = rendered.replace(/\{\{lastName\}\}/g, vars.lastName || "");
-  rendered = rendered.replace(/\{\{company\}\}/g, vars.company || "your company");
-  rendered = rendered.replace(/\{\{industry\}\}/g, vars.industry || "your industry");
+  rendered = rendered.replace(
+    /\{\{company\}\}/g,
+    vars.company || "your company",
+  );
+  rendered = rendered.replace(
+    /\{\{industry\}\}/g,
+    vars.industry || "your industry",
+  );
   rendered = rendered.replace(/\{\{city\}\}/g, vars.city || "your area");
   rendered = rendered.replace(/\{\{state\}\}/g, vars.state || "");
-  rendered = rendered.replace(/\{\{workerName\}\}/g, vars.workerName || "GIANNA");
-  rendered = rendered.replace(/\{\{brandName\}\}/g, vars.brandName || "NEXTIER");
+  rendered = rendered.replace(
+    /\{\{workerName\}\}/g,
+    vars.workerName || "GIANNA",
+  );
+  rendered = rendered.replace(
+    /\{\{brandName\}\}/g,
+    vars.brandName || "NEXTIER",
+  );
   rendered = rendered.replace(/\{\{customValue1\}\}/g, vars.customValue1 || "");
   rendered = rendered.replace(/\{\{customValue2\}\}/g, vars.customValue2 || "");
 
   // Replace compliance footer
-  rendered = rendered.replace(/\{\{compliance\}\}/g, COMPLIANCE_FOOTERS.branded(brandName));
+  rendered = rendered.replace(
+    /\{\{compliance\}\}/g,
+    COMPLIANCE_FOOTERS.branded(brandName),
+  );
 
   return rendered.trim();
 }
@@ -432,15 +478,22 @@ export function validateTemplateLength(rendered: string): {
     valid: charCount <= 160,
     charCount,
     segments,
-    warning: charCount > 160 ? `Message is ${charCount} chars (${segments} segments) - may cost more` : undefined,
+    warning:
+      charCount > 160
+        ? `Message is ${charCount} chars (${segments} segments) - may cost more`
+        : undefined,
   };
 }
 
 /**
  * Get random template from category
  */
-export function getRandomTemplate(category?: InitialMessageTemplate["category"]): InitialMessageTemplate {
-  const templates = category ? getTemplatesByCategory(category) : INITIAL_MESSAGE_LIBRARY;
+export function getRandomTemplate(
+  category?: InitialMessageTemplate["category"],
+): InitialMessageTemplate {
+  const templates = category
+    ? getTemplatesByCategory(category)
+    : INITIAL_MESSAGE_LIBRARY;
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
@@ -454,7 +507,7 @@ export function searchTemplates(keyword: string): InitialMessageTemplate[] {
       t.name.toLowerCase().includes(lower) ||
       t.template.toLowerCase().includes(lower) ||
       t.category.includes(lower) ||
-      t.tone.includes(lower)
+      t.tone.includes(lower),
   );
 }
 
