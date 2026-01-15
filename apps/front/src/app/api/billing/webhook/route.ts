@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { subscriptions, invoices, payments } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import {
+  sendPaymentFailedEmail,
+  sendCancellationEmail,
+  sendPaymentReceiptEmail,
+} from "@/lib/email";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
@@ -83,19 +88,19 @@ export async function POST(request: NextRequest) {
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
-        await handleSubscriptionCanceled(subscription);
+        await handleSubscriptionCanceled(subscription, stripe);
         break;
       }
 
       case "invoice.paid": {
         const invoice = event.data.object;
-        await handleInvoicePaid(invoice);
+        await handleInvoicePaid(invoice, stripe);
         break;
       }
 
       case "invoice.payment_failed": {
         const invoice = event.data.object;
-        await handlePaymentFailed(invoice);
+        await handlePaymentFailed(invoice, stripe);
         break;
       }
 
@@ -157,7 +162,7 @@ async function handleSubscriptionUpdate(stripeSubscription: any) {
 }
 
 // Handle subscription cancellation
-async function handleSubscriptionCanceled(stripeSubscription: any) {
+async function handleSubscriptionCanceled(stripeSubscription: any, stripe: any) {
   const subscriptionId = stripeSubscription.id;
 
   const existingSubscription = await db.query.subscriptions.findFirst({
@@ -177,11 +182,31 @@ async function handleSubscriptionCanceled(stripeSubscription: any) {
     console.log(
       `[Billing Webhook] Canceled subscription ${existingSubscription.id}`,
     );
+
+    // Send cancellation email
+    try {
+      const customer = await stripe.customers.retrieve(stripeSubscription.customer);
+      if (customer && !customer.deleted && customer.email) {
+        const endDate = new Date(stripeSubscription.current_period_end * 1000);
+        await sendCancellationEmail(
+          customer.email,
+          customer.name || "Customer",
+          endDate.toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }),
+        );
+        console.log(`[Billing Webhook] Cancellation email sent to ${customer.email}`);
+      }
+    } catch (emailError) {
+      console.error("[Billing Webhook] Failed to send cancellation email:", emailError);
+    }
   }
 }
 
 // Handle successful invoice payment
-async function handleInvoicePaid(stripeInvoice: any) {
+async function handleInvoicePaid(stripeInvoice: any, stripe: any) {
   const subscriptionId = stripeInvoice.subscription;
 
   // Find our subscription
@@ -221,10 +246,39 @@ async function handleInvoicePaid(stripeInvoice: any) {
   console.log(
     `[Billing Webhook] Invoice paid for subscription ${subscription.id}`,
   );
+
+  // Send payment receipt email
+  try {
+    const customer = await stripe.customers.retrieve(stripeInvoice.customer);
+    if (customer && !customer.deleted && customer.email) {
+      const paidDate = new Date();
+      const nextBillingDate = new Date(stripeInvoice.period_end * 1000);
+
+      await sendPaymentReceiptEmail(customer.email, {
+        name: customer.name || "Customer",
+        amount: stripeInvoice.amount_paid / 100,
+        plan: subscription.planId || "Pro",
+        invoiceId: stripeInvoice.number || stripeInvoice.id,
+        date: paidDate.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+        nextBillingDate: nextBillingDate.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+      });
+      console.log(`[Billing Webhook] Payment receipt sent to ${customer.email}`);
+    }
+  } catch (emailError) {
+    console.error("[Billing Webhook] Failed to send payment receipt:", emailError);
+  }
 }
 
 // Handle failed payment
-async function handlePaymentFailed(stripeInvoice: any) {
+async function handlePaymentFailed(stripeInvoice: any, stripe: any) {
   const subscriptionId = stripeInvoice.subscription;
 
   const subscription = await db.query.subscriptions.findFirst({
@@ -259,7 +313,28 @@ async function handlePaymentFailed(stripeInvoice: any) {
     `[Billing Webhook] Payment failed for subscription ${subscription.id}`,
   );
 
-  // TODO: Send payment failed notification email
+  // Send payment failed notification email
+  try {
+    const customer = await stripe.customers.retrieve(stripeInvoice.customer);
+    if (customer && !customer.deleted && customer.email) {
+      const retryDate = new Date();
+      retryDate.setDate(retryDate.getDate() + 3);
+
+      await sendPaymentFailedEmail(
+        customer.email,
+        customer.name || "Customer",
+        stripeInvoice.amount_due / 100,
+        retryDate.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+      );
+      console.log(`[Billing Webhook] Payment failed email sent to ${customer.email}`);
+    }
+  } catch (emailError) {
+    console.error("[Billing Webhook] Failed to send payment failed email:", emailError);
+  }
 }
 
 // Handle successful payment intent

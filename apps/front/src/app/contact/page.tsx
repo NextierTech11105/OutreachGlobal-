@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { APP_NAME, COMPANY_NAME } from "@/config/branding";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +40,11 @@ const contactReasons = [
   { value: "sales", label: "Sales Inquiry", icon: Building2 },
   { value: "support", label: "Technical Support", icon: HelpCircle },
   { value: "billing", label: "Billing Question", icon: FileText },
-  { value: "partnership", label: "Partnership Opportunity", icon: MessageSquare },
+  {
+    value: "partnership",
+    label: "Partnership Opportunity",
+    icon: MessageSquare,
+  },
   { value: "privacy", label: "Privacy / Data Request", icon: Shield },
   { value: "other", label: "Other", icon: Mail },
 ];
@@ -55,14 +65,30 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call - replace with actual endpoint
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    // In production, send to your API endpoint
-    // await fetch('/api/contact', { method: 'POST', body: JSON.stringify(formData) });
+      const result = await response.json();
 
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send message");
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      // Show error toast or alert
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to send message. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -75,7 +101,8 @@ export default function ContactPage() {
             </div>
             <h2 className="text-2xl font-bold mb-2">Message Sent!</h2>
             <p className="text-muted-foreground mb-6">
-              Thank you for reaching out. Our team will get back to you within 24 hours.
+              Thank you for reaching out. Our team will get back to you within
+              24 hours.
             </p>
             <div className="flex gap-3 justify-center">
               <Link href="/get-started">
@@ -109,8 +136,8 @@ export default function ContactPage() {
             Get in Touch
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Have questions about {APP_NAME}? Our team is here to help.
-            Reach out and we&apos;ll respond within 24 hours.
+            Have questions about {APP_NAME}? Our team is here to help. Reach out
+            and we&apos;ll respond within 24 hours.
           </p>
         </div>
 
@@ -121,7 +148,8 @@ export default function ContactPage() {
               <CardHeader>
                 <CardTitle>Send us a Message</CardTitle>
                 <CardDescription>
-                  Fill out the form below and we&apos;ll get back to you as soon as possible.
+                  Fill out the form below and we&apos;ll get back to you as soon
+                  as possible.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -219,7 +247,11 @@ export default function ContactPage() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -281,7 +313,9 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="font-medium">Book a Call</p>
-                    <p className="text-muted-foreground">Free Strategy Session</p>
+                    <p className="text-muted-foreground">
+                      Free Strategy Session
+                    </p>
                   </div>
                 </a>
               </CardContent>
@@ -294,25 +328,37 @@ export default function ContactPage() {
               <CardContent className="space-y-3 text-sm">
                 <div>
                   <p className="font-medium">Sales</p>
-                  <a href="mailto:sales@nextier.io" className="text-primary hover:underline">
+                  <a
+                    href="mailto:sales@nextier.io"
+                    className="text-primary hover:underline"
+                  >
                     sales@nextier.io
                   </a>
                 </div>
                 <div>
                   <p className="font-medium">Support</p>
-                  <a href="mailto:support@nextier.io" className="text-primary hover:underline">
+                  <a
+                    href="mailto:support@nextier.io"
+                    className="text-primary hover:underline"
+                  >
                     support@nextier.io
                   </a>
                 </div>
                 <div>
                   <p className="font-medium">Billing</p>
-                  <a href="mailto:billing@nextier.io" className="text-primary hover:underline">
+                  <a
+                    href="mailto:billing@nextier.io"
+                    className="text-primary hover:underline"
+                  >
                     billing@nextier.io
                   </a>
                 </div>
                 <div>
                   <p className="font-medium">Privacy</p>
-                  <a href="mailto:privacy@nextier.io" className="text-primary hover:underline">
+                  <a
+                    href="mailto:privacy@nextier.io"
+                    className="text-primary hover:underline"
+                  >
                     privacy@nextier.io
                   </a>
                 </div>
@@ -323,7 +369,8 @@ export default function ContactPage() {
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-2">Need Immediate Help?</h3>
                 <p className="text-sm text-primary-foreground/80 mb-4">
-                  Pro and Agency customers get priority support with faster response times.
+                  Pro and Agency customers get priority support with faster
+                  response times.
                 </p>
                 <Link href="/pricing">
                   <Button variant="secondary" size="sm" className="w-full">
