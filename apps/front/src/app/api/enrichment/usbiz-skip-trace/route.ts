@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  TracerfyClient,
+  TracerfyNormalResult,
+  TraceJobInput,
+  extractPhones,
+  extractEmails,
+} from "@/lib/tracerfy";
+import { TRACERFY_COST_PER_LEAD } from "@/config/constants";
 
 /**
  * USBizData Skip Trace API
@@ -6,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
  * STRICT RULES:
  * - Input: FULL NAME + FULL ADDRESS only
  * - Source: USBizData owner records
- * - Vendor: RealEstateAPI SkipTrace only
+ * - Vendor: Tracerfy ($0.02/lead) - COST EFFECTIVE
  * - Output: mobile phone + email
  *
  * NO BUSINESS NAMES SENT TO API
@@ -14,6 +22,10 @@ import { NextRequest, NextResponse } from "next/server";
  * PERSON + PROPERTY ONLY
  */
 
+const tracerfy = new TracerfyClient();
+
+// Fallback to RealEstateAPI if Tracerfy not configured
+const USE_TRACERFY = !!process.env.TRACERFY_API_TOKEN;
 const REALESTATE_API_KEY =
   process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";

@@ -34,25 +34,28 @@
  * │                        AI WORKER RESPONSIBILITIES                            │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │  LUCI (Data)      │  No Phone  │  $1-10M exits │ Scans lists → Prep batches │
+ * │  NEVA (Intel)     │  No Phone  │  Research     │ Perplexity deep intel      │
  * │  GIANNA (Initial) │  Own Phone │  The Opener   │ SMS blast + Inbound AI     │
  * │  CATHY (Nudge)    │  Own Phone │  The Nudger   │ Ghost revival + Follow-up  │
  * │  SABRINA (Close)  │  Own Phone │  The Closer   │ AGGRESSIVE booking/remind  │
  * └─────────────────────────────────────────────────────────────────────────────┘
  *
- * FUNNEL: Data → Outreach → Response → Conversation → Proposal → DEAL
+ * FUNNEL: Data → Intel → Outreach → Response → Conversation → Proposal → DEAL
  *
  * FLOW:
- *   LUCI scans USBizData → Preps SMS batch → GIANNA sends initial blast
+ *   LUCI scans USBizData → Preps SMS batch → NEVA quick scan → GIANNA sends
  *   GIANNA handles inbound → Routes to SABRINA (interested) or CATHY (ghost)
  *   CATHY nudges ghosts → Revives → Routes to SABRINA
+ *   NEVA deep research → Pre-appointment brief → SABRINA books
  *   SABRINA AGGRESSIVELY books + reminds → DEAL HANDOFF
  *
  * CRITICAL RULES:
  * 1. LUCI = DATA COPILOT - fetches from internal lists, never touches phones
- * 2. GIANNA = INITIAL MESSAGE + ALL INBOUND HANDLING (dual-mode)
- * 3. CATHY = NUDGER - humor-based ghost revival
- * 4. SABRINA = AGGRESSIVE CLOSER - gets appointments back no matter what
- * 5. Each agent has ISOLATED phone lane - no cross-contamination
+ * 2. NEVA = INTELLIGENCE - Perplexity research, no phones, pure intel
+ * 3. GIANNA = INITIAL MESSAGE + ALL INBOUND HANDLING (dual-mode)
+ * 4. CATHY = NUDGER - humor-based ghost revival
+ * 5. SABRINA = AGGRESSIVE CLOSER - gets appointments back no matter what
+ * 6. Each agent has ISOLATED phone lane - no cross-contamination
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -76,10 +79,11 @@ export interface DualModeConfig {
   };
 }
 
-export type WorkerId = "luci" | "gianna" | "cathy" | "sabrina";
+export type WorkerId = "luci" | "neva" | "gianna" | "cathy" | "sabrina";
 
 export type WorkerDomain =
   | "data" // LUCI - data lake, enrichment, lead prep
+  | "intelligence" // NEVA - research, deep intel, lead personalization
   | "outreach" // GIANNA - initial contact, first touch
   | "nudging" // CATHY - follow-ups, ghost revival
   | "booking"; // SABRINA - appointment setting, closing
@@ -178,8 +182,64 @@ export const LUCI_CONFIG: WorkerConfig = {
     "Skip trace results (phones, emails, addresses)",
   ],
 
-  handoffTo: ["gianna", "cathy", "sabrina"],
+  handoffTo: ["neva", "gianna", "cathy", "sabrina"],
   receivesFrom: [], // LUCI is the source - fetches from internal lists
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEVA - INTELLIGENCE & RESEARCH (NO PHONE - RESEARCH ONLY)
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROLE: Deep research, lead personalization, pre-SMS intel, pre-appointment briefs
+// INTEGRATIONS: Perplexity AI for web research, internal data enrichment
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const NEVA_CONFIG: WorkerConfig = {
+  id: "neva",
+  name: "NEVA",
+  domain: "intelligence",
+  description:
+    "Intelligence & Research Specialist - Deep web research via Perplexity AI, lead personalization, pre-SMS quick scans, and pre-appointment comprehensive briefs",
+
+  phone: {
+    hasPhone: false,
+    hasInboundResponseCenter: false,
+    // NEVA is pure research - no direct communication
+  },
+
+  responsibilities: [
+    // PRE-SMS INTELLIGENCE
+    "Execute quick scans before initial SMS outreach",
+    "Gather business context for personalized openers",
+    "Identify pain points and opportunities from web presence",
+    // PRE-APPOINTMENT DEEP RESEARCH
+    "Compile comprehensive pre-meeting briefs",
+    "Research company financials, news, and recent activity",
+    "Identify decision makers and organizational structure",
+    "Find talking points and conversation starters",
+    // LEAD PERSONALIZATION
+    "Enrich leads with social media presence analysis",
+    "Score lead quality based on research findings",
+    "Generate personalized value propositions",
+  ],
+
+  triggers: [
+    "LUCI prepares batch for SMS campaign",
+    "Lead qualifies for appointment booking",
+    "Manual research request from user",
+    "API call to /api/neva/research",
+    "Appointment scheduled (triggers deep research)",
+  ],
+
+  outputs: [
+    "Quick scan intel for SMS personalization",
+    "Pre-appointment comprehensive briefs",
+    "Lead enrichment data (social, news, context)",
+    "Personalized value propositions",
+    "Research confidence scores",
+  ],
+
+  handoffTo: ["gianna", "sabrina"],
+  receivesFrom: ["luci"],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -264,7 +324,7 @@ export const GIANNA_CONFIG: WorkerConfig = {
   ],
 
   handoffTo: ["sabrina", "cathy"],
-  receivesFrom: ["luci"],
+  receivesFrom: ["luci", "neva"],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -391,6 +451,7 @@ export const SABRINA_CONFIG: WorkerConfig = {
 
 export const WORKERS: Record<WorkerId, WorkerConfig> = {
   luci: LUCI_CONFIG,
+  neva: NEVA_CONFIG,
   gianna: GIANNA_CONFIG,
   cathy: CATHY_CONFIG,
   sabrina: SABRINA_CONFIG,

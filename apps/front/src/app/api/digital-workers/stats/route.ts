@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { smsMessages, callLogs } from "@/lib/db/schema";
-import { sql } from "drizzle-orm";
+import { smsMessages, callLogs, leads, dataSources } from "@/lib/db/schema";
+import { sql, eq, and } from "drizzle-orm";
 
 /**
  * DIGITAL WORKERS STATS API
  * ═══════════════════════════════════════════════════════════════════════════════
- * Returns stats for all 5 AI Digital Workers in the NEXTIER execution loop.
+ * Returns REAL stats for all 5 AI Digital Workers in the NEXTIER execution loop.
  *
  * THE WORKERS:
  * 1. LUCI - Data Copilot ($1-10M exits, USBizData scanner, no phone)
@@ -32,52 +32,160 @@ const workerStatusOverrides: Record<string, "active" | "paused" | "idle"> = {
  * GET /api/digital-workers/stats
  * Returns stats for all 5 AI workers from real database data
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const teamId = searchParams.get("teamId");
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // SMS stats (Gianna - SMS worker)
-    let sms = { total: 0, today: 0, delivered: 0, replies: 0 };
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GIANNA STATS - Query SMS messages sent by gianna
+    // ═══════════════════════════════════════════════════════════════════════════
+    let giannaStats = { total: 0, today: 0, delivered: 0, replies: 0 };
+    try {
+      const stats = await db
+        .select({
+          total: sql<number>`count(*)`,
+          today: sql<number>`count(*) filter (where ${smsMessages.createdAt} >= ${today})`,
+          delivered: sql<number>`count(*) filter (where ${smsMessages.status} = 'delivered')`,
+        })
+        .from(smsMessages)
+        .where(eq(smsMessages.sentByAdvisor, "gianna"));
+      giannaStats = { ...giannaStats, ...stats[0] };
+
+      // Count inbound replies
+      const replyStats = await db
+        .select({ replies: sql<number>`count(*)` })
+        .from(smsMessages)
+        .where(
+          and(
+            eq(smsMessages.direction, "inbound"),
+            sql`${smsMessages.createdAt} >= ${today}`,
+          ),
+        );
+      giannaStats.replies = replyStats[0]?.replies || 0;
+    } catch {
+      // Table may not exist yet
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CATHY STATS - Query SMS messages sent by cathy
+    // ═══════════════════════════════════════════════════════════════════════════
+    let cathyStats = { total: 0, today: 0, delivered: 0, replies: 0 };
+    try {
+      const stats = await db
+        .select({
+          total: sql<number>`count(*)`,
+          today: sql<number>`count(*) filter (where ${smsMessages.createdAt} >= ${today})`,
+          delivered: sql<number>`count(*) filter (where ${smsMessages.status} = 'delivered')`,
+        })
+        .from(smsMessages)
+        .where(eq(smsMessages.sentByAdvisor, "cathy"));
+      cathyStats = { ...cathyStats, ...stats[0] };
+    } catch {
+      // Table may not exist yet
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SABRINA STATS - Query SMS messages sent by sabrina AND appointments
+    // ═══════════════════════════════════════════════════════════════════════════
+    let sabrinaStats = { total: 0, today: 0, delivered: 0, booked: 0 };
     try {
       const smsStats = await db
         .select({
           total: sql<number>`count(*)`,
           today: sql<number>`count(*) filter (where ${smsMessages.createdAt} >= ${today})`,
           delivered: sql<number>`count(*) filter (where ${smsMessages.status} = 'delivered')`,
-          replies: sql<number>`count(*) filter (where ${smsMessages.direction} = 'inbound')`,
         })
-        .from(smsMessages);
-      sms = smsStats[0] || sms;
+        .from(smsMessages)
+        .where(eq(smsMessages.sentByAdvisor, "sabrina"));
+      sabrinaStats = { ...sabrinaStats, ...smsStats[0] };
+
+      // Count appointments booked (leads with appointment status)
+      const appointmentStats = await db
+        .select({ booked: sql<number>`count(*)` })
+        .from(leads)
+        .where(
+          and(
+            eq(leads.status, "appointment"),
+            teamId ? eq(leads.teamId, teamId) : sql`1=1`,
+          ),
+        );
+      sabrinaStats.booked = appointmentStats[0]?.booked || 0;
     } catch {
       // Table may not exist yet
     }
 
-    // Call stats (Sabrina - Voice closer)
-    let calls = { total: 0, today: 0, completed: 0, answered: 0 };
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LUCI STATS - Query data imports and enrichments
+    // ═══════════════════════════════════════════════════════════════════════════
+    let luciStats = { sources: 0, records: 0, enriched: 0, processed: 0 };
     try {
-      const callStats = await db
+      const sourceStats = await db
         .select({
-          total: sql<number>`count(*)`,
-          today: sql<number>`count(*) filter (where ${callLogs.createdAt} >= ${today})`,
-          completed: sql<number>`count(*) filter (where ${callLogs.status} = 'completed')`,
-          answered: sql<number>`count(*) filter (where ${callLogs.duration} > 0)`,
+          sources: sql<number>`count(*)`,
+          records: sql<number>`coalesce(sum(${dataSources.totalRows}), 0)`,
+          processed: sql<number>`coalesce(sum(${dataSources.processedRows}), 0)`,
         })
-        .from(callLogs);
-      calls = callStats[0] || calls;
+        .from(dataSources);
+      luciStats = { ...luciStats, ...sourceStats[0] };
+
+      // Count enriched leads
+      const enrichedStats = await db
+        .select({ enriched: sql<number>`count(*)` })
+        .from(leads)
+        .where(
+          and(
+            sql`${leads.customFields}->>'enrichmentStatus' = 'completed'`,
+            teamId ? eq(leads.teamId, teamId) : sql`1=1`,
+          ),
+        );
+      luciStats.enriched = enrichedStats[0]?.enriched || 0;
+    } catch {
+      // Table may not exist yet
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NEVA STATS - Query research requests and briefs
+    // ═══════════════════════════════════════════════════════════════════════════
+    const nevaStats = { reports: 0, briefs: 0, contexts: 0 };
+    try {
+      // Count leads with research completed
+      const researchStats = await db
+        .select({ reports: sql<number>`count(*)` })
+        .from(leads)
+        .where(
+          and(
+            sql`${leads.customFields}->>'researchStatus' = 'completed'`,
+            teamId ? eq(leads.teamId, teamId) : sql`1=1`,
+          ),
+        );
+      nevaStats.reports = researchStats[0]?.reports || 0;
     } catch {
       // Table may not exist yet
     }
 
     // Calculate success rates
-    const smsSuccessRate =
-      sms.total > 0
-        ? Math.round((Number(sms.delivered) / Number(sms.total)) * 100)
-        : 78;
-    const callSuccessRate =
-      calls.total > 0
-        ? Math.round((Number(calls.answered) / Number(calls.total)) * 100)
-        : 91;
+    const giannaSuccessRate =
+      Number(giannaStats.total) > 0
+        ? Math.round(
+            (Number(giannaStats.delivered) / Number(giannaStats.total)) * 100,
+          )
+        : 0;
+    const cathySuccessRate =
+      Number(cathyStats.total) > 0
+        ? Math.round(
+            (Number(cathyStats.delivered) / Number(cathyStats.total)) * 100,
+          )
+        : 0;
+    const sabrinaSuccessRate =
+      Number(sabrinaStats.total) > 0
+        ? Math.round(
+            (Number(sabrinaStats.delivered) / Number(sabrinaStats.total)) * 100,
+          )
+        : 0;
 
     // Helper to get effective status (override or computed)
     const getStatus = (
@@ -87,31 +195,31 @@ export async function GET() {
       return workerStatusOverrides[id] || defaultStatus;
     };
 
-    // All 5 Digital Workers with stats
-    // NOTE: LUCI and NEVA don't send messages - they do data prep and research
+    // All 5 Digital Workers with REAL stats
     const workers = [
       // LUCI - Data Copilot (NO MESSAGES - does data prep only)
       {
         id: "luci",
         name: "LUCI",
         type: "data" as const,
-        status: getStatus("luci", "active"),
+        status: getStatus(
+          "luci",
+          Number(luciStats.sources) > 0 ? "active" : "idle",
+        ),
         description:
           "Data Copilot - Scans USBizData for $1-10M exits, preps SMS batches, enriches leads",
         stats: {
-          // LUCI does DATA PREP, not messaging - show relevant metrics
-          messagesHandled: 0, // LUCI doesn't send messages
+          messagesHandled: 0,
           messagesToday: 0,
           conversionsToday: 0,
           avgResponseTime: "N/A",
           successRate: 0,
         },
-        // LUCI-specific stats (data copilot metrics)
         dataStats: {
-          recordsScanned: 45000,
-          leadsEnriched: 8500,
-          listsGenerated: 420,
-          batchesPrepped: 85,
+          recordsScanned: Number(luciStats.records) || 0,
+          leadsEnriched: Number(luciStats.enriched) || 0,
+          listsGenerated: Number(luciStats.sources) || 0,
+          batchesPrepped: Number(luciStats.processed) || 0,
         },
       },
       // GIANNA - The Opener (SMS worker)
@@ -119,15 +227,18 @@ export async function GET() {
         id: "gianna",
         name: "GIANNA",
         type: "sms" as const,
-        status: getStatus("gianna", Number(sms.total) > 0 ? "active" : "idle"),
+        status: getStatus(
+          "gianna",
+          Number(giannaStats.total) > 0 ? "active" : "idle",
+        ),
         description:
           "The Opener - Initial SMS outreach + AI inbound response center, email capture",
         stats: {
-          messagesHandled: Number(sms.total) || 0,
-          messagesToday: Number(sms.today) || 0,
-          conversionsToday: Number(sms.replies) || 0,
+          messagesHandled: Number(giannaStats.total) || 0,
+          messagesToday: Number(giannaStats.today) || 0,
+          conversionsToday: Number(giannaStats.replies) || 0,
           avgResponseTime: "< 30s",
-          successRate: smsSuccessRate,
+          successRate: giannaSuccessRate,
         },
       },
       // CATHY - The Nudger (SMS worker)
@@ -135,16 +246,18 @@ export async function GET() {
         id: "cathy",
         name: "CATHY",
         type: "sms" as const,
-        status: getStatus("cathy", "active"),
+        status: getStatus(
+          "cathy",
+          Number(cathyStats.total) > 0 ? "active" : "idle",
+        ),
         description:
           "The Nudger - Ghost revival with humor, Leslie Nielsen style follow-ups",
         stats: {
-          // TODO: Query actual CATHY messages when worker_id tracking is added
-          messagesHandled: 0,
-          messagesToday: 0,
-          conversionsToday: 0,
+          messagesHandled: Number(cathyStats.total) || 0,
+          messagesToday: Number(cathyStats.today) || 0,
+          conversionsToday: Number(cathyStats.delivered) || 0,
           avgResponseTime: "< 45s",
-          successRate: 0,
+          successRate: cathySuccessRate,
         },
       },
       // SABRINA - The Scheduler (Calendar + Reminders)
@@ -152,22 +265,23 @@ export async function GET() {
         id: "sabrina",
         name: "SABRINA",
         type: "scheduler" as const,
-        status: getStatus("sabrina", "active"),
+        status: getStatus(
+          "sabrina",
+          Number(sabrinaStats.total) > 0 ? "active" : "idle",
+        ),
         description:
-          "The Scheduler - Calendar monitoring, meeting reminders, confirmations, no-show recovery (adjustable temperature)",
+          "The Scheduler - Calendar monitoring, meeting reminders, confirmations, no-show recovery",
         stats: {
-          // SABRINA tracks scheduled meetings and reminders, not raw calls
-          messagesHandled: Number(calls.total) || 0, // Reminder messages sent
-          messagesToday: Number(calls.today) || 0,
-          conversionsToday: Number(calls.completed) || 0, // Meetings confirmed
+          messagesHandled: Number(sabrinaStats.total) || 0,
+          messagesToday: Number(sabrinaStats.today) || 0,
+          conversionsToday: Number(sabrinaStats.booked) || 0,
           avgResponseTime: "< 60s",
-          successRate: callSuccessRate,
+          successRate: sabrinaSuccessRate,
         },
-        // SABRINA-specific stats (scheduler metrics)
         schedulerStats: {
-          meetingsMonitored: 0,
-          remindersSent: 0,
-          confirmationsReceived: 0,
+          meetingsMonitored: Number(sabrinaStats.booked) || 0,
+          remindersSent: Number(sabrinaStats.delivered) || 0,
+          confirmationsReceived: Number(sabrinaStats.booked) || 0,
           noShowsRecovered: 0,
         },
       },
@@ -176,23 +290,24 @@ export async function GET() {
         id: "neva",
         name: "NEVA",
         type: "research" as const,
-        status: getStatus("neva", "active"),
+        status: getStatus(
+          "neva",
+          Number(nevaStats.reports) > 0 ? "active" : "idle",
+        ),
         description:
           "The Researcher - Deep intel via Perplexity, call prep, property/business context",
         stats: {
-          // NEVA does RESEARCH, not messaging - show relevant metrics
-          messagesHandled: 0, // NEVA doesn't send messages
+          messagesHandled: 0,
           messagesToday: 0,
           conversionsToday: 0,
           avgResponseTime: "N/A",
           successRate: 0,
         },
-        // NEVA-specific stats (research metrics)
         researchStats: {
-          reportsGenerated: 650,
-          deepDives: 45,
-          briefingsCreated: 125,
-          contextPackages: 230,
+          reportsGenerated: Number(nevaStats.reports) || 0,
+          deepDives: 0,
+          briefingsCreated: Number(nevaStats.briefs) || 0,
+          contextPackages: Number(nevaStats.contexts) || 0,
         },
       },
     ];

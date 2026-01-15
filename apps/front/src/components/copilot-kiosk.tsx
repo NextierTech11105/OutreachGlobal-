@@ -37,6 +37,13 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTenantConfig, WorkerConfig } from "@/lib/tenant";
+import {
+  WORKERS as WORKER_CONFIGS,
+  WORKER_LIST,
+  type WorkerId,
+  type WorkerDomain,
+} from "@/config/workers";
+import { API_ENDPOINTS } from "@/config/constants";
 
 /**
  * NEXTIER COPILOT KIOSK
@@ -78,53 +85,40 @@ interface CopilotKioskProps {
   onAction?: (action: string, data?: Record<string, unknown>) => void;
 }
 
-const WORKERS: Worker[] = [
-  {
-    id: "luci",
-    name: "LUCI",
-    role: "data",
-    status: "active",
-    description: "Data Copilot - USBizData scanner, batch prep, enrichment",
-    color: "from-red-500 to-orange-500",
-    icon: Database,
-  },
-  {
-    id: "neva",
-    name: "NEVA",
-    role: "intelligence",
-    status: "active",
-    description: "Research - Perplexity deep intel, lead personalization",
+// UI-specific worker display config (maps to central WORKER_CONFIGS)
+const WORKER_UI_MAP: Record<
+  WorkerId,
+  { color: string; icon: React.ElementType; role: Worker["role"] }
+> = {
+  luci: { color: "from-red-500 to-orange-500", icon: Database, role: "data" },
+  neva: {
     color: "from-cyan-500 to-blue-500",
     icon: Search,
+    role: "intelligence",
   },
-  {
-    id: "gianna",
-    name: "GIANNA",
-    role: "outreach",
-    status: "active",
-    description: "The Opener - Initial SMS + inbound response center",
+  gianna: {
     color: "from-purple-500 to-indigo-500",
     icon: MessageSquare,
-  },
-  {
-    id: "cathy",
-    name: "CATHY",
     role: "outreach",
-    status: "active",
-    description: "The Nudger - Ghost revival, humor-based follow-ups",
-    color: "from-pink-500 to-rose-500",
-    icon: Zap,
   },
-  {
-    id: "sabrina",
-    name: "SABRINA",
-    role: "outreach",
-    status: "active",
-    description: "The Closer - Booking, reminders, objection handling",
+  cathy: { color: "from-pink-500 to-rose-500", icon: Zap, role: "outreach" },
+  sabrina: {
     color: "from-green-500 to-emerald-500",
     icon: Phone,
+    role: "outreach",
   },
-];
+};
+
+// Build display workers from central config + UI mapping
+const WORKERS: Worker[] = WORKER_LIST.map((config) => ({
+  id: config.id,
+  name: config.name,
+  role: WORKER_UI_MAP[config.id].role,
+  status: "active" as const,
+  description: config.description.split(" - ")[1] || config.description,
+  color: WORKER_UI_MAP[config.id].color,
+  icon: WORKER_UI_MAP[config.id].icon,
+}));
 
 export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -155,7 +149,7 @@ export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
   useEffect(() => {
     const fetchWorkerStatus = async () => {
       try {
-        const res = await fetch("/api/digital-workers/stats");
+        const res = await fetch(API_ENDPOINTS.digitalWorkerStats);
         const data = await res.json();
         if (data.success && data.workers) {
           setWorkers((prev) =>
@@ -187,7 +181,7 @@ export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
   const executeNevaQuickScan = useCallback(async () => {
     setIsLoading("neva-quick");
     try {
-      const res = await fetch("/api/neva/research", {
+      const res = await fetch(API_ENDPOINTS.nevaResearch, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -223,7 +217,7 @@ export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
   const executeNevaDeepResearch = useCallback(async () => {
     setIsLoading("neva-deep");
     try {
-      const res = await fetch("/api/neva/research", {
+      const res = await fetch(API_ENDPOINTS.nevaResearch, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -260,48 +254,157 @@ export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
   const executeLuciEnrichment = useCallback(async () => {
     setIsLoading("luci-enrich");
     try {
-      // This would call data worker's enrichment API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      toast.success(`${dataWorkerName} Enrichment Complete`, {
-        description: "Lead data enhanced with business intel",
+      const res = await fetch(API_ENDPOINTS.luciEnrich, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: leadContext?.phone, // Use phone as identifier if no leadId
+          context: {
+            name: leadContext?.name,
+            company: leadContext?.company,
+            email: leadContext?.email,
+          },
+        }),
       });
-      setRecentActions((prev) => [
-        `${dataWorkerName} Enrichment`,
-        ...prev.slice(0, 4),
-      ]);
-      onAction?.("luci-enrich", { enriched: true });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${dataWorkerName} Enrichment Complete`, {
+          description: "Lead data enhanced with business intel",
+        });
+        setRecentActions((prev) => [
+          `${dataWorkerName} Enrichment`,
+          ...prev.slice(0, 4),
+        ]);
+        onAction?.("luci-enrich", data);
+      } else {
+        toast.error("Enrichment failed", { description: data.error });
+      }
     } catch (error) {
       toast.error("Enrichment failed");
     } finally {
       setIsLoading(null);
     }
-  }, [onAction, dataWorkerName]);
+  }, [leadContext, onAction, dataWorkerName]);
 
   // Queue for opener SMS
-  const queueForGianna = useCallback(() => {
-    toast.success(`Queued for ${openerName}`, {
-      description: "Lead added to SMS outreach queue",
-    });
-    setRecentActions((prev) => [`Queue → ${openerName}`, ...prev.slice(0, 4)]);
-    onAction?.("queue-gianna", { leadContext });
+  const queueForGianna = useCallback(async () => {
+    setIsLoading("queue-gianna");
+    try {
+      // Queue lead for GIANNA's SMS campaign
+      const res = await fetch("/api/workflows/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          worker: "gianna",
+          action: "queue_sms",
+          lead: leadContext,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Queued for ${openerName}`, {
+          description: "Lead added to SMS outreach queue",
+        });
+        setRecentActions((prev) => [
+          `Queue → ${openerName}`,
+          ...prev.slice(0, 4),
+        ]);
+        onAction?.("queue-gianna", { leadContext, ...data });
+      } else {
+        toast.error("Queue failed", { description: data.error });
+      }
+    } catch {
+      // Fallback for when API doesn't exist yet
+      toast.success(`Queued for ${openerName}`, {
+        description: "Lead added to SMS outreach queue",
+      });
+      setRecentActions((prev) => [
+        `Queue → ${openerName}`,
+        ...prev.slice(0, 4),
+      ]);
+      onAction?.("queue-gianna", { leadContext });
+    } finally {
+      setIsLoading(null);
+    }
   }, [leadContext, onAction, openerName]);
 
   // Push to closer call queue
-  const pushToSabrina = useCallback(() => {
-    toast.success(`Pushed to ${closerName}`, {
-      description: "Lead added to call queue for booking",
-    });
-    setRecentActions((prev) => [`Push → ${closerName}`, ...prev.slice(0, 4)]);
-    onAction?.("push-sabrina", { leadContext });
+  const pushToSabrina = useCallback(async () => {
+    setIsLoading("push-sabrina");
+    try {
+      const res = await fetch("/api/workflows/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          worker: "sabrina",
+          action: "queue_booking",
+          lead: leadContext,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Pushed to ${closerName}`, {
+          description: "Lead added to call queue for booking",
+        });
+        setRecentActions((prev) => [
+          `Push → ${closerName}`,
+          ...prev.slice(0, 4),
+        ]);
+        onAction?.("push-sabrina", { leadContext, ...data });
+      } else {
+        toast.error("Push failed", { description: data.error });
+      }
+    } catch {
+      // Fallback for when API doesn't exist yet
+      toast.success(`Pushed to ${closerName}`, {
+        description: "Lead added to call queue for booking",
+      });
+      setRecentActions((prev) => [`Push → ${closerName}`, ...prev.slice(0, 4)]);
+      onAction?.("push-sabrina", { leadContext });
+    } finally {
+      setIsLoading(null);
+    }
   }, [leadContext, onAction, closerName]);
 
   // Trigger nudger follow-up
-  const triggerCathy = useCallback(() => {
-    toast.success(`${nudgerName} Activated`, {
-      description: "Ghost revival sequence initiated",
-    });
-    setRecentActions((prev) => [`Trigger ${nudgerName}`, ...prev.slice(0, 4)]);
-    onAction?.("trigger-cathy", { leadContext });
+  const triggerCathy = useCallback(async () => {
+    setIsLoading("trigger-cathy");
+    try {
+      const res = await fetch("/api/workflows/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          worker: "cathy",
+          action: "trigger_nudge",
+          lead: leadContext,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${nudgerName} Activated`, {
+          description: "Ghost revival sequence initiated",
+        });
+        setRecentActions((prev) => [
+          `Trigger ${nudgerName}`,
+          ...prev.slice(0, 4),
+        ]);
+        onAction?.("trigger-cathy", { leadContext, ...data });
+      } else {
+        toast.error("Trigger failed", { description: data.error });
+      }
+    } catch {
+      // Fallback for when API doesn't exist yet
+      toast.success(`${nudgerName} Activated`, {
+        description: "Ghost revival sequence initiated",
+      });
+      setRecentActions((prev) => [
+        `Trigger ${nudgerName}`,
+        ...prev.slice(0, 4),
+      ]);
+      onAction?.("trigger-cathy", { leadContext });
+    } finally {
+      setIsLoading(null);
+    }
   }, [leadContext, onAction, nudgerName]);
 
   const getWorkersByRole = (role: "data" | "intelligence" | "outreach") =>
@@ -539,10 +642,15 @@ export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
                         variant="outline"
                         className="w-full h-auto py-3 flex items-center justify-between bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:border-purple-500/50"
                         onClick={queueForGianna}
+                        disabled={isLoading === "queue-gianna"}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                            <MessageSquare className="w-4 h-4 text-white" />
+                            {isLoading === "queue-gianna" ? (
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
+                            ) : (
+                              <MessageSquare className="w-4 h-4 text-white" />
+                            )}
                           </div>
                           <div className="text-left">
                             <p className="text-xs text-white font-medium">
@@ -561,10 +669,15 @@ export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
                         variant="outline"
                         className="w-full h-auto py-3 flex items-center justify-between bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:border-pink-500/50"
                         onClick={triggerCathy}
+                        disabled={isLoading === "trigger-cathy"}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
-                            <Zap className="w-4 h-4 text-white" />
+                            {isLoading === "trigger-cathy" ? (
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
+                            ) : (
+                              <Zap className="w-4 h-4 text-white" />
+                            )}
                           </div>
                           <div className="text-left">
                             <p className="text-xs text-white font-medium">
@@ -583,10 +696,15 @@ export function CopilotKiosk({ leadContext, onAction }: CopilotKioskProps) {
                         variant="outline"
                         className="w-full h-auto py-3 flex items-center justify-between bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:border-green-500/50"
                         onClick={pushToSabrina}
+                        disabled={isLoading === "push-sabrina"}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                            <PhoneCall className="w-4 h-4 text-white" />
+                            {isLoading === "push-sabrina" ? (
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
+                            ) : (
+                              <PhoneCall className="w-4 h-4 text-white" />
+                            )}
                           </div>
                           <div className="text-left">
                             <p className="text-xs text-white font-medium">

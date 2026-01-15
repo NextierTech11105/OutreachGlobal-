@@ -22,6 +22,32 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || "";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.nextier.ai";
 
+// SignalHouse Campaign Configuration (10DLC Compliance)
+// These are the registered 10DLC campaigns with carriers
+export const SIGNALHOUSE_CAMPAIGNS = {
+  // Primary GIANNA campaign (Marketing/Mixed use case)
+  GIANNA_PRIMARY: {
+    campaignId: process.env.SIGNALHOUSE_CAMPAIGN_ID || "CW7I6X5",
+    brandId: process.env.SIGNALHOUSE_BRAND_ID || "BZOYPIH",
+    phone: process.env.SIGNALHOUSE_FROM_NUMBER || "+15164079249",
+    useCase: "MARKETING",
+  },
+  // CATHY campaign (if separate registration needed)
+  CATHY: {
+    campaignId: process.env.SIGNALHOUSE_CATHY_CAMPAIGN_ID || "CW7I6X5", // Same for now
+    brandId: process.env.SIGNALHOUSE_BRAND_ID || "BZOYPIH",
+    phone: process.env.SIGNALHOUSE_CATHY_NUMBER || "+15164079249", // Same for now
+    useCase: "MARKETING",
+  },
+  // SABRINA campaign (if separate registration needed)
+  SABRINA: {
+    campaignId: process.env.SIGNALHOUSE_SABRINA_CAMPAIGN_ID || "CW7I6X5", // Same for now
+    brandId: process.env.SIGNALHOUSE_BRAND_ID || "BZOYPIH",
+    phone: process.env.SIGNALHOUSE_SABRINA_NUMBER || "+15164079249", // Same for now
+    useCase: "MARKETING",
+  },
+} as const;
+
 // Redis keys for Call Queue persistence (tenant-scoped)
 // Keys are now prefixed with teamId for multi-tenant isolation
 function getCallQueueKey(teamId: string): string {
@@ -81,6 +107,11 @@ export interface CallQueueItem {
   persona: PersonaId;
   mode: PersonaMode;
   campaignLane: CampaignLane;
+
+  // SignalHouse Campaign Mapping
+  signalhouseCampaignId?: string; // 10DLC campaign ID (e.g., CW7I6X5, CJRCU60)
+  signalhouseBrandId?: string;    // 10DLC brand ID (e.g., BZOYPIH)
+  campaignBlockId?: string;       // Internal block tag (e.g., "day1_block", "campaign:ABC123")
 
   // Queue details
   queueType: CallQueueType;

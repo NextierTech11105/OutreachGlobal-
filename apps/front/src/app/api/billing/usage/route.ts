@@ -108,52 +108,52 @@ export async function GET(request: NextRequest) {
     const plan = subscription.plan;
     const usageData = {
       leads: {
-        used: currentUsage?.leadsUsed || 0,
+        used: currentUsage?.leadsCreated || 0,
         limit: plan?.maxLeadsPerMonth || 1000,
         percentage: Math.round(
-          ((currentUsage?.leadsUsed || 0) / (plan?.maxLeadsPerMonth || 1000)) *
+          ((currentUsage?.leadsCreated || 0) / (plan?.maxLeadsPerMonth || 1000)) *
             100,
         ),
         overage: Math.max(
           0,
-          (currentUsage?.leadsUsed || 0) - (plan?.maxLeadsPerMonth || 1000),
+          (currentUsage?.leadsCreated || 0) - (plan?.maxLeadsPerMonth || 1000),
         ),
       },
       propertySearches: {
-        used: currentUsage?.propertySearchesUsed || 0,
+        used: currentUsage?.propertySearches || 0,
         limit: plan?.maxPropertySearches || 500,
         percentage: Math.round(
-          ((currentUsage?.propertySearchesUsed || 0) /
+          ((currentUsage?.propertySearches || 0) /
             (plan?.maxPropertySearches || 500)) *
             100,
         ),
         overage: Math.max(
           0,
-          (currentUsage?.propertySearchesUsed || 0) -
+          (currentUsage?.propertySearches || 0) -
             (plan?.maxPropertySearches || 500),
         ),
       },
       sms: {
-        used: currentUsage?.smsUsed || 0,
+        used: currentUsage?.smsSent || 0,
         limit: plan?.maxSmsPerMonth || 500,
         percentage: Math.round(
-          ((currentUsage?.smsUsed || 0) / (plan?.maxSmsPerMonth || 500)) * 100,
+          ((currentUsage?.smsSent || 0) / (plan?.maxSmsPerMonth || 500)) * 100,
         ),
         overage: Math.max(
           0,
-          (currentUsage?.smsUsed || 0) - (plan?.maxSmsPerMonth || 500),
+          (currentUsage?.smsSent || 0) - (plan?.maxSmsPerMonth || 500),
         ),
       },
       skipTraces: {
-        used: currentUsage?.skipTracesUsed || 0,
+        used: currentUsage?.skipTraces || 0,
         limit: plan?.maxSkipTraces || 50,
         percentage: Math.round(
-          ((currentUsage?.skipTracesUsed || 0) / (plan?.maxSkipTraces || 50)) *
+          ((currentUsage?.skipTraces || 0) / (plan?.maxSkipTraces || 50)) *
             100,
         ),
         overage: Math.max(
           0,
-          (currentUsage?.skipTracesUsed || 0) - (plan?.maxSkipTraces || 50),
+          (currentUsage?.skipTraces || 0) - (plan?.maxSkipTraces || 50),
         ),
       },
     };
@@ -244,6 +244,7 @@ export async function POST(request: NextRequest) {
       // No subscription - still track for potential billing
       await db.insert(usageEvents).values({
         userId,
+        subscriptionId: "none",
         eventType,
         quantity,
         unitCost: OVERAGE_COSTS[eventType as UsageEventType],
@@ -271,48 +272,46 @@ export async function POST(request: NextRequest) {
       const newUsage = await db
         .insert(usage)
         .values({
+          userId,
           subscriptionId: subscription.id,
           periodStart: subscription.currentPeriodStart!,
           periodEnd: subscription.currentPeriodEnd!,
-          leadsUsed: 0,
-          leadsLimit: subscription.plan?.maxLeadsPerMonth || 1000,
-          propertySearchesUsed: 0,
-          propertySearchesLimit: subscription.plan?.maxPropertySearches || 500,
-          smsUsed: 0,
-          smsLimit: subscription.plan?.maxSmsPerMonth || 500,
-          skipTracesUsed: 0,
-          skipTracesLimit: subscription.plan?.maxSkipTraces || 50,
+          leadsCreated: 0,
+          propertySearches: 0,
+          smsSent: 0,
+          skipTraces: 0,
         })
         .returning();
       currentUsage = newUsage[0];
     }
 
     // Update usage based on event type
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, number> = {};
     let isOverage = false;
     let currentCount = 0;
+    const plan = subscription.plan;
     let limit = 0;
 
     switch (eventType) {
       case "lead_created":
-        currentCount = currentUsage.leadsUsed + quantity;
-        limit = currentUsage.leadsLimit;
-        updateData.leadsUsed = currentCount;
+        currentCount = (currentUsage.leadsCreated || 0) + quantity;
+        limit = plan?.maxLeadsPerMonth || 1000;
+        updateData.leadsCreated = currentCount;
         break;
       case "property_search":
-        currentCount = currentUsage.propertySearchesUsed + quantity;
-        limit = currentUsage.propertySearchesLimit;
-        updateData.propertySearchesUsed = currentCount;
+        currentCount = (currentUsage.propertySearches || 0) + quantity;
+        limit = plan?.maxPropertySearches || 500;
+        updateData.propertySearches = currentCount;
         break;
       case "sms_sent":
-        currentCount = currentUsage.smsUsed + quantity;
-        limit = currentUsage.smsLimit;
-        updateData.smsUsed = currentCount;
+        currentCount = (currentUsage.smsSent || 0) + quantity;
+        limit = plan?.maxSmsPerMonth || 500;
+        updateData.smsSent = currentCount;
         break;
       case "skip_trace":
-        currentCount = currentUsage.skipTracesUsed + quantity;
-        limit = currentUsage.skipTracesLimit;
-        updateData.skipTracesUsed = currentCount;
+        currentCount = (currentUsage.skipTraces || 0) + quantity;
+        limit = plan?.maxSkipTraces || 50;
+        updateData.skipTraces = currentCount;
         break;
     }
 

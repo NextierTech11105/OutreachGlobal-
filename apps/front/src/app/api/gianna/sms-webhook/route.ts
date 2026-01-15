@@ -11,6 +11,177 @@ import { aiDecisionLogs } from "@/lib/db/schema";
 import crypto, { timingSafeEqual } from "crypto";
 import { isAlreadyProcessed } from "@/lib/webhook/idempotency";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOT LEAD ROUTING - Connect classification to call queue
+// This is the CRITICAL BRIDGE for monetization
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface HotLeadRouting {
+  addToCallQueue: boolean;
+  priority: number; // 1-10
+  persona: "gianna" | "cathy" | "sabrina";
+  campaignLane: "initial" | "retarget" | "follow_up" | "book_appointment" | "nurture" | "nudger";
+  tags: string[];
+  reason: string;
+}
+
+/**
+ * Determine hot lead routing based on classification
+ * HIGH PRIORITY classifications → SABRINA call queue
+ * MEDIUM PRIORITY → GIANNA follow-up
+ */
+function getHotLeadRouting(classification: ClassificationResult | null): HotLeadRouting | null {
+  if (!classification) return null;
+
+  const classId = classification.classificationId;
+
+  // GREEN TAG - Email Capture = HIGHEST PRIORITY → SABRINA
+  if (classId === "email-capture") {
+    return {
+      addToCallQueue: true,
+      priority: 10,
+      persona: "sabrina",
+      campaignLane: "book_appointment",
+      tags: ["responded", "green", "email_captured", "hot_lead"],
+      reason: "Email captured - ready to book appointment"
+    };
+  }
+
+  // GREEN TAG - Called Phone Line = HIGH INTENT → SABRINA
+  if (classId === "called-phone-line") {
+    return {
+      addToCallQueue: true,
+      priority: 10,
+      persona: "sabrina",
+      campaignLane: "book_appointment",
+      tags: ["responded", "green", "called_back", "hot_lead"],
+      reason: "Inbound call - extreme high intent"
+    };
+  }
+
+  // GREEN TAG - Question = NEEDS FOLLOW-UP → GIANNA then SABRINA
+  if (classId === "question") {
+    return {
+      addToCallQueue: true,
+      priority: 8,
+      persona: "gianna",
+      campaignLane: "follow_up",
+      tags: ["responded", "green", "question"],
+      reason: "Asked question - needs qualification"
+    };
+  }
+
+  // GREEN TAG - Assistance Request → GIANNA
+  if (classId === "assistance") {
+    return {
+      addToCallQueue: true,
+      priority: 8,
+      persona: "gianna",
+      campaignLane: "follow_up",
+      tags: ["responded", "green", "assistance"],
+      reason: "Requested help - needs follow-up"
+    };
+  }
+
+  // GREEN TAG - Interested → SABRINA
+  if (classId === "interested") {
+    return {
+      addToCallQueue: true,
+      priority: 9,
+      persona: "sabrina",
+      campaignLane: "book_appointment",
+      tags: ["responded", "green", "interested", "hot_lead"],
+      reason: "Expressed interest - book appointment"
+    };
+  }
+
+  // BLUE TAG - Thank You (likely after email) → monitor
+  if (classId === "thank-you") {
+    return {
+      addToCallQueue: false,
+      priority: 5,
+      persona: "gianna",
+      campaignLane: "nurture",
+      tags: ["responded", "acknowledged"],
+      reason: "Acknowledged - continue nurture"
+    };
+  }
+
+  // Other responses - add to queue for review
+  if (classId === "other") {
+    return {
+      addToCallQueue: true,
+      priority: 6,
+      persona: "gianna",
+      campaignLane: "follow_up",
+      tags: ["responded", "needs_review"],
+      reason: "Unclassified response - needs manual review"
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Add lead to call queue with proper worker assignment
+ */
+async function addToCallQueue(
+  leadId: string,
+  phone: string,
+  routing: HotLeadRouting,
+  context: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    company?: string;
+    address?: string;
+    teamId?: string;
+  }
+): Promise<boolean> {
+  try {
+    const teamId = context.teamId || "default";
+
+    const response = await fetch(`${APP_URL}/api/call-center/queue`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-team-id": teamId,
+      },
+      body: JSON.stringify({
+        action: "add_single",
+        teamId,
+        leadId,
+        leadName: [context.firstName, context.lastName].filter(Boolean).join(" ") || undefined,
+        phone,
+        email: context.email,
+        company: context.company,
+        address: context.address,
+        persona: routing.persona,
+        campaignLane: routing.campaignLane,
+        queueType: "immediate",
+        priority: routing.priority,
+        leadSource: "sms_response",
+        businessLine: "nextier",
+        tags: routing.tags,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("[Gianna SMS] Failed to add to call queue:", await response.text());
+      return false;
+    }
+
+    console.log(`[Gianna SMS] ✅ HOT LEAD ROUTED: ${phone} → ${routing.persona.toUpperCase()} (${routing.campaignLane}) priority=${routing.priority}`);
+    console.log(`[Gianna SMS]    Reason: ${routing.reason}`);
+    console.log(`[Gianna SMS]    Tags: ${routing.tags.join(", ")}`);
+
+    return true;
+  } catch (error) {
+    console.error("[Gianna SMS] Call queue error:", error);
+    return false;
+  }
+}
+
 /**
  * GIANNA AI SMS WEBHOOK HANDLER
  *
@@ -175,6 +346,31 @@ export async function POST(request: NextRequest) {
     }
 
     // ═════════════════════════════════════════════════
+    // STEP 2.5: HOT LEAD ROUTING - Critical Bridge to Call Queue
+    // This is where classification → monetization happens!
+    // ═════════════════════════════════════════════════
+    const routing = getHotLeadRouting(classification);
+    const leadId = storedContext.propertyId || from;
+
+    if (routing?.addToCallQueue) {
+      console.log(`[Gianna SMS] 🔥 HOT LEAD DETECTED: ${from}`);
+      console.log(`[Gianna SMS]    Classification: ${classification?.classificationId}`);
+      console.log(`[Gianna SMS]    Routing to: ${routing.persona.toUpperCase()} (${routing.campaignLane})`);
+
+      // Extract email if present in message
+      const capturedEmail = body.match(EMAIL_REGEX)?.[0]?.toLowerCase();
+
+      await addToCallQueue(leadId, from, routing, {
+        firstName: storedContext.firstName,
+        lastName: storedContext.lastName,
+        email: capturedEmail,
+        company: storedContext.companyName,
+        address: storedContext.propertyAddress,
+        teamId: storedContext.clientId || "default",
+      });
+    }
+
+    // ═════════════════════════════════════════════════
     // STEP 3: Handle Email Capture (Homeowner Advisor)
     // ═════════════════════════════════════════════════
     const emailMatch = body.match(EMAIL_REGEX);
@@ -227,7 +423,7 @@ export async function POST(request: NextRequest) {
     // ═════════════════════════════════════════════════
     // STEP 3.5: Log AI decision for compliance/audit
     // ═════════════════════════════════════════════════
-    const leadId = storedContext.propertyId || from; // Use propertyId if available, else phone
+    // leadId already declared above in STEP 2.5
     await logAiDecision({
       leadId,
       workerId: "gianna",

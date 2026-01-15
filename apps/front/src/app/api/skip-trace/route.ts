@@ -1,17 +1,54 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * SKIP TRACE API - Unified Phone/Email Enrichment
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * PROVIDER ROUTING:
+ *   PRIMARY: Tracerfy ($0.02/lead) - phones + emails
+ *   FALLBACK: RealEstateAPI ($0.10-0.25/lead) - full skip trace
+ *
+ * The SkipTraceService handles provider selection automatically.
+ * Same response schema regardless of which provider is used.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
+import { getSkipTraceService, SkipTraceResult } from "@/lib/services/skip-trace-service";
+import {
+  DAILY_SKIP_TRACE_LIMIT,
+  BATCH_SIZE,
+  TRACERFY_COST_PER_LEAD,
+} from "@/config/constants";
 
-const REALESTATE_API_KEY =
-  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+// Provider check - Tracerfy is primary, RealEstateAPI is fallback
+const TRACERFY_TOKEN = process.env.TRACERFY_API_TOKEN || "";
+const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
+
+// Use Tracerfy if token is configured, otherwise fall back to RealEstateAPI
+const USE_TRACERFY = !!TRACERFY_TOKEN;
+
+// Daily limit: 2,000 skip traces per day (matching SMS queue limit)
+const DAILY_LIMIT = DAILY_SKIP_TRACE_LIMIT;
+const BULK_BATCH_SIZE = 1000;
+
+// Legacy RealEstateAPI endpoints (fallback only when Tracerfy unavailable)
 const SKIP_TRACE_URL = "https://api.realestateapi.com/v1/SkipTrace";
 const SKIP_TRACE_BATCH_AWAIT_URL =
   "https://api.realestateapi.com/v1/SkipTraceBatchAwait";
-const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 
-// Daily limit: 2,000 skip traces per day (matching SMS queue limit)
-const DAILY_LIMIT = 2000;
-const BATCH_SIZE = 250;
-const BULK_BATCH_SIZE = 1000; // RealEstateAPI allows up to 1,000 per bulk call
+// Apollo.io for B2B enrichment
+const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || "";
+
+// Log provider status on load
+console.log(`[Skip Trace] Property Provider: ${USE_TRACERFY ? "Tracerfy ($0.02/lead)" : "RealEstateAPI (fallback)"}`);
+console.log(`[Skip Trace] B2B Provider: ${APOLLO_API_KEY ? "Apollo.io" : "Not configured"}`);
+if (!USE_TRACERFY && !REALESTATE_API_KEY) {
+  console.warn("[Skip Trace] WARNING: No skip trace provider configured!");
+}
+
+// Get the skip trace service (uses Tracerfy when available)
+const skipTraceService = getSkipTraceService();
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENTITY TYPE FILTER - Reject non-individual owners
@@ -839,21 +876,28 @@ async function bulkSkipTrace(propertyIds: string[]): Promise<{
 
 // POST - Skip trace people (by name/address or property ID)
 // Supports: single, batch (sequential), and bulk (SkipTraceBatchAwait)
+// ROUTING: Tracerfy ($0.02) → RealEstateAPI fallback ($0.10-0.25)
 export async function POST(request: NextRequest) {
   try {
-    // Check if API key is configured
-    if (!REALESTATE_API_KEY) {
+    // Check if ANY skip trace provider is configured
+    if (!TRACERFY_TOKEN && !REALESTATE_API_KEY) {
       return NextResponse.json(
         {
           error: "Skip Trace not configured",
-          message:
-            "RealEstateAPI key not set. Add REAL_ESTATE_API_KEY to your environment variables.",
-          configUrl: "https://realestateapi.com",
+          message: "No skip trace provider configured. Add TRACERFY_API_TOKEN (preferred, $0.02/lead) or REAL_ESTATE_API_KEY (fallback) to your environment variables.",
+          providers: {
+            tracerfy: { url: "https://tracerfy.com", cost: "$0.02/lead", status: "NOT_CONFIGURED" },
+            realestateapi: { url: "https://realestateapi.com", cost: "$0.10-0.25/lead", status: "NOT_CONFIGURED" },
+          },
           success: false,
         },
         { status: 503 },
       );
     }
+
+    // Log which provider will be used
+    const provider = USE_TRACERFY ? "tracerfy" : "realestateapi";
+    console.log(`[Skip Trace] Using provider: ${provider}`);
 
     const body = await request.json();
 

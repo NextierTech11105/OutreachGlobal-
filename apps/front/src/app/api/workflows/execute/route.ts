@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, smsMessages } from "@/lib/db/schema";
+import { leads, teamWorkflows, workflowRuns } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sendSMS, isConfigured } from "@/lib/signalhouse";
 
@@ -15,21 +15,26 @@ import { sendSMS, isConfigured } from "@/lib/signalhouse";
  * - lead.created
  * - lead.updated
  * - campaign.started
+ * - inactivity_threshold (no response after X days)
+ * - scheduled (cron-based)
  *
  * Supported actions:
  * - add_tag
  * - remove_tag
  * - update_status
+ * - update_pipeline_status
  * - send_sms
  * - send_email
  * - add_notes
  * - push_to_call_queue
+ * - route_to_agent (GIANNA, CATHY, SABRINA)
  */
 
 interface WorkflowExecutionRequest {
   trigger: string;
   teamId: string;
   leadId?: string;
+  leadIds?: string[]; // Support batch execution
   campaignId?: string;
   data?: Record<string, unknown>;
 }
@@ -47,14 +52,20 @@ interface Workflow {
   trigger: string;
   steps: WorkflowStep[];
   active: boolean;
+  config?: {
+    agent?: string;
+    templateIds?: string[];
+    delayDays?: number;
+    usesDifferentNumber?: boolean;
+    campaignType?: string;
+  };
 }
 
-// In-memory workflow registry (for fast lookups)
-// TODO: Replace with DB query when workflows table is wired
-const WORKFLOW_REGISTRY: Workflow[] = [
+// Default fallback workflows (used when no DB workflows match)
+const DEFAULT_WORKFLOWS: Workflow[] = [
   {
-    id: "wf_auto_respond_1",
-    name: "Auto-respond to new messages",
+    id: "wf_default_respond",
+    name: "Default - Mark as engaged on response",
     trigger: "message.received",
     active: true,
     steps: [
@@ -63,8 +74,8 @@ const WORKFLOW_REGISTRY: Workflow[] = [
     ],
   },
   {
-    id: "wf_hot_lead_1",
-    name: "Hot lead to call queue",
+    id: "wf_default_hot_lead",
+    name: "Default - Hot lead to call queue",
     trigger: "message.received",
     active: true,
     steps: [
@@ -72,17 +83,67 @@ const WORKFLOW_REGISTRY: Workflow[] = [
       { action: "push_to_call_queue" },
     ],
   },
-  {
-    id: "wf_new_lead_welcome",
-    name: "Welcome new leads",
-    trigger: "lead.created",
-    active: true,
-    steps: [
-      { action: "add_tag", value: "new" },
-      { action: "send_sms", templateId: "bb-1" },
-    ],
-  },
 ];
+
+/**
+ * Load active workflows from database for a team
+ */
+async function loadWorkflowsFromDB(
+  teamId: string,
+  trigger: string,
+): Promise<Workflow[]> {
+  try {
+    const dbWorkflows = await db
+      .select()
+      .from(teamWorkflows)
+      .where(
+        and(
+          eq(teamWorkflows.teamId, teamId),
+          eq(teamWorkflows.status, "active"),
+          eq(teamWorkflows.trigger, trigger),
+        ),
+      );
+
+    // Transform DB workflows to execution format
+    return dbWorkflows.map((wf) => {
+      const config = wf.config as Workflow["config"];
+      const steps: WorkflowStep[] = [];
+
+      // Build steps based on workflow stage and config
+      if (config?.agent) {
+        steps.push({
+          action: "route_to_agent",
+          value: config.agent,
+          metadata: {
+            campaignType: config.campaignType,
+            usesDifferentNumber: config.usesDifferentNumber,
+            templateIds: config.templateIds,
+          },
+        });
+      }
+
+      // Add default stage transition step
+      if (wf.stage) {
+        steps.push({
+          action: "update_pipeline_status",
+          value: wf.stage,
+        });
+      }
+
+      return {
+        id: wf.id,
+        name: wf.name,
+        trigger: wf.trigger || trigger,
+        steps,
+        active: true,
+        config,
+      };
+    });
+  } catch (error) {
+    console.error("[WorkflowEngine] Failed to load workflows from DB:", error);
+    return [];
+  }
+}
 
 // Execute a single action step
 async function executeAction(
@@ -204,6 +265,71 @@ async function executeAction(
         return { success: true, result: { note: value } };
       }
 
+      case "update_pipeline_status": {
+        if (!leadId || !value)
+          return { success: false, error: "Missing leadId or pipeline status" };
+        await db
+          .update(leads)
+          .set({
+            pipelineStatus: value,
+            updatedAt: new Date(),
+          })
+          .where(eq(leads.id, leadId));
+        return { success: true, result: { pipelineStatus: value } };
+      }
+
+      case "route_to_agent": {
+        if (!leadId || !value)
+          return { success: false, error: "Missing leadId or agent name" };
+
+        const agent = value.toUpperCase();
+        const metadata = step.metadata || {};
+
+        // Route to the appropriate agent API
+        let apiUrl = "";
+        switch (agent) {
+          case "GIANNA":
+            apiUrl = "/api/gianna/send-batch";
+            break;
+          case "CATHY":
+            apiUrl = "/api/cathy/nudge";
+            break;
+          case "SABRINA":
+            apiUrl = "/api/sabrina/auto-book";
+            break;
+          default:
+            return { success: false, error: `Unknown agent: ${agent}` };
+        }
+
+        // Queue for agent processing
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || ""}${apiUrl}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                leadIds: [leadId],
+                teamId,
+                templateId: metadata.templateIds?.[0],
+                campaignType: metadata.campaignType,
+                usesDifferentNumber: metadata.usesDifferentNumber,
+              }),
+            },
+          );
+          const result = await response.json();
+          return {
+            success: result.success || response.ok,
+            result: { agent, queued: true, ...result },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: `Failed to route to ${agent}: ${error}`,
+          };
+        }
+      }
+
       default:
         return { success: false, error: `Unknown action: ${action}` };
     }
@@ -219,14 +345,27 @@ async function executeAction(
 // Execute all matching workflows for a trigger
 async function executeWorkflows(
   trigger: string,
-  context: { teamId: string; leadId?: string; data?: Record<string, unknown> },
+  context: {
+    teamId: string;
+    leadId?: string;
+    leadIds?: string[];
+    data?: Record<string, unknown>;
+  },
 ): Promise<{
   executed: number;
   results: Array<{ workflowId: string; success: boolean; steps: unknown[] }>;
 }> {
-  const matchingWorkflows = WORKFLOW_REGISTRY.filter(
-    (wf) => wf.trigger === trigger && wf.active,
-  );
+  const { teamId, leadId, leadIds, data } = context;
+
+  // Load workflows from database first, fall back to defaults
+  let matchingWorkflows = await loadWorkflowsFromDB(teamId, trigger);
+
+  // If no DB workflows, use defaults for common triggers
+  if (matchingWorkflows.length === 0) {
+    matchingWorkflows = DEFAULT_WORKFLOWS.filter(
+      (wf) => wf.trigger === trigger && wf.active,
+    );
+  }
 
   console.log(
     `[WorkflowEngine] Found ${matchingWorkflows.length} workflows for trigger: ${trigger}`,
@@ -234,23 +373,92 @@ async function executeWorkflows(
 
   const results = [];
 
+  // Get all lead IDs to process
+  const allLeadIds = leadIds || (leadId ? [leadId] : []);
+
   for (const workflow of matchingWorkflows) {
     const stepResults = [];
     let workflowSuccess = true;
+    let processedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
 
-    for (const step of workflow.steps) {
-      const result = await executeAction(step, context);
-      stepResults.push({ action: step.action, ...result });
-      if (!result.success) {
-        workflowSuccess = false;
-        break; // Stop on first failure
+    // Create a workflow run record
+    const runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    try {
+      await db.insert(workflowRuns).values({
+        id: runId,
+        workflowId: workflow.id,
+        teamId,
+        status: "running",
+        inputData: { trigger, leadIds: allLeadIds, data },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (e) {
+      // Table might not exist yet, continue anyway
+      console.log("[WorkflowEngine] Could not create run record:", e);
+    }
+
+    // Process each lead
+    for (const lid of allLeadIds) {
+      processedCount++;
+      let leadSuccess = true;
+
+      for (const step of workflow.steps) {
+        const result = await executeAction(step, { teamId, leadId: lid, data });
+        stepResults.push({ leadId: lid, action: step.action, ...result });
+        if (!result.success) {
+          leadSuccess = false;
+          workflowSuccess = false;
+          break; // Stop steps for this lead on first failure
+        }
       }
+
+      if (leadSuccess) {
+        successCount++;
+      } else {
+        failedCount++;
+      }
+    }
+
+    // Update workflow run with results
+    try {
+      await db
+        .update(workflowRuns)
+        .set({
+          status: workflowSuccess ? "completed" : "failed",
+          leadsProcessed: processedCount,
+          leadsSuccessful: successCount,
+          leadsFailed: failedCount,
+          outputData: { steps: stepResults },
+          updatedAt: new Date(),
+        })
+        .where(eq(workflowRuns.id, runId));
+
+      // Update workflow stats
+      await db
+        .update(teamWorkflows)
+        .set({
+          runsCount: (workflow as any).runsCount
+            ? (workflow as any).runsCount + 1
+            : 1,
+          lastRunAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(teamWorkflows.id, workflow.id));
+    } catch (e) {
+      console.log("[WorkflowEngine] Could not update run/workflow:", e);
     }
 
     results.push({
       workflowId: workflow.id,
       workflowName: workflow.name,
+      runId,
       success: workflowSuccess,
+      processed: processedCount,
+      successful: successCount,
+      failed: failedCount,
       steps: stepResults,
     });
   }
@@ -261,7 +469,7 @@ async function executeWorkflows(
 export async function POST(request: NextRequest) {
   try {
     const body: WorkflowExecutionRequest = await request.json();
-    const { trigger, teamId, leadId, campaignId, data } = body;
+    const { trigger, teamId, leadId, leadIds, campaignId, data } = body;
 
     if (!trigger) {
       return NextResponse.json(
@@ -277,12 +485,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const targetLeads = leadIds || (leadId ? [leadId] : []);
     console.log(`[WorkflowEngine] Processing trigger: ${trigger}`, {
       teamId,
-      leadId,
+      leadCount: targetLeads.length,
     });
 
-    const result = await executeWorkflows(trigger, { teamId, leadId, data });
+    const result = await executeWorkflows(trigger, {
+      teamId,
+      leadId,
+      leadIds,
+      data,
+    });
 
     return NextResponse.json({
       success: true,
@@ -299,39 +513,79 @@ export async function POST(request: NextRequest) {
 }
 
 // GET - List available workflows and triggers
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    workflows: WORKFLOW_REGISTRY.map((wf) => ({
-      id: wf.id,
-      name: wf.name,
-      trigger: wf.trigger,
-      active: wf.active,
-      stepsCount: wf.steps.length,
-    })),
-    triggers: [
-      "message.received",
-      "lead.created",
-      "lead.updated",
-      "campaign.started",
-    ],
-    actions: [
-      "add_tag",
-      "remove_tag",
-      "update_status",
-      "send_sms",
-      "send_email",
-      "add_notes",
-      "push_to_call_queue",
-    ],
-  });
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const teamId = searchParams.get("teamId");
+
+    // If teamId provided, load from DB
+    let workflows: Workflow[] = [];
+    if (teamId) {
+      const dbWorkflows = await db
+        .select()
+        .from(teamWorkflows)
+        .where(eq(teamWorkflows.teamId, teamId));
+
+      workflows = dbWorkflows.map((wf) => ({
+        id: wf.id,
+        name: wf.name,
+        trigger: wf.trigger || "",
+        steps: [],
+        active: wf.status === "active",
+        config: wf.config as Workflow["config"],
+      }));
+    }
+
+    // Include defaults
+    const allWorkflows = [...workflows, ...DEFAULT_WORKFLOWS];
+
+    return NextResponse.json({
+      success: true,
+      workflows: allWorkflows.map((wf) => ({
+        id: wf.id,
+        name: wf.name,
+        trigger: wf.trigger,
+        active: wf.active,
+        stepsCount: wf.steps?.length || 0,
+        config: wf.config,
+      })),
+      triggers: [
+        "message.received",
+        "lead.created",
+        "lead.updated",
+        "campaign.started",
+        "inactivity_threshold",
+        "scheduled",
+      ],
+      actions: [
+        "add_tag",
+        "remove_tag",
+        "update_status",
+        "update_pipeline_status",
+        "send_sms",
+        "send_email",
+        "add_notes",
+        "push_to_call_queue",
+        "route_to_agent",
+      ],
+    });
+  } catch (error) {
+    console.error("[WorkflowEngine] GET error:", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to get workflows",
+      },
+      { status: 500 },
+    );
+  }
 }
 
-// PATCH - Toggle workflow active status
+// PATCH - Toggle workflow active status (updates DB)
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { workflowId, active } = body;
+    const { workflowId, active, teamId } = body;
 
     if (!workflowId) {
       return NextResponse.json(
@@ -340,35 +594,42 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Find and update the workflow in the registry
-    const workflowIndex = WORKFLOW_REGISTRY.findIndex(
-      (wf) => wf.id === workflowId,
-    );
+    // Check if it's a default workflow (can't toggle)
+    const isDefault = DEFAULT_WORKFLOWS.some((wf) => wf.id === workflowId);
+    if (isDefault) {
+      return NextResponse.json(
+        { error: "Cannot toggle default workflows" },
+        { status: 400 },
+      );
+    }
 
-    if (workflowIndex === -1) {
+    // Update in database
+    const newStatus = active ? "active" : "draft";
+    const [updated] = await db
+      .update(teamWorkflows)
+      .set({
+        status: newStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(teamWorkflows.id, workflowId))
+      .returning();
+
+    if (!updated) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 },
       );
     }
 
-    // Toggle the active status
-    const newActive =
-      typeof active === "boolean"
-        ? active
-        : !WORKFLOW_REGISTRY[workflowIndex].active;
-    WORKFLOW_REGISTRY[workflowIndex].active = newActive;
-
-    console.log(
-      `[WorkflowEngine] Workflow ${workflowId} set to ${newActive ? "active" : "paused"}`,
-    );
+    console.log(`[WorkflowEngine] Workflow ${workflowId} set to ${newStatus}`);
 
     return NextResponse.json({
       success: true,
       workflow: {
-        id: WORKFLOW_REGISTRY[workflowIndex].id,
-        name: WORKFLOW_REGISTRY[workflowIndex].name,
-        active: WORKFLOW_REGISTRY[workflowIndex].active,
+        id: updated.id,
+        name: updated.name,
+        active: updated.status === "active",
+        status: updated.status,
       },
     });
   } catch (error) {

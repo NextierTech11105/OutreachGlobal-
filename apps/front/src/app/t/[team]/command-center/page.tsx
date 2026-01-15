@@ -52,14 +52,15 @@ import {
   getTotalRecordsAvailable,
   getVerifiedDatabases,
 } from "@/lib/data/usbizdata-registry";
+import {
+  DAILY_SKIP_TRACE_LIMIT,
+  BATCH_SIZE,
+  CAMPAIGN_BUCKET_SIZE,
+  MONTHLY_POOL_TARGET,
+} from "@/config/constants";
+import { WORKERS, WORKER_LIST, type WorkerId } from "@/config/workers";
 
-// Pipeline targets
-const DAILY_SKIP_TRACE_LIMIT = 2000;
-const BATCH_SIZE = 250;
-const CAMPAIGN_BUCKET_SIZE = 2000;
-const MONTHLY_POOL_TARGET = 20000;
-
-// AI Worker personas
+// AI Worker display config (mapped from central worker config)
 const AI_WORKERS = [
   {
     id: "gianna",

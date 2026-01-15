@@ -348,7 +348,10 @@ export default function AppointmentsPage() {
               </Card>
             ) : (
               filteredAppointments.map((apt) => (
-                <Card key={apt.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={apt.id}
+                  className="hover:shadow-md transition-shadow"
+                >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -485,7 +488,8 @@ export default function AppointmentsPage() {
                             {getLeadDisplayName(lead)}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {lead.phone} {lead.companyName && `• ${lead.companyName}`}
+                            {lead.phone}{" "}
+                            {lead.companyName && `• ${lead.companyName}`}
                           </p>
                         </button>
                       ))}
@@ -520,7 +524,10 @@ export default function AppointmentsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={appointmentType} onValueChange={setAppointmentType}>
+                <Select
+                  value={appointmentType}
+                  onValueChange={setAppointmentType}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
