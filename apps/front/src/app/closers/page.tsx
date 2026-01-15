@@ -126,6 +126,29 @@ export default function ClosersLandingPage() {
               </div>
             </div>
 
+            {/* Integration Message */}
+            <div className="pt-6 pb-2">
+              <p className="text-lg text-zinc-300 font-medium">
+                We compete with nothing. We integrate with everything.
+              </p>
+              <p className="text-zinc-500 mt-2">
+                No need to switch CRMs. Works with your existing tools.
+              </p>
+            </div>
+
+            {/* White Label Partnership */}
+            <div className="pt-4">
+              <a
+                href={CALENDLY_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 font-medium transition-colors"
+              >
+                Learn about our White Label Partnership
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+
             {/* CTA */}
             <div className="pt-8">
               <a
@@ -205,6 +228,7 @@ export default function ClosersLandingPage() {
               >
                 {/* Category Header */}
                 <button
+                  type="button"
                   onClick={() =>
                     setSelectedAudience(
                       selectedAudience === audience.category ? null : audience.category
