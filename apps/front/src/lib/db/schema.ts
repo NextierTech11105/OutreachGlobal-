@@ -2591,20 +2591,37 @@ export const aiDecisionLogs = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     leadId: text("lead_id").notNull(),
-    workerId: text("worker_id").notNull(), // gianna, cathy, sabrina, neva
+    workerId: text("worker_id").notNull(), // gianna, cathy, sabrina, neva, copilot
     // Input context
     inboundMessage: text("inbound_message"),
     promptHash: text("prompt_hash"), // Hash of full prompt for deduplication
     // AI decision
+    operation: text("operation"), // classifyMessage, generateResponse, etc.
     intent: text("intent"), // classified intent from response
+    classification: text("classification"), // POSITIVE, NEGATIVE, QUESTION, etc.
+    priority: text("priority"), // HOT, WARM, COLD
     confidence: decimal("confidence", { precision: 5, scale: 2 }),
     // Output
     generatedResponse: text("generated_response"),
     responseSent: boolean("response_sent").default(false),
+    // Token Usage (P0 - Cost Tracking)
+    model: text("model"), // gpt-4o-mini, claude-3-haiku, etc.
+    promptTokens: integer("prompt_tokens"),
+    completionTokens: integer("completion_tokens"),
+    totalTokens: integer("total_tokens"),
+    estimatedCostUsd: decimal("estimated_cost_usd", { precision: 10, scale: 6 }),
+    latencyMs: integer("latency_ms"),
+    // Retry Info
+    attemptNumber: integer("attempt_number").default(1),
+    wasRetried: boolean("was_retried").default(false),
     // Human override
     humanOverride: boolean("human_override").default(false),
     overrideBy: text("override_by"),
     overrideReason: text("override_reason"),
+    // Security/Compliance
+    inputSanitized: boolean("input_sanitized").default(false),
+    outputValidated: boolean("output_validated").default(false),
+    validationErrors: jsonb("validation_errors"), // Zod validation errors if any
     // Timestamps
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -2612,6 +2629,8 @@ export const aiDecisionLogs = pgTable(
     leadIdIdx: index("ai_decision_logs_lead_id_idx").on(table.leadId),
     workerIdx: index("ai_decision_logs_worker_idx").on(table.workerId),
     createdAtIdx: index("ai_decision_logs_created_at_idx").on(table.createdAt),
+    modelIdx: index("ai_decision_logs_model_idx").on(table.model),
+    operationIdx: index("ai_decision_logs_operation_idx").on(table.operation),
   }),
 );
 

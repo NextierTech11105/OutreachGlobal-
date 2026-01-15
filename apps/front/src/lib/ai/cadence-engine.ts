@@ -15,9 +15,19 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { THE_LOOP, CAMPAIGN_MACROS, type CampaignMacroId } from "@/config/constants";
-import { SMS_TEMPLATES, PERSONAS, getTemplate, renderTemplate } from "@/config/the-blitz";
+import {
+  THE_LOOP,
+  CAMPAIGN_MACROS,
+  type CampaignMacroId,
+} from "@/config/constants";
+import {
+  SMS_TEMPLATES,
+  PERSONAS,
+  getTemplate,
+  renderTemplate,
+} from "@/config/the-blitz";
 import type { Lead, LeadSourceBucket, LeadBatch } from "./copilot-engine";
+import { Logger } from "@/lib/logger";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -42,7 +52,13 @@ export interface LeadCadenceState {
   lastTouchAt?: Date;
   nextTouchAt?: Date;
   nextTouchDay: number;
-  status: "active" | "responded" | "booked" | "opted_out" | "completed" | "paused";
+  status:
+    | "active"
+    | "responded"
+    | "booked"
+    | "opted_out"
+    | "completed"
+    | "paused";
 }
 
 export interface DailyExecution {
@@ -71,7 +87,13 @@ export interface CadenceMessage {
 
 export const TOUCH_SCHEDULE: CadenceTouch[] = [
   // Day 1 - OPENER (GIANNA)
-  { day: 1, type: "sms", template: "opener", worker: "GIANNA", stage: "opener" },
+  {
+    day: 1,
+    type: "sms",
+    template: "opener",
+    worker: "GIANNA",
+    stage: "opener",
+  },
 
   // Day 3 - NUDGE 1 (GIANNA)
   { day: 3, type: "sms", template: "nudge", worker: "GIANNA", stage: "nudge" },
@@ -86,16 +108,40 @@ export const TOUCH_SCHEDULE: CadenceTouch[] = [
   { day: 10, type: "sms", template: "value", worker: "CATHY", stage: "value" },
 
   // Day 14 - CLOSE ATTEMPT (SABRINA)
-  { day: 14, type: "sms", template: "close", worker: "SABRINA", stage: "close" },
+  {
+    day: 14,
+    type: "sms",
+    template: "close",
+    worker: "SABRINA",
+    stage: "close",
+  },
 
   // Day 21 - CALL ATTEMPT (SABRINA)
-  { day: 21, type: "call", template: "call", worker: "SABRINA", stage: "close" },
+  {
+    day: 21,
+    type: "call",
+    template: "call",
+    worker: "SABRINA",
+    stage: "close",
+  },
 
   // Day 28 - FINAL SMS (SABRINA)
-  { day: 28, type: "sms", template: "close", worker: "SABRINA", stage: "close" },
+  {
+    day: 28,
+    type: "sms",
+    template: "close",
+    worker: "SABRINA",
+    stage: "close",
+  },
 
   // Day 30 - FINAL CALL (SABRINA)
-  { day: 30, type: "call", template: "final", worker: "SABRINA", stage: "close" },
+  {
+    day: 30,
+    type: "call",
+    template: "final",
+    worker: "SABRINA",
+    stage: "close",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -130,7 +176,10 @@ export function getRemainingTouches(currentDay: number): CadenceTouch[] {
 /**
  * Calculate next touch date
  */
-export function calculateNextTouchDate(loopStartDate: Date, touchDay: number): Date {
+export function calculateNextTouchDate(
+  loopStartDate: Date,
+  touchDay: number,
+): Date {
   const start = new Date(loopStartDate);
   start.setDate(start.getDate() + touchDay - 1);
   return start;
@@ -142,7 +191,7 @@ export function calculateNextTouchDate(loopStartDate: Date, touchDay: number): D
 export function getLeadCadenceState(
   lead: Lead,
   campaign: CampaignMacroId = "B2B",
-  persona: string = "busy_ceo"
+  persona: string = "busy_ceo",
 ): LeadCadenceState {
   const loopStartDate = lead.lastTouchAt || new Date();
   const currentDay = calculateLoopDay(loopStartDate);
@@ -158,7 +207,9 @@ export function getLeadCadenceState(
     touchesSent: lead.touchCount,
     touchesRemaining: remainingTouches.length,
     lastTouchAt: lead.lastTouchAt,
-    nextTouchAt: nextTouch ? calculateNextTouchDate(loopStartDate, nextTouch.day) : undefined,
+    nextTouchAt: nextTouch
+      ? calculateNextTouchDate(loopStartDate, nextTouch.day)
+      : undefined,
     nextTouchDay: nextTouch?.day || THE_LOOP.LIFECYCLE_DAYS,
     status: currentDay >= THE_LOOP.LIFECYCLE_DAYS ? "completed" : "active",
   };
@@ -176,7 +227,7 @@ export function generateCadenceMessage(
   touch: CadenceTouch,
   persona: string,
   fromNumber: string,
-  bookingLink?: string
+  bookingLink?: string,
 ): CadenceMessage {
   // Get template for persona and stage
   const template = getTemplate(persona, touch.stage);
@@ -185,7 +236,10 @@ export function generateCadenceMessage(
   if (template) {
     message = renderTemplate(template, {
       firstName: lead.firstName,
-      link: bookingLink || process.env.CALENDLY_LINK || "calendly.com/tb-outreachglobal/15min",
+      link:
+        bookingLink ||
+        process.env.CALENDLY_LINK ||
+        "calendly.com/tb-outreachglobal/15min",
     });
   } else {
     // Fallback message
@@ -211,7 +265,7 @@ export function generateBatchMessages(
   leads: Lead[],
   currentDay: number,
   fromNumber: string,
-  persona: string = "busy_ceo"
+  persona: string = "busy_ceo",
 ): CadenceMessage[] {
   const messages: CadenceMessage[] = [];
   const touch = TOUCH_SCHEDULE.find((t) => t.day === currentDay);
@@ -219,7 +273,11 @@ export function generateBatchMessages(
   if (!touch) return messages;
 
   for (const lead of leads) {
-    if (lead.stage === "nurture" || lead.stage === "won" || lead.stage === "lost") {
+    if (
+      lead.stage === "nurture" ||
+      lead.stage === "won" ||
+      lead.stage === "lost"
+    ) {
       continue;
     }
 
@@ -239,11 +297,11 @@ export function generateBatchMessages(
  */
 export function planDailyExecution(
   buckets: LeadSourceBucket[],
-  campaign: CampaignMacroId
+  campaign: CampaignMacroId,
 ): DailyExecution {
   const campaignBuckets = buckets.filter((b) => b.campaign === campaign);
   const activeBatches = campaignBuckets.flatMap((b) =>
-    b.batches.filter((batch) => batch.status === "in_loop")
+    b.batches.filter((batch) => batch.status === "in_loop"),
   );
 
   // Count leads by their current loop day
@@ -377,7 +435,7 @@ export const AUTO_RESPOND_CONFIG = {
  */
 export function shouldAutoRespond(
   message: string,
-  autoReplyCount: number
+  autoReplyCount: number,
 ): { should: boolean; reason: string } {
   // Check stop triggers
   for (const trigger of AUTO_RESPOND_CONFIG.stopTriggers) {
@@ -404,18 +462,17 @@ export function shouldAutoRespond(
  */
 export function calculateResponseDelay(): number {
   const { minDelaySeconds, maxDelaySeconds } = AUTO_RESPOND_CONFIG;
-  return Math.floor(
-    Math.random() * (maxDelaySeconds - minDelaySeconds) + minDelaySeconds
-  ) * 1000;
+  return (
+    Math.floor(
+      Math.random() * (maxDelaySeconds - minDelaySeconds) + minDelaySeconds,
+    ) * 1000
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export {
-  THE_LOOP,
-  CAMPAIGN_MACROS,
-};
+export { THE_LOOP, CAMPAIGN_MACROS };
 
-console.log("[Cadence Engine] Loaded - THE LOOP ready to execute");
+Logger.info("Cadence", "Cadence Engine loaded - THE LOOP ready to execute");

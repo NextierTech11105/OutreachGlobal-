@@ -26,7 +26,12 @@ import {
   type GeneratedResponse,
 } from "./openai-client";
 import { THE_LOOP, CAMPAIGN_MACROS } from "@/config/constants";
-import { STAGE_COPILOTS, type LeadStage, type AIWorker } from "./stage-copilots";
+import { Logger } from "@/lib/logger";
+import {
+  STAGE_COPILOTS,
+  type LeadStage,
+  type AIWorker,
+} from "./stage-copilots";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -63,7 +68,12 @@ export interface InboundMessage {
 }
 
 export interface CopilotDecision {
-  action: "auto_respond" | "route_to_call" | "nurture" | "opt_out" | "manual_review";
+  action:
+    | "auto_respond"
+    | "route_to_call"
+    | "nurture"
+    | "opt_out"
+    | "manual_review";
   classification: ClassificationResult;
   response?: GeneratedResponse;
   nextStage: LeadStage;
@@ -115,7 +125,7 @@ export async function processCopilotDecision(
   context?: {
     previousMessages?: string[];
     campaignType?: string;
-  }
+  },
 ): Promise<CopilotDecision> {
   // Step 1: Classify the message
   const classification = await classifyMessage(inboundMessage, {
@@ -233,7 +243,8 @@ export function calculateNextTouch(lead: Lead): {
   const currentDay = lead.loopDay;
 
   // Find next touch day in schedule
-  const nextTouchDay = TOUCH_SCHEDULE.find((day) => day > currentDay) || LIFECYCLE_DAYS;
+  const nextTouchDay =
+    TOUCH_SCHEDULE.find((day) => day > currentDay) || LIFECYCLE_DAYS;
 
   // If beyond lifecycle, move to nurture
   if (nextTouchDay >= LIFECYCLE_DAYS) {
@@ -269,8 +280,17 @@ export function getLeadsDueForTouch(leads: Lead[]): Lead[] {
   return leads.filter((lead) => {
     if (!lead.nextTouchAt) return false;
     const touchDate = new Date(lead.nextTouchAt);
-    const touchDay = new Date(touchDate.getFullYear(), touchDate.getMonth(), touchDate.getDate());
-    return touchDay <= today && lead.stage !== "nurture" && lead.stage !== "won" && lead.stage !== "lost";
+    const touchDay = new Date(
+      touchDate.getFullYear(),
+      touchDate.getMonth(),
+      touchDate.getDate(),
+    );
+    return (
+      touchDay <= today &&
+      lead.stage !== "nurture" &&
+      lead.stage !== "won" &&
+      lead.stage !== "lost"
+    );
   });
 }
 
@@ -302,14 +322,16 @@ export function createLeadSourceBucket(
   name: string,
   source: LeadSourceBucket["source"],
   campaign: keyof typeof CAMPAIGN_MACROS,
-  totalLeads: number
+  totalLeads: number,
 ): LeadSourceBucket {
   const numBatches = Math.ceil(totalLeads / BATCH_SIZE);
   const batches: LeadBatch[] = [];
 
   for (let i = 0; i < numBatches; i++) {
     const isLastBatch = i === numBatches - 1;
-    const batchSize = isLastBatch ? totalLeads % BATCH_SIZE || BATCH_SIZE : BATCH_SIZE;
+    const batchSize = isLastBatch
+      ? totalLeads % BATCH_SIZE || BATCH_SIZE
+      : BATCH_SIZE;
 
     batches.push({
       id: `batch_${Date.now()}_${i}`,
@@ -349,7 +371,9 @@ export function createLeadSourceBucket(
 /**
  * Get next batch to process from a bucket
  */
-export function getNextBatchToProcess(bucket: LeadSourceBucket): LeadBatch | null {
+export function getNextBatchToProcess(
+  bucket: LeadSourceBucket,
+): LeadBatch | null {
   return bucket.batches.find((b) => b.status === "pending") || null;
 }
 
@@ -360,7 +384,7 @@ export function updateBatchStatus(
   bucket: LeadSourceBucket,
   batchId: string,
   status: LeadBatch["status"],
-  stats?: Partial<LeadBatch["stats"]>
+  stats?: Partial<LeadBatch["stats"]>,
 ): LeadSourceBucket {
   return {
     ...bucket,
@@ -372,10 +396,11 @@ export function updateBatchStatus(
             stats: stats ? { ...b.stats, ...stats } : b.stats,
             loopStartDate: status === "in_loop" ? new Date() : b.loopStartDate,
           }
-        : b
+        : b,
     ),
-    processedLeads:
-      bucket.batches.filter((b) => b.status === "completed").reduce((sum, b) => sum + b.size, 0),
+    processedLeads: bucket.batches
+      .filter((b) => b.status === "completed")
+      .reduce((sum, b) => sum + b.size, 0),
   };
 }
 
@@ -392,9 +417,15 @@ export function calculateBucketProgress(bucket: LeadSourceBucket): {
   responseRate: number;
   bookingRate: number;
 } {
-  const batchesComplete = bucket.batches.filter((b) => b.status === "completed").length;
-  const batchesInProgress = bucket.batches.filter((b) => b.status === "in_loop" || b.status === "enriched").length;
-  const batchesPending = bucket.batches.filter((b) => b.status === "pending").length;
+  const batchesComplete = bucket.batches.filter(
+    (b) => b.status === "completed",
+  ).length;
+  const batchesInProgress = bucket.batches.filter(
+    (b) => b.status === "in_loop" || b.status === "enriched",
+  ).length;
+  const batchesPending = bucket.batches.filter(
+    (b) => b.status === "pending",
+  ).length;
 
   const totals = bucket.batches.reduce(
     (acc, b) => ({
@@ -402,7 +433,7 @@ export function calculateBucketProgress(bucket: LeadSourceBucket): {
       responded: acc.responded + b.stats.responded,
       booked: acc.booked + b.stats.booked,
     }),
-    { sent: 0, responded: 0, booked: 0 }
+    { sent: 0, responded: 0, booked: 0 },
   );
 
   return {
@@ -413,7 +444,8 @@ export function calculateBucketProgress(bucket: LeadSourceBucket): {
     totalResponses: totals.responded,
     totalBooked: totals.booked,
     responseRate: totals.sent > 0 ? (totals.responded / totals.sent) * 100 : 0,
-    bookingRate: totals.responded > 0 ? (totals.booked / totals.responded) * 100 : 0,
+    bookingRate:
+      totals.responded > 0 ? (totals.booked / totals.responded) * 100 : 0,
   };
 }
 
@@ -430,7 +462,13 @@ export interface HotCallQueueItem {
   priority: Priority;
   addedAt: Date;
   assignedTo?: string;
-  status: "pending" | "dialing" | "connected" | "completed" | "no_answer" | "callback";
+  status:
+    | "pending"
+    | "dialing"
+    | "connected"
+    | "completed"
+    | "no_answer"
+    | "callback";
   callbackAt?: Date;
   notes?: string;
 }
@@ -440,7 +478,7 @@ export interface HotCallQueueItem {
  */
 export function createHotCallQueueItem(
   lead: Lead,
-  decision: CopilotDecision
+  decision: CopilotDecision,
 ): HotCallQueueItem {
   return {
     id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -477,7 +515,10 @@ export function sortCallQueue(queue: HotCallQueueItem[]): HotCallQueueItem[] {
 /**
  * Get the appropriate AI worker for a lead's current state
  */
-export function assignWorker(lead: Lead, classification?: Classification): AIWorker {
+export function assignWorker(
+  lead: Lead,
+  classification?: Classification,
+): AIWorker {
   // Based on stage
   const stageCopilot = STAGE_COPILOTS[lead.stage];
   if (stageCopilot) {
@@ -508,7 +549,7 @@ export function assignWorker(lead: Lead, classification?: Classification): AIWor
  */
 export function getWorkerLoad(
   worker: AIWorker,
-  activeLeads: Lead[]
+  activeLeads: Lead[],
 ): {
   worker: AIWorker;
   activeCount: number;
@@ -547,17 +588,28 @@ export interface CopilotAnalytics {
  */
 export function calculateCopilotAnalytics(
   decisions: CopilotDecision[],
-  period: { start: Date; end: Date }
+  period: { start: Date; end: Date },
 ): CopilotAnalytics {
   const classifications: Record<Classification, number> = {
-    POSITIVE: 0, NEGATIVE: 0, QUESTION: 0, OBJECTION: 0,
-    BOOKING: 0, RESCHEDULE: 0, STOP: 0, SPAM: 0, UNCLEAR: 0,
+    POSITIVE: 0,
+    NEGATIVE: 0,
+    QUESTION: 0,
+    OBJECTION: 0,
+    BOOKING: 0,
+    RESCHEDULE: 0,
+    STOP: 0,
+    SPAM: 0,
+    UNCLEAR: 0,
   };
 
   const priorities: Record<Priority, number> = { HOT: 0, WARM: 0, COLD: 0 };
 
   const actions: Record<CopilotDecision["action"], number> = {
-    auto_respond: 0, route_to_call: 0, nurture: 0, opt_out: 0, manual_review: 0,
+    auto_respond: 0,
+    route_to_call: 0,
+    nurture: 0,
+    opt_out: 0,
+    manual_review: 0,
   };
 
   let totalConfidence = 0;
@@ -583,4 +635,4 @@ export function calculateCopilotAnalytics(
   };
 }
 
-console.log("[Copilot Engine] Loaded - AI Copilot ready to process");
+Logger.info("Copilot", "Copilot Engine loaded - AI Copilot ready to process");

@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * PERPLEXITY SCANNER - Business Verification & Research
+ * PERPLEXITY SCANNER - Business Verification & Research (HARDENED)
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * Uses Perplexity AI to:
@@ -9,13 +9,32 @@
  * - Get company details and news
  * - Research industry/competitive intel
  *
- * Perfect for pre-enrichment validation before skip tracing.
+ * SECURITY HARDENING (P0):
+ * - 30s timeout on all API calls
+ * - Input sanitization to prevent prompt injection
+ * - Zod schema validation for AI outputs
+ * - Token usage logging for cost tracking
+ * - Retry with exponential backoff
  *
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
+import { z } from "zod";
+import { Logger } from "@/lib/logger";
+
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY || "";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CONFIG = {
+  TIMEOUT_MS: 30000,
+  MAX_RETRIES: 3,
+  INITIAL_RETRY_DELAY_MS: 1000,
+  MAX_INPUT_LENGTH: 500,
+} as const;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -73,6 +92,146 @@ export interface CompetitiveIntel {
   insights: string[];
 }
 
+interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ZOD SCHEMAS - Output Validation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const BusinessVerificationSchema = z.object({
+  isActive: z.boolean(),
+  confidence: z.number().min(0).max(1),
+  status: z.enum(["active", "inactive", "unknown", "closed"]),
+  details: z
+    .object({
+      website: z.string().optional(),
+      phone: z.string().optional(),
+      address: z.string().optional(),
+      industry: z.string().optional(),
+      employees: z.string().optional(),
+      yearFounded: z.string().optional(),
+      description: z.string().optional(),
+    })
+    .optional(),
+  owner: z
+    .object({
+      name: z.string().optional(),
+      title: z.string().optional(),
+      linkedIn: z.string().optional(),
+    })
+    .optional(),
+  warnings: z.array(z.string()).optional(),
+  source: z.string().optional(),
+});
+
+const OwnerResearchSchema = z.object({
+  found: z.boolean(),
+  confidence: z.number().min(0).max(1),
+  ownerName: z.string().optional(),
+  ownerTitle: z.string().optional(),
+  ownerLinkedIn: z.string().optional(),
+  companyRole: z.string().optional(),
+  otherContacts: z
+    .array(
+      z.object({
+        name: z.string(),
+        title: z.string(),
+        source: z.string(),
+      }),
+    )
+    .optional(),
+  sources: z.array(z.string()).optional(),
+});
+
+const CompetitiveIntelSchema = z.object({
+  industry: z.string(),
+  competitors: z.array(z.string()),
+  marketPosition: z.string().optional(),
+  recentNews: z
+    .array(
+      z.object({
+        headline: z.string(),
+        date: z.string(),
+        source: z.string(),
+      }),
+    )
+    .optional(),
+  insights: z.array(z.string()),
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INPUT SANITIZATION - Prompt Injection Prevention
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function sanitizeInput(input: string): string {
+  if (!input || typeof input !== "string") {
+    return "";
+  }
+
+  let sanitized = input;
+
+  if (sanitized.length > CONFIG.MAX_INPUT_LENGTH) {
+    sanitized = sanitized.slice(0, CONFIG.MAX_INPUT_LENGTH);
+    Logger.warn("Perplexity", "Input truncated", {
+      originalLength: input.length,
+      maxLength: CONFIG.MAX_INPUT_LENGTH,
+    });
+  }
+
+  const dangerousPatterns = [
+    /ignore (all )?(previous|prior|above) (instructions|prompts?|commands?)/gi,
+    /disregard (all )?(previous|prior|above)/gi,
+    /new instructions?:/gi,
+    /system prompt:/gi,
+    /\[INST\]/gi,
+    /<<SYS>>/gi,
+  ];
+
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(sanitized)) {
+      Logger.warn("Perplexity", "Potential prompt injection", {
+        pattern: pattern.source,
+      });
+      sanitized = sanitized.replace(pattern, "[FILTERED]");
+    }
+  }
+
+  return sanitized
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, " ")
+    .trim();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RETRY LOGIC
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes("rate limit") ||
+      message.includes("429") ||
+      message.includes("500") ||
+      message.includes("502") ||
+      message.includes("503") ||
+      message.includes("504") ||
+      message.includes("timeout") ||
+      message.includes("aborted")
+    );
+  }
+  return false;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PERPLEXITY API CLIENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -82,46 +241,114 @@ async function queryPerplexity(
   options: {
     model?: string;
     maxTokens?: number;
-  } = {}
-): Promise<string> {
-  const { model = "llama-3.1-sonar-small-128k-online", maxTokens = 1000 } = options;
+    operation?: string;
+  } = {},
+): Promise<{ content: string; usage: TokenUsage | null }> {
+  const {
+    model = "llama-3.1-sonar-small-128k-online",
+    maxTokens = 1000,
+    operation = "unknown",
+  } = options;
 
   if (!PERPLEXITY_API_KEY) {
     throw new Error("PERPLEXITY_API_KEY not configured");
   }
 
-  const response = await fetch(PERPLEXITY_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a business research assistant. Provide factual, current information about businesses. Always respond with valid JSON.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.1,
-      return_citations: true,
-    }),
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Perplexity API error: ${response.status} - ${error}`);
+  for (let attempt = 0; attempt < CONFIG.MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
+
+    try {
+      const startTime = Date.now();
+
+      const response = await fetch(PERPLEXITY_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a business research assistant. Provide factual, current information about businesses. Always respond with valid JSON.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.1,
+          return_citations: true,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const latencyMs = Date.now() - startTime;
+
+      const usage: TokenUsage | null = data.usage
+        ? {
+            promptTokens: data.usage.prompt_tokens || 0,
+            completionTokens: data.usage.completion_tokens || 0,
+            totalTokens: data.usage.total_tokens || 0,
+          }
+        : null;
+
+      if (usage) {
+        Logger.info("Perplexity", "Query completed", {
+          operation,
+          model,
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          totalTokens: usage.totalTokens,
+          latencyMs,
+          attempt: attempt + 1,
+        });
+      }
+
+      return {
+        content: data.choices[0]?.message?.content || "",
+        usage,
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt < CONFIG.MAX_RETRIES - 1 && isRetryableError(error)) {
+        const delayMs = CONFIG.INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+        Logger.warn("Perplexity", "Query failed, retrying", {
+          operation,
+          attempt: attempt + 1,
+          delayMs,
+          error: lastError.message,
+        });
+        await sleep(delayMs);
+        continue;
+      }
+
+      Logger.error("Perplexity", "Query failed", {
+        operation,
+        attempt: attempt + 1,
+        error: lastError.message,
+      });
+      throw lastError;
+    }
   }
 
-  const data = await response.json();
-  return data.choices[0]?.message?.content || "";
+  throw lastError || new Error("Perplexity query failed after retries");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -134,12 +361,20 @@ async function queryPerplexity(
 export async function verifyBusiness(
   companyName: string,
   address?: string,
-  website?: string
+  website?: string,
 ): Promise<BusinessVerification> {
-  const locationContext = address ? ` located at or near ${address}` : "";
-  const websiteContext = website ? ` (website: ${website})` : "";
+  const sanitizedName = sanitizeInput(companyName);
+  const sanitizedAddress = address ? sanitizeInput(address) : "";
+  const sanitizedWebsite = website ? sanitizeInput(website) : "";
 
-  const prompt = `Research the company "${companyName}"${locationContext}${websiteContext}.
+  const locationContext = sanitizedAddress
+    ? ` located at or near ${sanitizedAddress}`
+    : "";
+  const websiteContext = sanitizedWebsite
+    ? ` (website: ${sanitizedWebsite})`
+    : "";
+
+  const prompt = `Research the company "${sanitizedName}"${locationContext}${websiteContext}.
 
 Determine if this business is currently active and operating. Look for:
 1. Current website status
@@ -171,10 +406,11 @@ Respond with JSON only:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt);
+    const { content } = await queryPerplexity(prompt, {
+      operation: "verifyBusiness",
+    });
 
-    // Parse JSON from response
-    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return {
         isVerified: false,
@@ -189,6 +425,26 @@ Respond with JSON only:
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
+    const validated = BusinessVerificationSchema.safeParse(parsed);
+
+    if (validated.success) {
+      return {
+        isVerified: true,
+        isActive: validated.data.isActive,
+        confidence: validated.data.confidence,
+        companyName,
+        status: validated.data.status,
+        lastVerified: new Date(),
+        source: validated.data.source || "perplexity",
+        details: validated.data.details,
+        owner: validated.data.owner,
+        warnings: validated.data.warnings,
+      };
+    }
+
+    Logger.warn("Perplexity", "Verification validation failed", {
+      errors: validated.error.errors,
+    });
 
     return {
       isVerified: true,
@@ -203,7 +459,10 @@ Respond with JSON only:
       warnings: parsed.warnings,
     };
   } catch (error) {
-    console.error("[Perplexity Scanner] Verification error:", error);
+    Logger.error("Perplexity", "Verification error", {
+      error: error instanceof Error ? error.message : "Unknown",
+      companyName,
+    });
     return {
       isVerified: false,
       isActive: false,
@@ -212,7 +471,9 @@ Respond with JSON only:
       status: "unknown",
       lastVerified: new Date(),
       source: "perplexity",
-      warnings: [error instanceof Error ? error.message : "Verification failed"],
+      warnings: [
+        error instanceof Error ? error.message : "Verification failed",
+      ],
     };
   }
 }
@@ -226,13 +487,18 @@ Respond with JSON only:
  */
 export async function researchOwner(
   companyName: string,
-  existingOwnerName?: string
+  existingOwnerName?: string,
 ): Promise<OwnerResearch> {
-  const ownerContext = existingOwnerName
-    ? ` Verify if "${existingOwnerName}" is still associated with this company.`
+  const sanitizedName = sanitizeInput(companyName);
+  const sanitizedOwner = existingOwnerName
+    ? sanitizeInput(existingOwnerName)
     : "";
 
-  const prompt = `Find the current owner, CEO, or primary decision maker of "${companyName}".${ownerContext}
+  const ownerContext = sanitizedOwner
+    ? ` Verify if "${sanitizedOwner}" is still associated with this company.`
+    : "";
+
+  const prompt = `Find the current owner, CEO, or primary decision maker of "${sanitizedName}".${ownerContext}
 
 Look for:
 1. Current owner/CEO name
@@ -255,9 +521,11 @@ Respond with JSON only:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt);
+    const { content } = await queryPerplexity(prompt, {
+      operation: "researchOwner",
+    });
 
-    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return {
         found: false,
@@ -267,6 +535,20 @@ Respond with JSON only:
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
+    const validated = OwnerResearchSchema.safeParse(parsed);
+
+    if (validated.success) {
+      return {
+        found: validated.data.found,
+        confidence: validated.data.confidence,
+        ownerName: validated.data.ownerName,
+        ownerTitle: validated.data.ownerTitle,
+        ownerLinkedIn: validated.data.ownerLinkedIn,
+        companyRole: validated.data.companyRole,
+        otherContacts: validated.data.otherContacts || [],
+        sources: validated.data.sources || ["perplexity"],
+      };
+    }
 
     return {
       found: parsed.found ?? false,
@@ -279,7 +561,10 @@ Respond with JSON only:
       sources: parsed.sources || ["perplexity"],
     };
   } catch (error) {
-    console.error("[Perplexity Scanner] Owner research error:", error);
+    Logger.error("Perplexity", "Owner research error", {
+      error: error instanceof Error ? error.message : "Unknown",
+      companyName,
+    });
     return {
       found: false,
       confidence: 0,
@@ -297,11 +582,15 @@ Respond with JSON only:
  */
 export async function getCompetitiveIntel(
   companyName: string,
-  industry?: string
+  industry?: string,
 ): Promise<CompetitiveIntel> {
-  const industryContext = industry ? ` in the ${industry} industry` : "";
+  const sanitizedName = sanitizeInput(companyName);
+  const sanitizedIndustry = industry ? sanitizeInput(industry) : "";
+  const industryContext = sanitizedIndustry
+    ? ` in the ${sanitizedIndustry} industry`
+    : "";
 
-  const prompt = `Research "${companyName}"${industryContext} for sales intelligence.
+  const prompt = `Research "${sanitizedName}"${industryContext} for sales intelligence.
 
 Find:
 1. Industry and market position
@@ -321,9 +610,11 @@ Respond with JSON only:
 }`;
 
   try {
-    const result = await queryPerplexity(prompt);
+    const { content } = await queryPerplexity(prompt, {
+      operation: "getCompetitiveIntel",
+    });
 
-    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return {
         industry: industry || "Unknown",
@@ -333,6 +624,11 @@ Respond with JSON only:
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
+    const validated = CompetitiveIntelSchema.safeParse(parsed);
+
+    if (validated.success) {
+      return validated.data;
+    }
 
     return {
       industry: parsed.industry || industry || "Unknown",
@@ -342,7 +638,10 @@ Respond with JSON only:
       insights: parsed.insights || [],
     };
   } catch (error) {
-    console.error("[Perplexity Scanner] Intel error:", error);
+    Logger.error("Perplexity", "Intel error", {
+      error: error instanceof Error ? error.message : "Unknown",
+      companyName,
+    });
     return {
       industry: industry || "Unknown",
       competitors: [],
@@ -364,24 +663,26 @@ export async function batchVerifyBusinesses(
     address?: string;
     website?: string;
   }>,
-  concurrency: number = 3
+  concurrency: number = 3,
 ): Promise<Map<string, BusinessVerification>> {
   const results = new Map<string, BusinessVerification>();
 
-  // Process in parallel batches
   for (let i = 0; i < businesses.length; i += concurrency) {
     const batch = businesses.slice(i, i + concurrency);
 
     const promises = batch.map(async (biz) => {
-      const result = await verifyBusiness(biz.companyName, biz.address, biz.website);
+      const result = await verifyBusiness(
+        biz.companyName,
+        biz.address,
+        biz.website,
+      );
       results.set(biz.companyName, result);
     });
 
     await Promise.all(promises);
 
-    // Rate limit - wait 1 second between batches
     if (i + concurrency < businesses.length) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await sleep(1000);
     }
   }
 
@@ -406,7 +707,10 @@ export async function checkPerplexityHealth(): Promise<{
   }
 
   try {
-    await queryPerplexity('Reply with: {"status": "ok"}', { maxTokens: 50 });
+    await queryPerplexity('Reply with: {"status": "ok"}', {
+      maxTokens: 50,
+      operation: "healthCheck",
+    });
     return { configured: true, working: true };
   } catch (error) {
     return {
@@ -417,4 +721,4 @@ export async function checkPerplexityHealth(): Promise<{
   }
 }
 
-console.log("[Perplexity Scanner] Loaded - Business verification ready");
+Logger.info("Perplexity", "Perplexity Scanner loaded - Hardened business verification ready");
