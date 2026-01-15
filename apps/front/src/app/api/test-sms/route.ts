@@ -11,7 +11,39 @@ import { sendSMS, isConfigured } from "@/lib/signalhouse";
  */
 
 const SIGNALHOUSE_FROM_NUMBER =
-  process.env.SIGNALHOUSE_FROM_NUMBER || "15164079249";
+  process.env.SIGNALHOUSE_FROM_NUMBER || "+15164079249";
+
+/**
+ * Normalize phone number to E164 format
+ * Handles: 7187175127, 17187175127, +17187175127
+ */
+function normalizeToE164(phone: string): string {
+  // Remove all non-digit characters except leading +
+  const cleaned = phone.replace(/[^\d+]/g, "");
+
+  // Already in E164 format
+  if (cleaned.startsWith("+1") && cleaned.length === 12) {
+    return cleaned;
+  }
+
+  // Has + but wrong format
+  if (cleaned.startsWith("+")) {
+    return cleaned;
+  }
+
+  // 10 digit US number (no country code)
+  if (cleaned.length === 10) {
+    return `+1${cleaned}`;
+  }
+
+  // 11 digit US number (with country code, no +)
+  if (cleaned.length === 11 && cleaned.startsWith("1")) {
+    return `+${cleaned}`;
+  }
+
+  // Return as-is with + prefix if nothing matches
+  return cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +55,9 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Normalize to E164 format
+    const normalizedTo = normalizeToE164(to);
 
     if (!isConfigured()) {
       return NextResponse.json(
@@ -42,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await sendSMS({
-      to,
+      to: normalizedTo,
       from: SIGNALHOUSE_FROM_NUMBER,
       message: message || "Test message from Nextier",
     });
@@ -61,7 +96,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       messageId: result.data?.messageId,
-      to,
+      to: normalizedTo,
       from: SIGNALHOUSE_FROM_NUMBER,
       correlationId: result.correlationId,
     });
