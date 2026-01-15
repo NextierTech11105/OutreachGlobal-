@@ -1,16 +1,10 @@
 {
-  "tasksRunnerOptions": {
-    "default": {
-      "runner": "default",
-      "options": {
-        "cacheableOperations": ["build"]
-      }
-    }
-  },
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "defaultBase": "main",
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "cache": true
     }
   },
   "neverConnectToCloud": true,
