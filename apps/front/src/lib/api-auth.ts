@@ -6,8 +6,8 @@
 import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { users, teams, teamMembers } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export const SUPER_ADMIN_ROLE = "SUPER_ADMIN";
 
@@ -23,8 +23,60 @@ interface JWTPayload {
 }
 
 /**
+ * Lookup user's team from database when not included in JWT
+ *
+ * Priority:
+ * 1. Team where user is OWNER
+ * 2. Team where user is ACTIVE MEMBER
+ *
+ * This ensures proper tenant isolation and supports both
+ * account owners and invited team members.
+ */
+async function lookupUserTeam(userId: string): Promise<string | null> {
+  if (!db) {
+    return null;
+  }
+
+  try {
+    // First priority: User owns a team
+    const ownerResult = await db
+      .select({ id: teams.id })
+      .from(teams)
+      .where(eq(teams.ownerId, userId))
+      .limit(1);
+
+    if (ownerResult.length > 0) {
+      return ownerResult[0].id;
+    }
+
+    // Second priority: User is an active member of a team
+    const memberResult = await db
+      .select({ teamId: teamMembers.teamId })
+      .from(teamMembers)
+      .where(
+        and(
+          eq(teamMembers.userId, userId),
+          eq(teamMembers.status, "ACTIVE")
+        )
+      )
+      .limit(1);
+
+    if (memberResult.length > 0) {
+      return memberResult[0].teamId;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("[lookupUserTeam] Error:", error);
+    return null;
+  }
+}
+
+/**
  * Get authenticated user ID from JWT session token
  * Use this instead of Clerk's auth() in API routes
+ *
+ * Note: If teamId is not in JWT, we lookup the user's team from the database
  */
 export async function apiAuth(): Promise<{
   userId: string | null;
@@ -50,9 +102,15 @@ export async function apiAuth(): Promise<{
       return { userId: null, teamId: null, tenantId: null };
     }
 
+    // Get teamId from JWT or lookup from database
+    let teamId = decoded.teamId ?? null;
+    if (!teamId && decoded.sub) {
+      teamId = await lookupUserTeam(decoded.sub);
+    }
+
     return {
       userId: decoded.sub,
-      teamId: decoded.teamId ?? null,
+      teamId,
       tenantId: decoded.tenantId ?? null,
     };
   } catch (error) {
@@ -63,6 +121,8 @@ export async function apiAuth(): Promise<{
 
 /**
  * Get full auth context including token
+ *
+ * Note: If teamId is not in JWT, we lookup the user's team from the database
  */
 export async function getApiAuthContext(): Promise<{
   userId: string | null;
@@ -99,12 +159,18 @@ export async function getApiAuthContext(): Promise<{
       };
     }
 
+    // Get teamId from JWT or lookup from database
+    let teamId = decoded.teamId ?? null;
+    if (!teamId && decoded.sub) {
+      teamId = await lookupUserTeam(decoded.sub);
+    }
+
     return {
       userId: decoded.sub,
       token,
       email: decoded.username,
       tenantId: decoded.tenantId ?? null,
-      teamId: decoded.teamId ?? null,
+      teamId,
     };
   } catch (error) {
     console.error("[getApiAuthContext] Error:", error);

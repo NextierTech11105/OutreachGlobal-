@@ -67,11 +67,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Trial period configuration
+const TRIAL_DAYS = 14;
+
 // POST /api/billing/subscribe - Create or update subscription
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, planSlug, billingCycle, paymentMethodId } = body;
+    const { userId, planSlug, billingCycle, paymentMethodId, withTrial = true } = body;
 
     if (!userId || !planSlug) {
       return NextResponse.json(
@@ -89,19 +92,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
-    // Check for existing subscription
+    // Check for existing subscription (any status)
     const existingSubscription = await db.query.subscriptions.findFirst({
-      where: and(
-        eq(subscriptions.userId, userId),
-        eq(subscriptions.status, "active"),
-      ),
+      where: eq(subscriptions.userId, userId),
     });
+
+    // Determine if user is eligible for trial
+    // Users can only get trial if they've never had a subscription before
+    const eligibleForTrial = withTrial && !existingSubscription;
 
     const now = new Date();
     const periodEnd = new Date(now);
     periodEnd.setMonth(
       periodEnd.getMonth() + (billingCycle === "yearly" ? 12 : 1),
     );
+
+    // Calculate trial end date if eligible
+    const trialEndsAt = eligibleForTrial
+      ? new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+      : null;
 
     // If Stripe is configured, create checkout session
     if (STRIPE_SECRET_KEY && paymentMethodId) {
@@ -126,7 +135,7 @@ export async function POST(request: NextRequest) {
             customerId = customer.id;
           }
 
-          // Create subscription in Stripe
+          // Create subscription in Stripe (with trial if eligible)
           const stripeSubscription = await stripe.subscriptions.create({
             customer: customerId,
             items: [{ price: priceId }],
@@ -136,6 +145,10 @@ export async function POST(request: NextRequest) {
               save_default_payment_method: "on_subscription",
             },
             expand: ["latest_invoice.payment_intent"],
+            // Add trial period if eligible
+            ...(eligibleForTrial && {
+              trial_end: Math.floor(trialEndsAt!.getTime() / 1000),
+            }),
           });
 
           // Create subscription record
@@ -144,12 +157,13 @@ export async function POST(request: NextRequest) {
             .values({
               userId,
               planId: plan.id,
-              status: "pending",
+              status: eligibleForTrial ? "trialing" : "pending",
               billingCycle: billingCycle || "monthly",
               stripeCustomerId: customerId,
               stripeSubscriptionId: stripeSubscription.id,
               currentPeriodStart: now,
               currentPeriodEnd: periodEnd,
+              trialEndsAt: trialEndsAt,
             })
             .returning();
 
@@ -173,7 +187,13 @@ export async function POST(request: NextRequest) {
             subscription: newSubscription[0],
             clientSecret: (stripeSubscription.latest_invoice as any)
               ?.payment_intent?.client_secret,
-            requiresPayment: true,
+            requiresPayment: !eligibleForTrial,
+            trial: eligibleForTrial
+              ? {
+                  days: TRIAL_DAYS,
+                  endsAt: trialEndsAt?.toISOString(),
+                }
+              : null,
           });
         }
       } catch (stripeError: any) {
@@ -183,8 +203,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create subscription without Stripe (for development/testing)
-    if (existingSubscription) {
-      // Update existing subscription
+    if (existingSubscription && existingSubscription.status === "active") {
+      // Update existing active subscription (no trial for existing users)
       const updated = await db
         .update(subscriptions)
         .set({
@@ -201,19 +221,21 @@ export async function POST(request: NextRequest) {
         success: true,
         subscription: updated[0],
         message: "Subscription updated",
+        trial: null,
       });
     }
 
-    // Create new subscription
+    // Create new subscription (with trial if eligible)
     const newSubscription = await db
       .insert(subscriptions)
       .values({
         userId,
         planId: plan.id,
-        status: "active",
+        status: eligibleForTrial ? "trialing" : "active",
         billingCycle: billingCycle || "monthly",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
+        trialEndsAt: trialEndsAt,
       })
       .returning();
 
@@ -235,7 +257,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       subscription: newSubscription[0],
-      message: "Subscription created",
+      message: eligibleForTrial
+        ? `${TRIAL_DAYS}-day trial started`
+        : "Subscription created",
+      trial: eligibleForTrial
+        ? {
+            days: TRIAL_DAYS,
+            endsAt: trialEndsAt?.toISOString(),
+          }
+        : null,
     });
   } catch (error: any) {
     console.error("[Billing] Error creating subscription:", error);

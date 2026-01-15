@@ -199,46 +199,104 @@ type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 export function BillingSettings() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
   const [cancellationFeedback, setCancellationFeedback] = useState("");
 
-  // Subscription state (would come from API in production)
+  // Subscription state - loaded from API
   const [subscription, setSubscription] = useState<Subscription>({
-    id: "sub_123",
-    status: "trialing",
-    planName: "Pro",
-    planSlug: "pro",
-    priceMonthly: 597,
-    priceYearly: 5970,
+    id: "",
+    status: "active",
+    planName: "Loading...",
+    planSlug: "",
+    priceMonthly: 0,
+    priceYearly: 0,
     billingCycle: "monthly",
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    currentPeriodEnd: new Date().toISOString(),
     cancelAtPeriodEnd: false,
   });
 
   const [usage, setUsage] = useState<Usage>({
-    leads: { used: 2145, limit: 5000 },
-    sms: { used: 1250, limit: 2500 },
-    skipTraces: { used: 89, limit: 250 },
-    users: { used: 2, limit: 3 },
+    leads: { used: 0, limit: 1000 },
+    sms: { used: 0, limit: 500 },
+    skipTraces: { used: 0, limit: 50 },
+    users: { used: 1, limit: 1 },
   });
 
-  const [invoices, setInvoices] = useState<Invoice[]>([
-    { id: "INV-001", date: "2025-01-01", amount: "$597.00", status: "paid" },
-    { id: "INV-002", date: "2024-12-01", amount: "$597.00", status: "paid" },
-    { id: "INV-003", date: "2024-11-01", amount: "$597.00", status: "paid" },
-  ]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>({
-    id: "pm_123",
-    brand: "visa",
-    last4: "4242",
-    expMonth: 4,
-    expYear: 2026,
-    isDefault: true,
-  });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+
+  // ============================================================================
+  // FETCH BILLING DATA FROM API
+  // ============================================================================
+
+  useEffect(() => {
+    async function fetchBillingData() {
+      setIsDataLoading(true);
+      try {
+        const response = await fetch("/api/billing/my-subscription");
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Not authenticated - show default state
+            setIsDataLoading(false);
+            return;
+          }
+          throw new Error("Failed to load billing data");
+        }
+
+        const data = await response.json();
+
+        // Update subscription
+        setSubscription({
+          id: data.subscription.id,
+          status: data.subscription.status as Subscription["status"],
+          planName: data.subscription.planName,
+          planSlug: data.subscription.planSlug,
+          priceMonthly: data.subscription.priceMonthly,
+          priceYearly: data.subscription.priceYearly,
+          billingCycle: data.subscription.billingCycle as "monthly" | "yearly",
+          currentPeriodEnd: data.subscription.currentPeriodEnd,
+          trialEndsAt: data.subscription.trialEndsAt || undefined,
+          cancelledAt: data.subscription.cancelledAt || undefined,
+          cancelAtPeriodEnd: data.subscription.cancelAtPeriodEnd,
+        });
+
+        // Update usage
+        setUsage(data.usage);
+
+        // Update invoices
+        setInvoices(
+          data.invoices.map((inv: any) => ({
+            id: inv.id,
+            date: inv.date,
+            amount: inv.amount,
+            status: inv.status as Invoice["status"],
+            downloadUrl: inv.downloadUrl,
+          }))
+        );
+
+        // Update payment method
+        if (data.paymentMethod) {
+          setPaymentMethod(data.paymentMethod);
+        }
+      } catch (error) {
+        console.error("Failed to fetch billing data:", error);
+        toast({
+          title: "Error loading billing data",
+          description: "Please refresh the page to try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsDataLoading(false);
+      }
+    }
+
+    fetchBillingData();
+  }, [toast]);
 
   const paymentForm = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
@@ -495,14 +553,42 @@ export function BillingSettings() {
   // RENDER
   // ============================================================================
 
+  // Loading state
+  if (isDataLoading) {
+    return (
+      <div className="space-y-10">
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex items-center justify-center gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="text-muted-foreground">Loading billing information...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
       {/* Trial Banner */}
       {subscription.status === "trialing" && trialDaysLeft !== null && (
-        <Card className={trialDaysLeft <= 3 ? "border-orange-500 bg-orange-50 dark:bg-orange-950/20" : "border-blue-500 bg-blue-50 dark:bg-blue-950/20"}>
+        <Card
+          className={
+            trialDaysLeft <= 3
+              ? "border-orange-500 bg-orange-50 dark:bg-orange-950/20"
+              : "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+          }
+        >
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
-              <Clock className={trialDaysLeft <= 3 ? "h-5 w-5 text-orange-500" : "h-5 w-5 text-blue-500"} />
+              <Clock
+                className={
+                  trialDaysLeft <= 3
+                    ? "h-5 w-5 text-orange-500"
+                    : "h-5 w-5 text-blue-500"
+                }
+              />
               <div>
                 <p className="font-medium">
                   {trialDaysLeft === 0
@@ -537,7 +623,8 @@ export function BillingSettings() {
                   {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  You&apos;ll lose access to all premium features after this date
+                  You&apos;ll lose access to all premium features after this
+                  date
                 </p>
               </div>
             </div>
@@ -565,9 +652,12 @@ export function BillingSettings() {
         <div className="rounded-lg border p-6">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <h4 className="text-lg font-medium">{subscription.planName} Plan</h4>
+              <h4 className="text-lg font-medium">
+                {subscription.planName} Plan
+              </h4>
               <p className="text-sm text-muted-foreground">
-                ${subscription.priceMonthly}/month, billed {subscription.billingCycle}
+                ${subscription.priceMonthly}/month, billed{" "}
+                {subscription.billingCycle}
               </p>
             </div>
             {getStatusBadge()}
@@ -580,7 +670,10 @@ export function BillingSettings() {
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span>Leads</span>
-                <span>{usage.leads.used.toLocaleString()} / {usage.leads.limit.toLocaleString()}</span>
+                <span>
+                  {usage.leads.used.toLocaleString()} /{" "}
+                  {usage.leads.limit.toLocaleString()}
+                </span>
               </div>
               <Progress value={(usage.leads.used / usage.leads.limit) * 100} />
             </div>
@@ -588,7 +681,10 @@ export function BillingSettings() {
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span>SMS Messages</span>
-                <span>{usage.sms.used.toLocaleString()} / {usage.sms.limit.toLocaleString()}</span>
+                <span>
+                  {usage.sms.used.toLocaleString()} /{" "}
+                  {usage.sms.limit.toLocaleString()}
+                </span>
               </div>
               <Progress value={(usage.sms.used / usage.sms.limit) * 100} />
             </div>
@@ -596,15 +692,21 @@ export function BillingSettings() {
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span>Skip Traces</span>
-                <span>{usage.skipTraces.used} / {usage.skipTraces.limit}</span>
+                <span>
+                  {usage.skipTraces.used} / {usage.skipTraces.limit}
+                </span>
               </div>
-              <Progress value={(usage.skipTraces.used / usage.skipTraces.limit) * 100} />
+              <Progress
+                value={(usage.skipTraces.used / usage.skipTraces.limit) * 100}
+              />
             </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span>Team Members</span>
-                <span>{usage.users.used} / {usage.users.limit}</span>
+                <span>
+                  {usage.users.used} / {usage.users.limit}
+                </span>
               </div>
               <Progress value={(usage.users.used / usage.users.limit) * 100} />
             </div>
@@ -619,19 +721,28 @@ export function BillingSettings() {
                   ? "Access ends on "
                   : "Next billing date: "}
                 <strong>
-                  {new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {new Date(subscription.currentPeriodEnd).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    },
+                  )}
                 </strong>
               </p>
             </div>
             <div className="flex flex-1 justify-end gap-4">
               {!subscription.cancelAtPeriodEnd && (
-                <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+                <Dialog
+                  open={isCancelDialogOpen}
+                  onOpenChange={setIsCancelDialogOpen}
+                >
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="text-red-600 hover:text-red-700">
+                    <Button
+                      variant="outline"
+                      className="text-red-600 hover:text-red-700"
+                    >
                       Cancel Subscription
                     </Button>
                   </DialogTrigger>
@@ -639,21 +750,33 @@ export function BillingSettings() {
                     <DialogHeader>
                       <DialogTitle>Cancel Subscription</DialogTitle>
                       <DialogDescription>
-                        We&apos;re sorry to see you go. Your subscription will remain active until{" "}
-                        {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
+                        We&apos;re sorry to see you go. Your subscription will
+                        remain active until{" "}
+                        {new Date(
+                          subscription.currentPeriodEnd,
+                        ).toLocaleDateString()}
+                        .
                       </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="reason">Why are you cancelling? *</Label>
-                        <Select value={cancellationReason} onValueChange={setCancellationReason}>
+                        <Label htmlFor="reason">
+                          Why are you cancelling? *
+                        </Label>
+                        <Select
+                          value={cancellationReason}
+                          onValueChange={setCancellationReason}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select a reason" />
                           </SelectTrigger>
                           <SelectContent>
                             {cancellationReasons.map((reason) => (
-                              <SelectItem key={reason.value} value={reason.value}>
+                              <SelectItem
+                                key={reason.value}
+                                value={reason.value}
+                              >
                                 {reason.label}
                               </SelectItem>
                             ))}
@@ -662,12 +785,16 @@ export function BillingSettings() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="feedback">Additional feedback (optional)</Label>
+                        <Label htmlFor="feedback">
+                          Additional feedback (optional)
+                        </Label>
                         <Textarea
                           id="feedback"
                           placeholder="Tell us what we could have done better..."
                           value={cancellationFeedback}
-                          onChange={(e) => setCancellationFeedback(e.target.value)}
+                          onChange={(e) =>
+                            setCancellationFeedback(e.target.value)
+                          }
                           rows={3}
                         />
                       </div>
@@ -683,7 +810,10 @@ export function BillingSettings() {
                     </div>
 
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsCancelDialogOpen(false)}
+                      >
                         Keep Subscription
                       </Button>
                       <Button
@@ -715,7 +845,9 @@ export function BillingSettings() {
                   <Tabs defaultValue="monthly">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                      <TabsTrigger value="annual">Annual (Save 17%)</TabsTrigger>
+                      <TabsTrigger value="annual">
+                        Annual (Save 17%)
+                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value="monthly" className="mt-4">
                       <div className="grid gap-4 md:grid-cols-3">
@@ -728,21 +860,32 @@ export function BillingSettings() {
                             >
                               {plan.popular && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                  <Badge className="bg-primary">Most Popular</Badge>
+                                  <Badge className="bg-primary">
+                                    Most Popular
+                                  </Badge>
                                 </div>
                               )}
                               <CardHeader>
                                 <CardTitle>{plan.name}</CardTitle>
-                                <CardDescription>{plan.description}</CardDescription>
+                                <CardDescription>
+                                  {plan.description}
+                                </CardDescription>
                               </CardHeader>
                               <CardContent>
                                 <div className="mb-4">
-                                  <span className="text-3xl font-bold">${plan.priceMonthly}</span>
-                                  <span className="text-muted-foreground">/month</span>
+                                  <span className="text-3xl font-bold">
+                                    ${plan.priceMonthly}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    /month
+                                  </span>
                                 </div>
                                 <ul className="space-y-2 text-sm">
                                   {plan.features.map((feature) => (
-                                    <li key={feature} className="flex items-center gap-2">
+                                    <li
+                                      key={feature}
+                                      className="flex items-center gap-2"
+                                    >
                                       <Check className="h-4 w-4 text-primary" />
                                       <span>{feature}</span>
                                     </li>
@@ -774,7 +917,9 @@ export function BillingSettings() {
                       <div className="grid gap-4 md:grid-cols-3">
                         {plans.map((plan) => {
                           const isCurrent = plan.slug === subscription.planSlug;
-                          const annualMonthly = Math.round(plan.priceYearly / 12);
+                          const annualMonthly = Math.round(
+                            plan.priceYearly / 12,
+                          );
                           return (
                             <Card
                               key={plan.slug}
@@ -782,19 +927,29 @@ export function BillingSettings() {
                             >
                               <CardHeader>
                                 <CardTitle>{plan.name}</CardTitle>
-                                <CardDescription>{plan.description}</CardDescription>
+                                <CardDescription>
+                                  {plan.description}
+                                </CardDescription>
                               </CardHeader>
                               <CardContent>
                                 <div className="mb-4">
-                                  <span className="text-3xl font-bold">${annualMonthly}</span>
-                                  <span className="text-muted-foreground">/mo</span>
+                                  <span className="text-3xl font-bold">
+                                    ${annualMonthly}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    /mo
+                                  </span>
                                   <p className="text-sm text-muted-foreground">
-                                    ${plan.priceYearly.toLocaleString()} billed annually
+                                    ${plan.priceYearly.toLocaleString()} billed
+                                    annually
                                   </p>
                                 </div>
                                 <ul className="space-y-2 text-sm">
                                   {plan.features.map((feature) => (
-                                    <li key={feature} className="flex items-center gap-2">
+                                    <li
+                                      key={feature}
+                                      className="flex items-center gap-2"
+                                    >
                                       <Check className="h-4 w-4 text-primary" />
                                       <span>{feature}</span>
                                     </li>
@@ -847,11 +1002,15 @@ export function BillingSettings() {
                     {paymentMethod.brand} ending in {paymentMethod.last4}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Expires {paymentMethod.expMonth.toString().padStart(2, "0")}/{paymentMethod.expYear}
+                    Expires {paymentMethod.expMonth.toString().padStart(2, "0")}
+                    /{paymentMethod.expYear}
                   </p>
                 </div>
               </div>
-              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+              <Dialog
+                open={isPaymentDialogOpen}
+                onOpenChange={setIsPaymentDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button variant="outline">Update Payment Method</Button>
                 </DialogTrigger>
@@ -863,7 +1022,10 @@ export function BillingSettings() {
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...paymentForm}>
-                    <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-4 py-4">
+                    <form
+                      onSubmit={paymentForm.handleSubmit(onPaymentSubmit)}
+                      className="space-y-4 py-4"
+                    >
                       <FormField
                         control={paymentForm.control}
                         name="cardNumber"
@@ -871,7 +1033,10 @@ export function BillingSettings() {
                           <FormItem>
                             <FormLabel>Card Number</FormLabel>
                             <FormControl>
-                              <Input placeholder="4242 4242 4242 4242" {...field} />
+                              <Input
+                                placeholder="4242 4242 4242 4242"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -919,11 +1084,17 @@ export function BillingSettings() {
                         )}
                       />
                       <DialogFooter className="mt-4">
-                        <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)} type="button">
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsPaymentDialogOpen(false)}
+                          type="button"
+                        >
                           Cancel
                         </Button>
                         <Button type="submit" disabled={isLoading}>
-                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          {isLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
                           Update Payment Method
                         </Button>
                       </DialogFooter>
@@ -935,7 +1106,9 @@ export function BillingSettings() {
           ) : (
             <div className="text-center py-6">
               <CreditCard className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No payment method on file</p>
+              <p className="text-muted-foreground mb-4">
+                No payment method on file
+              </p>
               <Button onClick={() => setIsPaymentDialogOpen(true)}>
                 Add Payment Method
               </Button>
@@ -969,7 +1142,10 @@ export function BillingSettings() {
             <TableBody>
               {invoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-muted-foreground py-8"
+                  >
                     No invoices yet
                   </TableCell>
                 </TableRow>
@@ -977,15 +1153,29 @@ export function BillingSettings() {
                 invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">{invoice.id}</TableCell>
-                    <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(invoice.date).toLocaleDateString()}
+                    </TableCell>
                     <TableCell>{invoice.amount}</TableCell>
                     <TableCell>
-                      <Badge variant={invoice.status === "paid" ? "default" : invoice.status === "pending" ? "secondary" : "destructive"}>
+                      <Badge
+                        variant={
+                          invoice.status === "paid"
+                            ? "default"
+                            : invoice.status === "pending"
+                              ? "secondary"
+                              : "destructive"
+                        }
+                      >
                         {invoice.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleDownloadInvoice(invoice.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownloadInvoice(invoice.id)}
+                      >
                         <Download className="h-4 w-4" />
                         <span className="sr-only">Download</span>
                       </Button>

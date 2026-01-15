@@ -4,6 +4,7 @@ import { Logger } from "@/lib/logger";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getSubscriptionWithFallback } from "@/lib/billing-auth";
 
 /**
  * REACTIVATE SUBSCRIPTION API
@@ -30,13 +31,22 @@ export async function POST(request: NextRequest) {
     const body: ReactivateRequest = await request.json();
     const { subscriptionId } = body;
 
-    // In production, get subscriptionId from authenticated user session
-    let stripeSubscriptionId = subscriptionId;
+    // SECURE: Get subscription from authenticated user or verify ownership
+    const authResult = await getSubscriptionWithFallback(subscriptionId);
+
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status },
+      );
+    }
+
+    const { subscription } = authResult;
+    const stripeSubscriptionId = subscription.stripeSubscriptionId;
 
     if (!stripeSubscriptionId) {
-      // TODO: Get from authenticated user's team
       return NextResponse.json(
-        { error: "Subscription ID required" },
+        { error: "No Stripe subscription linked to this account" },
         { status: 400 },
       );
     }
@@ -44,9 +54,12 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     // Remove cancellation - subscription will continue
-    const subscription = await stripe.subscriptions.update(stripeSubscriptionId, {
-      cancel_at_period_end: false,
-    });
+    const subscription = await stripe.subscriptions.update(
+      stripeSubscriptionId,
+      {
+        cancel_at_period_end: false,
+      },
+    );
 
     // Update local database
     try {
@@ -60,7 +73,9 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
     } catch (dbError) {
-      Logger.warn("Billing", "Failed to update local subscription record", { dbError });
+      Logger.warn("Billing", "Failed to update local subscription record", {
+        dbError,
+      });
     }
 
     Logger.info("Billing", "Subscription reactivated", {
@@ -77,7 +92,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    Logger.error("Billing", "Failed to reactivate subscription", { error: error.message });
+    Logger.error("Billing", "Failed to reactivate subscription", {
+      error: error.message,
+    });
     return NextResponse.json(
       { error: error.message || "Failed to reactivate subscription" },
       { status: 500 },

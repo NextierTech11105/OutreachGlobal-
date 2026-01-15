@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { Logger } from "@/lib/logger";
+import { getSubscriptionWithFallback, getAuthenticatedSubscription } from "@/lib/billing-auth";
 
 /**
  * UPDATE PAYMENT METHOD API
@@ -32,11 +33,30 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const customerId = searchParams.get("customerId");
+    const providedCustomerId = searchParams.get("customerId");
 
-    if (!customerId) {
+    // SECURE: Get customer ID from authenticated user's subscription
+    const authResult = await getAuthenticatedSubscription();
+
+    let stripeCustomerId: string | null = null;
+
+    if (authResult.success) {
+      // User is authenticated - use their customer ID
+      stripeCustomerId = authResult.subscription.stripeCustomerId;
+    } else if (providedCustomerId && process.env.ALLOW_LEGACY_BILLING === "true") {
+      // Legacy fallback for existing integrations
+      Logger.warn("Billing", "Using legacy customer ID access", { providedCustomerId });
+      stripeCustomerId = providedCustomerId;
+    } else if (!authResult.success) {
       return NextResponse.json(
-        { error: "Customer ID required" },
+        { error: authResult.error },
+        { status: authResult.status },
+      );
+    }
+
+    if (!stripeCustomerId) {
+      return NextResponse.json(
+        { error: "No Stripe customer linked to this account" },
         { status: 400 },
       );
     }
@@ -45,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     // Create a SetupIntent for securely collecting payment details
     const setupIntent = await stripe.setupIntents.create({
-      customer: customerId,
+      customer: stripeCustomerId,
       payment_method_types: ["card"],
     });
 
@@ -55,7 +75,9 @@ export async function GET(request: NextRequest) {
       setupIntentId: setupIntent.id,
     });
   } catch (error: any) {
-    Logger.error("Billing", "Failed to create SetupIntent", { error: error.message });
+    Logger.error("Billing", "Failed to create SetupIntent", {
+      error: error.message,
+    });
     return NextResponse.json(
       { error: error.message || "Failed to create payment setup" },
       { status: 500 },
@@ -83,13 +105,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // In production, get customerId from authenticated user session
-    let stripeCustomerId = customerId;
+    // SECURE: Get customer ID from authenticated user's subscription
+    const authResult = await getAuthenticatedSubscription();
+
+    let stripeCustomerId: string | null = null;
+
+    if (authResult.success) {
+      // User is authenticated - use their customer ID
+      stripeCustomerId = authResult.subscription.stripeCustomerId;
+    } else if (customerId && process.env.ALLOW_LEGACY_BILLING === "true") {
+      // Legacy fallback for existing integrations
+      Logger.warn("Billing", "Using legacy customer ID access for payment update", { customerId });
+      stripeCustomerId = customerId;
+    } else if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status },
+      );
+    }
 
     if (!stripeCustomerId) {
-      // TODO: Get from authenticated user's team
       return NextResponse.json(
-        { error: "Customer ID required" },
+        { error: "No Stripe customer linked to this account" },
         { status: 400 },
       );
     }
@@ -130,7 +167,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    Logger.error("Billing", "Failed to update payment method", { error: error.message });
+    Logger.error("Billing", "Failed to update payment method", {
+      error: error.message,
+    });
 
     // Handle specific Stripe errors
     if (error.type === "StripeCardError") {

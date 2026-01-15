@@ -5,6 +5,7 @@ import { Logger } from "@/lib/logger";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getSubscriptionWithFallback } from "@/lib/billing-auth";
 
 /**
  * CANCEL SUBSCRIPTION API
@@ -33,15 +34,22 @@ export async function POST(request: NextRequest) {
     const body: CancelRequest = await request.json();
     const { subscriptionId, reason, feedback } = body;
 
-    // In production, get subscriptionId from authenticated user session
-    // For now, we'll accept it from the body or find the user's subscription
-    let stripeSubscriptionId = subscriptionId;
+    // SECURE: Get subscription from authenticated user or verify ownership
+    const authResult = await getSubscriptionWithFallback(subscriptionId);
+
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status },
+      );
+    }
+
+    const { subscription } = authResult;
+    const stripeSubscriptionId = subscription.stripeSubscriptionId;
 
     if (!stripeSubscriptionId) {
-      // TODO: Get from authenticated user's team
-      // For demo purposes, return error
       return NextResponse.json(
-        { error: "Subscription ID required" },
+        { error: "No Stripe subscription linked to this account" },
         { status: 400 },
       );
     }
@@ -49,14 +57,17 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     // Cancel at period end (not immediately)
-    const subscription = await stripe.subscriptions.update(stripeSubscriptionId, {
-      cancel_at_period_end: true,
-      metadata: {
-        cancellation_reason: reason || "not_specified",
-        cancellation_feedback: feedback || "",
-        cancelled_at: new Date().toISOString(),
+    const subscription = await stripe.subscriptions.update(
+      stripeSubscriptionId,
+      {
+        cancel_at_period_end: true,
+        metadata: {
+          cancellation_reason: reason || "not_specified",
+          cancellation_feedback: feedback || "",
+          cancelled_at: new Date().toISOString(),
+        },
       },
-    });
+    );
 
     const periodEndDate = new Date(subscription.current_period_end * 1000);
 
@@ -71,7 +82,9 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
     } catch (dbError) {
-      Logger.warn("Billing", "Failed to update local subscription record", { dbError });
+      Logger.warn("Billing", "Failed to update local subscription record", {
+        dbError,
+      });
     }
 
     // Get customer email for notification
@@ -111,7 +124,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    Logger.error("Billing", "Failed to cancel subscription", { error: error.message });
+    Logger.error("Billing", "Failed to cancel subscription", {
+      error: error.message,
+    });
     return NextResponse.json(
       { error: error.message || "Failed to cancel subscription" },
       { status: 500 },

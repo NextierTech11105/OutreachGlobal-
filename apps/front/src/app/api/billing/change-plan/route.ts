@@ -4,6 +4,7 @@ import { Logger } from "@/lib/logger";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getSubscriptionWithFallback } from "@/lib/billing-auth";
 
 /**
  * CHANGE PLAN API
@@ -18,7 +19,8 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 // These should be created in your Stripe dashboard
 const PLAN_PRICES: Record<string, { monthly: string; yearly: string }> = {
   starter: {
-    monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || "price_starter_monthly",
+    monthly:
+      process.env.STRIPE_PRICE_STARTER_MONTHLY || "price_starter_monthly",
     yearly: process.env.STRIPE_PRICE_STARTER_YEARLY || "price_starter_yearly",
   },
   pro: {
@@ -64,18 +66,29 @@ export async function POST(request: NextRequest) {
     const planPrices = PLAN_PRICES[planSlug];
     if (!planPrices) {
       return NextResponse.json(
-        { error: `Invalid plan: ${planSlug}. Valid plans: ${Object.keys(PLAN_PRICES).join(", ")}` },
+        {
+          error: `Invalid plan: ${planSlug}. Valid plans: ${Object.keys(PLAN_PRICES).join(", ")}`,
+        },
         { status: 400 },
       );
     }
 
-    // In production, get subscriptionId from authenticated user session
-    let stripeSubscriptionId = subscriptionId;
+    // SECURE: Get subscription from authenticated user or verify ownership
+    const authResult = await getSubscriptionWithFallback(subscriptionId);
+
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status },
+      );
+    }
+
+    const { subscription } = authResult;
+    const stripeSubscriptionId = subscription.stripeSubscriptionId;
 
     if (!stripeSubscriptionId) {
-      // TODO: Get from authenticated user's team
       return NextResponse.json(
-        { error: "Subscription ID required" },
+        { error: "No Stripe subscription linked to this account" },
         { status: 400 },
       );
     }
@@ -83,7 +96,8 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     // Get current subscription
-    const currentSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+    const currentSubscription =
+      await stripe.subscriptions.retrieve(stripeSubscriptionId);
 
     if (!currentSubscription || currentSubscription.status === "canceled") {
       return NextResponse.json(
@@ -104,20 +118,23 @@ export async function POST(request: NextRequest) {
 
     // Update subscription with new price
     // proration_behavior: "create_prorations" will credit/charge the difference
-    const updatedSubscription = await stripe.subscriptions.update(stripeSubscriptionId, {
-      items: [
-        {
-          id: currentItemId,
-          price: newPriceId,
+    const updatedSubscription = await stripe.subscriptions.update(
+      stripeSubscriptionId,
+      {
+        items: [
+          {
+            id: currentItemId,
+            price: newPriceId,
+          },
+        ],
+        proration_behavior: "create_prorations",
+        metadata: {
+          plan: planSlug,
+          billing_cycle: billingCycle,
+          changed_at: new Date().toISOString(),
         },
-      ],
-      proration_behavior: "create_prorations",
-      metadata: {
-        plan: planSlug,
-        billing_cycle: billingCycle,
-        changed_at: new Date().toISOString(),
       },
-    });
+    );
 
     // Update local database
     try {
@@ -129,7 +146,9 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
     } catch (dbError) {
-      Logger.warn("Billing", "Failed to update local subscription record", { dbError });
+      Logger.warn("Billing", "Failed to update local subscription record", {
+        dbError,
+      });
     }
 
     Logger.info("Billing", "Plan changed", {
