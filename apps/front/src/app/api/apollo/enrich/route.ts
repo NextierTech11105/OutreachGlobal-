@@ -449,14 +449,11 @@ async function handleBulkEnrichment(body: {
                 apolloOrgId: apolloData.organization?.id,
                 apolloIndustry: apolloData.organization?.industry,
                 apolloEmployeeCount: apolloData.organization?.estimated_num_employees,
+                enrichmentStatus:
+                  phones.length > 0 || emails.length > 0
+                    ? "completed"
+                    : "partial",
               },
-
-
-              // Update status if we got contact info
-              enrichmentStatus:
-                phones.length > 0 || emails.length > 0
-                  ? "completed"
-                  : "partial",
               updatedAt: new Date(),
             })
             .where(eq(leads.id, lead.leadId));

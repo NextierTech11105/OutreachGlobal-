@@ -379,7 +379,7 @@ export async function GET(request: NextRequest) {
       };
 
       for (const lead of batchLeads) {
-        const stage = lead.stage as keyof typeof stages;
+        const stage = lead.status as keyof typeof stages;
         if (stages[stage] !== undefined) {
           stages[stage]++;
         }

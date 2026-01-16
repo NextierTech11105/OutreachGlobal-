@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       try {
         const customer = subscription.customer as Stripe.Customer;
 
-        if (!customer || customer.deleted || !customer.email) {
+        if (!customer || ("deleted" in customer && customer.deleted) || !customer.email) {
           continue;
         }
 
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       try {
         const customer = subscription.customer as Stripe.Customer;
 
-        if (!customer || customer.deleted || !customer.email) {
+        if (!customer || ("deleted" in customer && customer.deleted) || !customer.email) {
           continue;
         }
 
