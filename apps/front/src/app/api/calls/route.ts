@@ -8,23 +8,18 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const teamId = searchParams.get("teamId");
-  const leadId = searchParams.get("leadId");
-  const dialerId = searchParams.get("dialerId");
+  const powerDialerId = searchParams.get("powerDialerId");
+  const dialerContactId = searchParams.get("dialerContactId");
+  const teamMemberId = searchParams.get("teamMemberId");
 
   try {
     const configured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN);
 
-    const query = db
-      .select()
-      .from(callHistories)
-      .orderBy(desc(callHistories.createdAt));
-
-    if (teamId) {
+    if (powerDialerId) {
       const calls = await db
         .select()
         .from(callHistories)
-        .where(eq(callHistories.teamId, teamId))
+        .where(eq(callHistories.powerDialerId, powerDialerId))
         .orderBy(desc(callHistories.createdAt))
         .limit(100);
 
@@ -35,11 +30,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (leadId) {
+    if (dialerContactId) {
       const calls = await db
         .select()
         .from(callHistories)
-        .where(eq(callHistories.leadId, leadId))
+        .where(eq(callHistories.dialerContactId, dialerContactId))
         .orderBy(desc(callHistories.createdAt));
 
       return NextResponse.json({
@@ -49,11 +44,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (dialerId) {
+    if (teamMemberId) {
       const calls = await db
         .select()
         .from(callHistories)
-        .where(eq(callHistories.dialerId, dialerId))
+        .where(eq(callHistories.teamMemberId, teamMemberId))
         .orderBy(desc(callHistories.createdAt));
 
       return NextResponse.json({
@@ -65,12 +60,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       configured,
-      message: "Calls API - provide teamId, leadId, or dialerId parameter",
+      message: "Calls API - provide powerDialerId, dialerContactId, or teamMemberId parameter",
       endpoints: {
-        byTeam: "GET /api/calls?teamId=xxx",
-        byLead: "GET /api/calls?leadId=xxx",
-        byDialer: "GET /api/calls?dialerId=xxx",
-        initiate: "POST /api/calls { to, from, leadId }",
+        byDialer: "GET /api/calls?powerDialerId=xxx",
+        byContact: "GET /api/calls?dialerContactId=xxx",
+        byMember: "GET /api/calls?teamMemberId=xxx",
+        initiate: "POST /api/calls { to, from, powerDialerId, dialerContactId }",
       },
     });
   } catch (error) {
@@ -92,11 +87,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { to, from, teamId, leadId, dialerId, userId } = body;
+    const { to, from, powerDialerId, dialerContactId, dialerMode, teamMemberId } = body;
 
     if (!to) {
       return NextResponse.json(
         { error: "to phone number is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!powerDialerId || !dialerContactId) {
+      return NextResponse.json(
+        { error: "powerDialerId and dialerContactId are required" },
         { status: 400 },
       );
     }
@@ -135,16 +137,14 @@ export async function POST(request: NextRequest) {
 
     await db.insert(callHistories).values({
       id: callId,
-      teamId: teamId || "",
-      leadId: leadId || null,
-      dialerId: dialerId || null,
-      userId: userId || null,
-      direction: "outbound",
-      fromNumber: from || process.env.TWILIO_PHONE_NUMBER || "",
-      toNumber: to,
-      status: "initiated",
-      twilioSid: twilioData.sid,
+      powerDialerId,
+      dialerContactId,
+      dialerMode: dialerMode || "manual",
+      teamMemberId: teamMemberId || null,
+      sid: twilioData.sid,
+      duration: 0,
       createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     return NextResponse.json({

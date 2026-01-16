@@ -71,7 +71,7 @@ async function initializeFromRedis(): Promise<void> {
 async function persistSchedule(): Promise<void> {
   try {
     if (await isRedisAvailable()) {
-      await redis.set(NUDGE_SCHEDULE_KEY, scheduleMemory);
+      await redis.set(NUDGE_SCHEDULE_KEY, JSON.stringify(scheduleMemory));
     }
   } catch (error) {
     console.error("[Cathy Schedule] Redis persist error:", error);

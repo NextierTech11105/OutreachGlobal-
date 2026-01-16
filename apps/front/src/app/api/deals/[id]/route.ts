@@ -119,16 +119,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     await db.update(deals).set(updateData).where(eq(deals.id, dealId));
 
     // Log activity
-    const activity: DealActivity = {
-      id: uuidv4(),
+    await db.insert(dealActivities).values({
       dealId,
       type: "note",
+      title: `Deal updated`,
       description: `Deal updated: ${Object.keys(updates).join(", ")}`,
       userId: userId || "system",
-      createdAt: new Date().toISOString(),
-    };
-
-    await db.insert(dealActivities).values(activity);
+    });
 
     // Get updated deal
     const updated = await db
@@ -177,19 +174,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       await db.delete(dealActivities).where(eq(dealActivities.dealId, dealId));
       await db.delete(deals).where(eq(deals.id, dealId));
 
-      // Remove deal reference from lead
-      await db
-        .update(leads)
-        .set({ dealId: null, status: "lost" })
-        .where(eq(leads.dealId, dealId));
-
       return NextResponse.json({
         success: true,
         message: "Deal permanently deleted",
       });
     } else {
       // Soft delete - move to closed_lost
-      const now = new Date().toISOString();
+      const now = new Date();
 
       await db
         .update(deals)
@@ -198,23 +189,20 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           outcome: {
             result: "lost",
             reason,
-            closedAt: now,
+            closedAt: now.toISOString(),
           },
           updatedAt: now,
         })
         .where(eq(deals.id, dealId));
 
       // Log activity
-      const activity: DealActivity = {
-        id: uuidv4(),
+      await db.insert(dealActivities).values({
         dealId,
         type: "stage_change",
+        title: `Deal closed as lost`,
         description: `Deal closed as lost: ${reason}`,
         userId: "system",
-        createdAt: now,
-      };
-
-      await db.insert(dealActivities).values(activity);
+      });
 
       return NextResponse.json({
         success: true,

@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
 
         await db.insert(leads).values({
           id: newLeadId,
+          teamId: "default", // Calendly leads need a default team
           firstName: invitee.first_name || invitee.name.split(" ")[0] || "",
           lastName:
             invitee.last_name ||
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
             timezone: invitee.timezone,
             questionsAndAnswers: invitee.questions_and_answers,
             tracking: payload.tracking,
-          },
+          } as Record<string, unknown>,
           createdAt: new Date(),
           updatedAt: new Date(),
         });

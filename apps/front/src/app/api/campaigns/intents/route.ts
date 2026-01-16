@@ -368,7 +368,7 @@ export async function POST(request: NextRequest) {
                   ${JSON.stringify(newTemp)}::jsonb
                 )
               `,
-              stage: newTemp === "HOT" ? "qualified" : "engaged",
+              status: newTemp === "HOT" ? "qualified" : "engaged",
               updatedAt: new Date(),
             })
             .where(eq(leads.id, leadId));

@@ -100,17 +100,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await db.insert(dealDocuments).values(document);
 
     // Log activity
-    const activity: DealActivity = {
-      id: uuidv4(),
+    await db.insert(dealActivities).values({
       dealId,
       type: "document",
+      title: `Document added: ${name}`,
       description: `Document added: ${name} (${type})`,
       metadata: { documentId: document.id, documentType: type },
       userId: userId || "system",
-      createdAt: now,
-    };
-
-    await db.insert(dealActivities).values(activity);
+    });
 
     // Update deal timestamp
     await db.update(deals).set({ updatedAt: now }).where(eq(deals.id, dealId));
@@ -171,16 +168,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await db.delete(dealDocuments).where(eq(dealDocuments.id, documentId));
 
     // Log activity
-    const activity: DealActivity = {
-      id: uuidv4(),
+    await db.insert(dealActivities).values({
       dealId,
       type: "document",
+      title: `Document removed: ${document[0].name}`,
       description: `Document removed: ${document[0].name}`,
       userId: "system",
-      createdAt: new Date().toISOString(),
-    };
-
-    await db.insert(dealActivities).values(activity);
+    });
 
     return NextResponse.json({
       success: true,

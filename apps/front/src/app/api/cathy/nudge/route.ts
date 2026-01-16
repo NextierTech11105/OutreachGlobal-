@@ -223,24 +223,20 @@ export async function POST(request: NextRequest) {
 
       // Record campaign attempt
       await db.insert(campaignAttempts).values({
-        id: crypto.randomUUID(),
         leadId,
         campaignContext: "follow_up",
         attemptNumber: currentAttempt,
         channel: "sms",
         agent: "cathy",
         status: "sent",
-        messageContent: result.renderedMessage,
+        templateUsed: result.renderedMessage,
         responseReceived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
 
       // Update lead
       await db
         .update(leads)
         .set({
-          lastContactDate: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(leads.id, leadId));

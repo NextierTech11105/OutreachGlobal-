@@ -85,23 +85,9 @@ async function initiateTwilioCall(
       return { success: false, error: result.message || "Call failed" };
     }
 
-    // Log to database
-    try {
-      await db.insert(callHistories).values({
-        id: crypto.randomUUID(),
-        teamId: "default",
-        leadId,
-        direction: "outbound",
-        fromNumber: TWILIO_PHONE_NUMBER,
-        toNumber: formattedTo,
-        status: "initiated",
-        twilioSid: result.sid,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } catch (dbError) {
-      console.error("[Scheduled] DB insert error:", dbError);
-    }
+    // Log to database (schema requires powerDialerId and dialerContactId)
+    // Skipping DB insert for scheduled calls as they don't have dialer context
+    console.log(`[Scheduled] Call initiated: ${result.sid} to ${formattedTo}`);
 
     return { success: true, callSid: result.sid };
   } catch (error) {

@@ -105,13 +105,16 @@ export async function POST(request: NextRequest) {
       await db
         .update(leads)
         .set({
-          stage: "hot_call_queue",
-          priority,
+          status: "hot_call_queue",
           customFields: sql`
             jsonb_set(
-              COALESCE(custom_fields, '{}'::jsonb),
-              '{callQueueId}',
-              ${JSON.stringify(item.id)}::jsonb
+              jsonb_set(
+                COALESCE(custom_fields, '{}'::jsonb),
+                '{callQueueId}',
+                ${JSON.stringify(item.id)}::jsonb
+              ),
+              '{priority}',
+              ${JSON.stringify(priority)}::jsonb
             )
           `,
           updatedAt: new Date(),
@@ -244,7 +247,7 @@ export async function PATCH(request: NextRequest) {
       await db
         .update(leads)
         .set({
-          stage: newStage,
+          status: newStage,
           customFields: sql`
             jsonb_set(
               jsonb_set(

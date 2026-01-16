@@ -107,10 +107,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await db.update(deals).set(updateData).where(eq(deals.id, dealId));
 
     // Log stage change activity
-    const stageChangeActivity: DealActivity = {
-      id: uuidv4(),
+    await db.insert(dealActivities).values({
       dealId,
       type: "stage_change",
+      title: `Stage changed to ${newStage}`,
       description: `Stage changed from ${currentStage} to ${newStage}${reason ? `: ${reason}` : ""}`,
       metadata: {
         fromStage: currentStage,
@@ -119,10 +119,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         finalPrice,
       },
       userId: userId || "system",
-      createdAt: now,
-    };
-
-    await db.insert(dealActivities).values(stageChangeActivity);
+    });
 
     // Get updated deal
     const updated = await db

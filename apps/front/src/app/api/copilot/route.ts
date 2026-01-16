@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
           phone: from,
           email: dbLead.email || undefined,
           company: dbLead.company || undefined,
-          stage: (dbLead.stage as Lead["stage"]) || "inbound_response",
+          stage: (dbLead.status as Lead["stage"]) || "inbound_response",
           source: dbLead.source || undefined,
           loopDay: 1,
           touchCount: 0,
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
           phone: from,
           email: dbLead.email || undefined,
           company: dbLead.company || undefined,
-          stage: (dbLead.stage as Lead["stage"]) || "inbound_response",
+          stage: (dbLead.status as Lead["stage"]) || "inbound_response",
           source: dbLead.source || undefined,
           loopDay: 1,
           touchCount: 0,
@@ -193,18 +193,24 @@ export async function POST(request: NextRequest) {
       await db
         .update(leads)
         .set({
-          stage: decision.nextStage,
-          classification: decision.classification.classification,
-          priority: decision.classification.priority,
+          status: decision.nextStage,
           customFields: sql`
             jsonb_set(
               jsonb_set(
-                COALESCE(custom_fields, '{}'::jsonb),
-                '{lastCopilotAction}',
-                ${JSON.stringify(decision.action)}::jsonb
+                jsonb_set(
+                  jsonb_set(
+                    COALESCE(custom_fields, '{}'::jsonb),
+                    '{lastCopilotAction}',
+                    ${JSON.stringify(decision.action)}::jsonb
+                  ),
+                  '{lastCopilotDecision}',
+                  ${JSON.stringify(decision.reason)}::jsonb
+                ),
+                '{classification}',
+                ${JSON.stringify(decision.classification.classification)}::jsonb
               ),
-              '{lastCopilotDecision}',
-              ${JSON.stringify(decision.reason)}::jsonb
+              '{priority}',
+              ${JSON.stringify(decision.classification.priority)}::jsonb
             )
           `,
           updatedAt: new Date(),
