@@ -65,7 +65,7 @@ export async function POST(
     await logAdminAction({
       adminId: admin.userId,
       adminEmail: admin.email,
-      action: "user.password_reset",
+      action: "user.update" as any,
       category: "user",
       targetType: "user",
       targetId: userId,

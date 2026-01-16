@@ -869,6 +869,9 @@ export async function POST(request: NextRequest) {
     if (campaignEligible > records.length * 0.3)
       autoTags.push("campaign-ready");
 
+    // Industry tags based on signals (if >5% of records have this signal)
+    const minForTag = Math.max(5, records.length * 0.05);
+
     // Decision-maker tags (Owner, CEO, Partner, VP, Sales Manager)
     if (decisionMakerCount > 0) autoTags.push("has-decision-makers");
     if (decisionMakerCount > records.length * 0.2)
@@ -892,9 +895,6 @@ export async function POST(request: NextRequest) {
     if (withCellPhone > records.length * 0.5) autoTags.push("mobile-ready");
     if (withEmail > records.length * 0.5) autoTags.push("email-ready");
     if (withPhone > records.length * 0.8) autoTags.push("phone-rich");
-
-    // Industry tags based on signals (if >5% of records have this signal)
-    const minForTag = Math.max(5, records.length * 0.05);
 
     // Fixed location / owner-occupied industries
     if (

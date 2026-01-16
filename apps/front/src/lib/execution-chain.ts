@@ -38,7 +38,12 @@ import {
   SMS_SEND_DELAY_MS,
   TRACERFY_COST_PER_LEAD,
 } from "@/config/constants";
-import { SMS_TEMPLATES, renderTemplate, validateCharCount, getTemplate } from "@/config/the-blitz";
+import {
+  SMS_TEMPLATES,
+  renderTemplate,
+  validateCharCount,
+  getTemplate,
+} from "@/config/the-blitz";
 import { Logger } from "@/lib/logger";
 
 const log = new Logger("ExecutionChain");
@@ -144,7 +149,7 @@ export async function executeDataImport(
     campaignId?: string;
     industryId?: string;
     batchName?: string;
-  }
+  },
 ): Promise<ExecutionResult> {
   const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const errors: string[] = [];
@@ -188,10 +193,14 @@ export async function executeDataImport(
 
       await db.insert(leads).values(insertData);
       succeeded += block.length;
-      log.info(`[DataImport] Block ${blockNumber} imported: ${block.length} leads`);
+      log.info(
+        `[DataImport] Block ${blockNumber} imported: ${block.length} leads`,
+      );
     } catch (error) {
       failed += block.length;
-      errors.push(`Block ${blockNumber} failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      errors.push(
+        `Block ${blockNumber} failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
       log.error(`[DataImport] Block ${blockNumber} failed`, error);
     }
   }
@@ -222,7 +231,7 @@ export async function executeEnrich(
   config: {
     skipTrace: boolean;
     verifyBusiness: boolean;
-  } = { skipTrace: true, verifyBusiness: false }
+  } = { skipTrace: true, verifyBusiness: false },
 ): Promise<ExecutionResult> {
   const errors: string[] = [];
   let succeeded = 0;
@@ -234,7 +243,9 @@ export async function executeEnrich(
     .from(leads)
     .where(sql`custom_fields->>'batchId' = ${batchId}`);
 
-  log.info(`[Enrich] Processing ${batchLeads.length} leads from batch ${batchId}`);
+  log.info(
+    `[Enrich] Processing ${batchLeads.length} leads from batch ${batchId}`,
+  );
 
   if (config.skipTrace) {
     // Queue for Tracerfy skip trace
@@ -249,15 +260,18 @@ export async function executeEnrich(
 
     try {
       // Call Tracerfy API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/skip-trace/tracerfy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leads: tracerfyPayload,
-          webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/skip-trace/tracerfy/webhook`,
-          batchId,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/api/skip-trace/tracerfy`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leads: tracerfyPayload,
+            webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/skip-trace/tracerfy/webhook`,
+            batchId,
+          }),
+        },
+      );
 
       if (response.ok) {
         succeeded = batchLeads.length;
@@ -268,7 +282,9 @@ export async function executeEnrich(
       }
     } catch (error) {
       failed = batchLeads.length;
-      errors.push(`Skip trace error: ${error instanceof Error ? error.message : "Unknown"}`);
+      errors.push(
+        `Skip trace error: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
     }
   }
 
@@ -295,7 +311,9 @@ export async function executeEnrich(
 // STAGE 3: CONTACTABILITY - Filter by line type
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export async function executeContactability(batchId: string): Promise<ExecutionResult> {
+export async function executeContactability(
+  batchId: string,
+): Promise<ExecutionResult> {
   const errors: string[] = [];
   let mobileCount = 0;
   let landlineCount = 0;
@@ -310,8 +328,8 @@ export async function executeContactability(batchId: string): Promise<ExecutionR
   log.info(`[Contactability] Filtering ${batchLeads.length} leads`);
 
   for (const lead of batchLeads) {
-    const customFields = lead.customFields as Record<string, unknown> || {};
-    const lineType = customFields.lineType as string || "unknown";
+    const customFields = (lead.customFields as Record<string, unknown>) || {};
+    const lineType = (customFields.lineType as string) || "unknown";
 
     // Mark contactability based on line type
     const contactable = lineType.includes("mobile");
@@ -352,7 +370,10 @@ export async function executeContactability(batchId: string): Promise<ExecutionR
       mobile: mobileCount,
       landline: landlineCount,
       unknown: unknownCount,
-      contactableRate: batchLeads.length > 0 ? (mobileCount / batchLeads.length * 100).toFixed(1) : 0,
+      contactableRate:
+        batchLeads.length > 0
+          ? ((mobileCount / batchLeads.length) * 100).toFixed(1)
+          : 0,
     },
   };
 }
@@ -367,7 +388,7 @@ export async function executeCampaignPrep(
     personaId: string;
     templateStage: "opener" | "nudge" | "value" | "close";
     campaign: keyof typeof CAMPAIGN_MACROS;
-  }
+  },
 ): Promise<ExecutionResult> {
   const errors: string[] = [];
 
@@ -376,10 +397,12 @@ export async function executeCampaignPrep(
     .select()
     .from(leads)
     .where(
-      sql`custom_fields->>'batchId' = ${batchId} AND (custom_fields->>'contactable')::boolean = true`
+      sql`custom_fields->>'batchId' = ${batchId} AND (custom_fields->>'contactable')::boolean = true`,
     );
 
-  log.info(`[CampaignPrep] Preparing ${contactableLeads.length} contactable leads`);
+  log.info(
+    `[CampaignPrep] Preparing ${contactableLeads.length} contactable leads`,
+  );
 
   // Get template
   const template = getTemplate(config.personaId, config.templateStage);
@@ -391,7 +414,9 @@ export async function executeCampaignPrep(
       processed: 0,
       succeeded: 0,
       failed: contactableLeads.length,
-      errors: [`Template not found for persona ${config.personaId} stage ${config.templateStage}`],
+      errors: [
+        `Template not found for persona ${config.personaId} stage ${config.templateStage}`,
+      ],
       nextStage: undefined,
     };
   }
@@ -452,20 +477,23 @@ export async function executeCampaignPrep(
 // STAGE 5: PREVIEW - Review batch before deployment
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export async function executePreview(batchId: string): Promise<DeploymentPreview> {
+export async function executePreview(
+  batchId: string,
+): Promise<DeploymentPreview> {
   // Get campaign-ready leads
   const readyLeads = await db
     .select()
     .from(leads)
     .where(
-      sql`custom_fields->>'batchId' = ${batchId} AND stage = 'campaign_ready'`
+      sql`custom_fields->>'batchId' = ${batchId} AND stage = 'campaign_ready'`,
     );
 
   const warnings: string[] = [];
 
   // Get template from first lead
   const firstLead = readyLeads[0];
-  const customFields = (firstLead?.customFields as Record<string, unknown>) || {};
+  const customFields =
+    (firstLead?.customFields as Record<string, unknown>) || {};
   const templateId = customFields.templateId as string;
   const template = SMS_TEMPLATES.find((t) => t.id === templateId);
 
@@ -479,7 +507,9 @@ export async function executePreview(batchId: string): Promise<DeploymentPreview
       ? renderTemplate(template, {
           firstName: lead.firstName || "there",
           link: process.env.CALENDLY_LINK || "https://calendly.com/nextier",
-          industry: (lead.customFields as Record<string, string>)?.industry || "business",
+          industry:
+            (lead.customFields as Record<string, string>)?.industry ||
+            "business",
         })
       : "";
     return {
@@ -498,15 +528,21 @@ export async function executePreview(batchId: string): Promise<DeploymentPreview
   };
 
   // Compliance check
-  const compliant = template ? validateCharCount(template.message).valid : false;
+  const compliant = template
+    ? validateCharCount(template.message).valid
+    : false;
   if (!compliant) {
-    warnings.push("Template exceeds 160 characters - will send as multiple segments");
+    warnings.push(
+      "Template exceeds 160 characters - will send as multiple segments",
+    );
   }
 
   return {
     batchId,
     totalLeads: readyLeads.length,
-    contactableLeads: readyLeads.filter((l) => (l.customFields as Record<string, boolean>)?.contactable).length,
+    contactableLeads: readyLeads.filter(
+      (l) => (l.customFields as Record<string, boolean>)?.contactable,
+    ).length,
     mobileLeads: readyLeads.length, // All ready leads are mobile
     template: template
       ? {
@@ -532,7 +568,7 @@ export async function executeDeploy(
   config: {
     dryRun?: boolean;
     limit?: number;
-  } = {}
+  } = {},
 ): Promise<ExecutionResult> {
   const errors: string[] = [];
   let succeeded = 0;
@@ -542,13 +578,17 @@ export async function executeDeploy(
   let readyLeads = await db
     .select()
     .from(leads)
-    .where(sql`custom_fields->>'batchId' = ${batchId} AND stage = 'campaign_ready'`);
+    .where(
+      sql`custom_fields->>'batchId' = ${batchId} AND stage = 'campaign_ready'`,
+    );
 
   if (config.limit) {
     readyLeads = readyLeads.slice(0, config.limit);
   }
 
-  log.info(`[Deploy] Deploying to ${readyLeads.length} leads (dryRun: ${config.dryRun})`);
+  log.info(
+    `[Deploy] Deploying to ${readyLeads.length} leads (dryRun: ${config.dryRun})`,
+  );
 
   for (const lead of readyLeads) {
     const customFields = (lead.customFields as Record<string, unknown>) || {};
@@ -615,7 +655,9 @@ export async function executeDeploy(
       }
     } catch (error) {
       failed++;
-      errors.push(`Error sending to ${lead.phone}: ${error instanceof Error ? error.message : "Unknown"}`);
+      errors.push(
+        `Error sending to ${lead.phone}: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
     }
   }
 
@@ -693,7 +735,7 @@ export interface CapturedData {
 
 export async function executeCapture(
   leadId: string,
-  data: Partial<CapturedData>
+  data: Partial<CapturedData>,
 ): Promise<ExecutionResult> {
   try {
     await db
@@ -759,7 +801,7 @@ export async function executeFullChain(
     campaign: keyof typeof CAMPAIGN_MACROS;
     personaId: string;
     dryRun?: boolean;
-  }
+  },
 ): Promise<{
   success: boolean;
   batchId: string;
@@ -777,7 +819,12 @@ export async function executeFullChain(
   stages.push(importResult);
 
   if (!importResult.success) {
-    return { success: false, batchId: importResult.batchId, stages, preview: null };
+    return {
+      success: false,
+      batchId: importResult.batchId,
+      stages,
+      preview: null,
+    };
   }
 
   // Stage 2: Enrich (async - webhook will update)
@@ -799,7 +846,12 @@ export async function executeFullChain(
   stages.push(prepResult);
 
   if (!prepResult.success) {
-    return { success: false, batchId: importResult.batchId, stages, preview: null };
+    return {
+      success: false,
+      batchId: importResult.batchId,
+      stages,
+      preview: null,
+    };
   }
 
   // Stage 5: Preview
@@ -807,7 +859,9 @@ export async function executeFullChain(
 
   // Stage 6: Deploy (if not dry run and ready)
   if (!config.dryRun && preview.readyToDeploy) {
-    const deployResult = await executeDeploy(importResult.batchId, { dryRun: false });
+    const deployResult = await executeDeploy(importResult.batchId, {
+      dryRun: false,
+    });
     stages.push(deployResult);
   }
 

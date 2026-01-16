@@ -253,37 +253,49 @@ export default function CommandCenterPage() {
 
       if (data.brands && Array.isArray(data.brands)) {
         // Map SignalHouse brands to our BrandCampaign interface
-        const mappedBrands: BrandCampaign[] = data.brands.map((brand: {
-          brandId: string;
-          brandName: string;
-          brandStatus: string;
-          createdAt?: string;
-          campaigns?: Array<{
-            campaignId: string;
-            usecase: string;
-            status: string;
-          }>;
-        }) => ({
-          id: brand.brandId,
-          brandName: brand.brandName || "Unknown Brand",
-          brandId: brand.brandId,
-          status: brand.brandStatus?.toLowerCase() === "approved" ? "approved" :
-                  brand.brandStatus?.toLowerCase() === "rejected" ? "rejected" : "pending",
-          registeredAt: brand.createdAt,
-          subCampaigns: (brand.campaigns || []).map((campaign: {
-            campaignId: string;
-            usecase: string;
-            status: string;
+        const mappedBrands: BrandCampaign[] = data.brands.map(
+          (brand: {
+            brandId: string;
+            brandName: string;
+            brandStatus: string;
+            createdAt?: string;
+            campaigns?: Array<{
+              campaignId: string;
+              usecase: string;
+              status: string;
+            }>;
           }) => ({
-            id: campaign.campaignId,
-            name: campaign.usecase || "Campaign",
-            type: "initial" as const,
-            assignedWorker: "gianna",
-            status: campaign.status?.toLowerCase() === "active" ? "active" as const :
-                    campaign.status?.toLowerCase() === "paused" ? "paused" as const : "draft" as const,
-            stats: { sent: 0, delivered: 0, responses: 0, positive: 0 },
-          })),
-        }));
+            id: brand.brandId,
+            brandName: brand.brandName || "Unknown Brand",
+            brandId: brand.brandId,
+            status:
+              brand.brandStatus?.toLowerCase() === "approved"
+                ? "approved"
+                : brand.brandStatus?.toLowerCase() === "rejected"
+                  ? "rejected"
+                  : "pending",
+            registeredAt: brand.createdAt,
+            subCampaigns: (brand.campaigns || []).map(
+              (campaign: {
+                campaignId: string;
+                usecase: string;
+                status: string;
+              }) => ({
+                id: campaign.campaignId,
+                name: campaign.usecase || "Campaign",
+                type: "initial" as const,
+                assignedWorker: "gianna",
+                status:
+                  campaign.status?.toLowerCase() === "active"
+                    ? ("active" as const)
+                    : campaign.status?.toLowerCase() === "paused"
+                      ? ("paused" as const)
+                      : ("draft" as const),
+                stats: { sent: 0, delivered: 0, responses: 0, positive: 0 },
+              }),
+            ),
+          }),
+        );
 
         setBrandCampaigns(mappedBrands);
       }
@@ -952,14 +964,24 @@ export default function CommandCenterPage() {
                       {[250, 500, 1000, 2000].map((limit) => (
                         <Button
                           key={limit}
-                          variant={luciDailyLimit === limit ? "default" : "outline"}
+                          variant={
+                            luciDailyLimit === limit ? "default" : "outline"
+                          }
                           size="sm"
                           className={cn(
                             "flex-1",
-                            luciDailyLimit === limit && limit === 250 && "bg-blue-600 hover:bg-blue-700",
-                            luciDailyLimit === limit && limit === 500 && "bg-green-600 hover:bg-green-700",
-                            luciDailyLimit === limit && limit === 1000 && "bg-amber-600 hover:bg-amber-700",
-                            luciDailyLimit === limit && limit === 2000 && "bg-purple-600 hover:bg-purple-700",
+                            luciDailyLimit === limit &&
+                              limit === 250 &&
+                              "bg-blue-600 hover:bg-blue-700",
+                            luciDailyLimit === limit &&
+                              limit === 500 &&
+                              "bg-green-600 hover:bg-green-700",
+                            luciDailyLimit === limit &&
+                              limit === 1000 &&
+                              "bg-amber-600 hover:bg-amber-700",
+                            luciDailyLimit === limit &&
+                              limit === 2000 &&
+                              "bg-purple-600 hover:bg-purple-700",
                           )}
                           onClick={() => updateLuciDailyLimit(limit)}
                         >

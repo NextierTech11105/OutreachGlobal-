@@ -292,7 +292,10 @@ export async function getSubscriptionSummary(userId: string) {
             used: currentUsage.propertySearches || 0,
             limit: subscription.plan?.maxPropertySearches || 500,
           },
-          sms: { used: currentUsage.smsSent || 0, limit: subscription.plan?.maxSmsPerMonth || 500 },
+          sms: {
+            used: currentUsage.smsSent || 0,
+            limit: subscription.plan?.maxSmsPerMonth || 500,
+          },
           skipTraces: {
             used: currentUsage.skipTraces || 0,
             limit: subscription.plan?.maxSkipTraces || 50,

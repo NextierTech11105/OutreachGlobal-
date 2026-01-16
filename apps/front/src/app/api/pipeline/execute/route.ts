@@ -92,7 +92,8 @@ export async function GET(request: NextRequest) {
       rateLimit: `${SIGNALHOUSE_10DLC.carrierLimits.att.smsTPM} SMS/min`,
     },
     endpoints: {
-      execute: "POST /api/pipeline/execute { file, folderId, sector, deployMode }",
+      execute:
+        "POST /api/pipeline/execute { file, folderId, sector, deployMode }",
       status: "GET /api/pipeline/execute?pipelineId=xxx",
       inbound: "POST /api/pipeline/inbound { from, message }",
     },
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
       if (!folderId && !sector) {
         return NextResponse.json(
           { error: "folderId or sector required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         return NextResponse.json(
           { error: "Failed to parse CSV", details: String(e) },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -198,14 +199,15 @@ export async function POST(request: NextRequest) {
 
     // Handle JSON request
     const body = await request.json();
-    const { action, pipelineId, data, folderId, sector, deployMode, dryRun } = body;
+    const { action, pipelineId, data, folderId, sector, deployMode, dryRun } =
+      body;
 
     switch (action) {
       case "execute": {
         if (!data || !Array.isArray(data)) {
           return NextResponse.json(
             { error: "data array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -229,12 +231,14 @@ export async function POST(request: NextRequest) {
         if (!data || !Array.isArray(data)) {
           return NextResponse.json(
             { error: "data array required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         const recordCount = data.length;
-        const blocks = Math.ceil(recordCount / BATCH_CONFIG.SKIP_TRACE_BLOCK_SIZE);
+        const blocks = Math.ceil(
+          recordCount / BATCH_CONFIG.SKIP_TRACE_BLOCK_SIZE,
+        );
         const estimatedMobiles = Math.round(recordCount * 0.6); // ~60% mobile rate
         const traceCost = recordCount * BATCH_CONFIG.COST_PER_TRACE;
         const smsCost = estimatedMobiles * 0.02;
@@ -254,23 +258,27 @@ export async function POST(request: NextRequest) {
             sms: `$${smsCost.toFixed(2)}`,
             total: `$${(traceCost + smsCost).toFixed(2)}`,
           },
-          warning: recordCount > BATCH_CONFIG.DAILY_TRACE_LIMIT
-            ? `Exceeds daily limit of ${BATCH_CONFIG.DAILY_TRACE_LIMIT}. Will process in batches.`
-            : undefined,
+          warning:
+            recordCount > BATCH_CONFIG.DAILY_TRACE_LIMIT
+              ? `Exceeds daily limit of ${BATCH_CONFIG.DAILY_TRACE_LIMIT}. Will process in batches.`
+              : undefined,
         });
       }
 
       default:
         return NextResponse.json(
-          { error: `Unknown action: ${action}`, validActions: ["execute", "preview"] },
-          { status: 400 }
+          {
+            error: `Unknown action: ${action}`,
+            validActions: ["execute", "preview"],
+          },
+          { status: 400 },
         );
     }
   } catch (error) {
     log.error("Pipeline error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Pipeline failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

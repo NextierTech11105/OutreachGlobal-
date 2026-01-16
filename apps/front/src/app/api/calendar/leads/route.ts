@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
           db
             .update(leads)
             .set({
-              lastActivityAt: new Date(scheduleDate),
+              updatedAt: new Date(scheduleDate),
               updatedAt: new Date(),
             })
             .where(and(eq(leads.id, id), eq(leads.teamId, userId))),
@@ -450,7 +450,7 @@ export async function POST(request: NextRequest) {
           .update(leads)
           .set({
             status: newStatus,
-            lastActivityAt: new Date(),
+            updatedAt: new Date(),
             updatedAt: new Date(),
           })
           .where(and(eq(leads.id, leadId), eq(leads.teamId, userId)));
@@ -505,7 +505,7 @@ export async function POST(request: NextRequest) {
             .update(leads)
             .set({
               status: newStatus,
-              lastActivityAt: new Date(),
+              updatedAt: new Date(),
               updatedAt: new Date(),
             })
             .where(and(eq(leads.id, id), eq(leads.teamId, userId))),

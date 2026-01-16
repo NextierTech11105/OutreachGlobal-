@@ -24,13 +24,19 @@ import {
 } from "@/lib/ai/copilot-engine";
 import { checkOpenAIHealth } from "@/lib/ai/openai-client";
 import { sendSMS } from "@/lib/signalhouse/client";
-import { calculateResponseDelay, shouldAutoRespond } from "@/lib/ai/cadence-engine";
+import {
+  calculateResponseDelay,
+  shouldAutoRespond,
+} from "@/lib/ai/cadence-engine";
 import { db } from "@/lib/db";
 import { leads, smsMessages } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 // Phone numbers
-const GIANNA_NUMBER = process.env.GIANNA_PHONE_NUMBER || process.env.SIGNALHOUSE_FROM_NUMBER || "+15164079249";
+const GIANNA_NUMBER =
+  process.env.GIANNA_PHONE_NUMBER ||
+  process.env.SIGNALHOUSE_FROM_NUMBER ||
+  "+15164079249";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // POST - Process inbound message through AI Copilot
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
     if (!message) {
       return NextResponse.json(
         { error: "message is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -146,7 +152,11 @@ export async function POST(request: NextRequest) {
     let responseMessageId: string | undefined;
 
     // Handle the decision
-    if (decision.action === "auto_respond" && decision.response && autoRespondCheck.should) {
+    if (
+      decision.action === "auto_respond" &&
+      decision.response &&
+      autoRespondCheck.should
+    ) {
       // Add human-like delay
       const delay = calculateResponseDelay();
 
@@ -160,7 +170,9 @@ export async function POST(request: NextRequest) {
 
         if (result.success) {
           // Log the response
-          console.log(`[Copilot] Auto-responded to ${from}: ${decision.response!.message}`);
+          console.log(
+            `[Copilot] Auto-responded to ${from}: ${decision.response!.message}`,
+          );
         }
       }, delay);
 
@@ -171,7 +183,9 @@ export async function POST(request: NextRequest) {
     let callQueueItem = null;
     if (decision.action === "route_to_call") {
       callQueueItem = createHotCallQueueItem(lead, decision);
-      console.log(`[Copilot] HOT LEAD routed to call queue: ${lead.firstName} (${from})`);
+      console.log(
+        `[Copilot] HOT LEAD routed to call queue: ${lead.firstName} (${from})`,
+      );
     }
 
     // Update lead in database if exists
@@ -237,9 +251,10 @@ export async function POST(request: NextRequest) {
     console.error("[Copilot API] Error:", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Copilot processing failed",
+        error:
+          error instanceof Error ? error.message : "Copilot processing failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -300,7 +315,7 @@ export async function GET(request: NextRequest) {
     console.error("[Copilot API] GET Error:", error);
     return NextResponse.json(
       { error: "Failed to get copilot status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

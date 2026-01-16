@@ -369,13 +369,13 @@ async function handleBulkEnrichment(body: {
     const people: (PersonMatch & { leadId: string })[] = leadsData.map(
       (lead) => ({
         leadId: lead.id,
-        first_name: lead.firstName || lead.owner1FirstName || undefined,
-        last_name: lead.lastName || lead.owner1LastName || undefined,
+        first_name: lead.firstName || (lead as any).owner1FirstName || undefined,
+        last_name: lead.lastName || (lead as any).owner1LastName || undefined,
         name:
           lead.firstName && lead.lastName
             ? `${lead.firstName} ${lead.lastName}`
-            : lead.owner1FirstName && lead.owner1LastName
-              ? `${lead.owner1FirstName} ${lead.owner1LastName}`
+            : (lead as any).owner1FirstName && (lead as any).owner1LastName
+              ? `${(lead as any).owner1FirstName} ${(lead as any).owner1LastName}`
               : undefined,
       }),
     );
@@ -434,33 +434,23 @@ async function handleBulkEnrichment(body: {
             .set({
               // Contact info from Apollo
               phone: phones[0] || null,
-              secondaryPhone: phones[1] || null,
               email: emails[0] || null,
 
               // Person info
               firstName: apolloData.first_name || null,
               lastName: apolloData.last_name || null,
 
-              // Apollo-specific fields from schema
-              apolloPersonId: apolloData.id || null,
-              apolloTitle: apolloData.title || null,
-              apolloCompany: apolloData.organization?.name || null,
-              apolloLinkedinUrl: apolloData.linkedin_url || null,
-              apolloOrgId: apolloData.organization?.id || null,
-              apolloIndustry: apolloData.organization?.industry || null,
-              apolloEmployeeCount:
-                apolloData.organization?.estimated_num_employees || null,
-
-              // Apollo metadata
-              apolloEnrichedAt: new Date(),
-              apolloData: {
-                personId: apolloData.id,
-                title: apolloData.title,
-                linkedinUrl: apolloData.linkedin_url,
-                allPhones: phones,
-                allEmails: emails,
-                organization: apolloData.organization,
+              // Apollo enrichment data stored in customFields
+              customFields: {
+                apolloPersonId: apolloData.id,
+                apolloTitle: apolloData.title,
+                apolloCompany: apolloData.organization?.name,
+                apolloLinkedinUrl: apolloData.linkedin_url,
+                apolloOrgId: apolloData.organization?.id,
+                apolloIndustry: apolloData.organization?.industry,
+                apolloEmployeeCount: apolloData.organization?.estimated_num_employees,
               },
+
 
               // Update status if we got contact info
               enrichmentStatus:
@@ -479,10 +469,10 @@ async function handleBulkEnrichment(body: {
   } else if (type === "organizations") {
     // For organization enrichment (less common for property leads)
     const orgs: (OrgEnrich & { leadId: string })[] = leadsData
-      .filter((lead) => lead.apolloCompany)
+      .filter((lead) => (lead as any).apolloCompany)
       .map((lead) => ({
         leadId: lead.id,
-        name: lead.apolloCompany || undefined,
+        name: (lead as any).apolloCompany || undefined,
       }));
 
     if (orgs.length === 0) {
@@ -511,20 +501,15 @@ async function handleBulkEnrichment(body: {
           await db
             .update(leads)
             .set({
-              // Apollo-specific fields from schema
-              apolloCompany: apolloData.name || org.name || null,
-              apolloOrgId: apolloData.id || null,
-              apolloCompanyDomain: apolloData.website_url || null,
-              apolloIndustry: apolloData.industry || null,
-              apolloEmployeeCount: apolloData.estimated_num_employees || null,
-              apolloLinkedinUrl: apolloData.linkedin_url || null,
-              apolloEnrichedAt: new Date(),
-              apolloData: {
-                orgId: apolloData.id,
-                website: apolloData.website_url,
-                industry: apolloData.industry,
-                employees: apolloData.estimated_num_employees,
-                linkedinUrl: apolloData.linkedin_url,
+              // Apollo org enrichment data stored in customFields
+              customFields: {
+                apolloCompany: apolloData.name || org.name,
+                apolloOrgId: apolloData.id,
+                apolloCompanyDomain: apolloData.website_url,
+                apolloIndustry: apolloData.industry,
+                apolloEmployeeCount: apolloData.estimated_num_employees,
+                apolloLinkedinUrl: apolloData.linkedin_url,
+                apolloEnrichedAt: new Date().toISOString(),
               },
               updatedAt: new Date(),
             })

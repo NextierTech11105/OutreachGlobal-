@@ -18,8 +18,18 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { getTracerfyClient, extractPhones, extractEmails, type TracerfyNormalResult } from "@/lib/tracerfy";
-import { verifyBusiness, researchOwner, type BusinessVerification, type OwnerResearch } from "@/lib/ai/perplexity-scanner";
+import {
+  getTracerfyClient,
+  extractPhones,
+  extractEmails,
+  type TracerfyNormalResult,
+} from "@/lib/tracerfy";
+import {
+  verifyBusiness,
+  researchOwner,
+  type BusinessVerification,
+  type OwnerResearch,
+} from "@/lib/ai/perplexity-scanner";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -126,7 +136,7 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
  */
 export async function enrichLead(
   rawLead: RawLead,
-  config: Partial<PipelineConfig> = {}
+  config: Partial<PipelineConfig> = {},
 ): Promise<EnrichmentResult> {
   const pipelineConfig = { ...DEFAULT_PIPELINE_CONFIG, ...config };
   const steps: EnrichmentResult["steps"] = [];
@@ -171,7 +181,9 @@ export async function enrichLead(
       lead.pipelineStage = "verify";
       const verification = await verifyBusiness(
         lead.company,
-        lead.address ? `${lead.address}, ${lead.city}, ${lead.state}` : undefined
+        lead.address
+          ? `${lead.address}, ${lead.city}, ${lead.state}`
+          : undefined,
       );
 
       lead.businessVerification = verification;
@@ -214,7 +226,9 @@ export async function enrichLead(
     try {
       const ownerResearch = await researchOwner(
         lead.company,
-        lead.firstName && lead.lastName ? `${lead.firstName} ${lead.lastName}` : undefined
+        lead.firstName && lead.lastName
+          ? `${lead.firstName} ${lead.lastName}`
+          : undefined,
       );
 
       lead.ownerVerification = ownerResearch;
@@ -258,7 +272,12 @@ export async function enrichLead(
   // STEP 3: Skip Trace (Tracerfy) - $0.02/record
   // ═══════════════════════════════════════════════════════════════════════════
 
-  if (pipelineConfig.skipTrace && lead.address && lead.firstName && lead.lastName) {
+  if (
+    pipelineConfig.skipTrace &&
+    lead.address &&
+    lead.firstName &&
+    lead.lastName
+  ) {
     const startTime = Date.now();
     try {
       lead.pipelineStage = "enrich";
@@ -279,11 +298,15 @@ export async function enrichLead(
             mail_state: lead.state || "",
           },
         ],
-        pipelineConfig.skipTraceType
+        pipelineConfig.skipTraceType,
       );
 
       // Wait for results (with timeout)
-      const queue = await client.waitForQueue(traceResponse.queue_id, 3000, 60000);
+      const queue = await client.waitForQueue(
+        traceResponse.queue_id,
+        3000,
+        60000,
+      );
 
       if (queue.download_url) {
         // Get results
@@ -303,12 +326,17 @@ export async function enrichLead(
           }));
 
           // Count by type
-          lead.mobileCount = lead.phones.filter((p) => p.type === "Mobile").length;
-          lead.landlineCount = lead.phones.filter((p) => p.type === "Landline").length;
+          lead.mobileCount = lead.phones.filter(
+            (p) => p.type === "Mobile",
+          ).length;
+          lead.landlineCount = lead.phones.filter(
+            (p) => p.type === "Landline",
+          ).length;
 
           // Set primary phone (prefer mobile)
           if (pipelineConfig.preferMobile) {
-            lead.primaryPhone = lead.phones.find((p) => p.type === "Mobile") || lead.phones[0];
+            lead.primaryPhone =
+              lead.phones.find((p) => p.type === "Mobile") || lead.phones[0];
           } else {
             lead.primaryPhone = lead.phones[0];
           }
@@ -328,7 +356,8 @@ export async function enrichLead(
           }
 
           // Track cost
-          const cost = pipelineConfig.skipTraceType === "enhanced" ? 0.15 : 0.02;
+          const cost =
+            pipelineConfig.skipTraceType === "enhanced" ? 0.15 : 0.02;
           totalCost += cost;
           lead.costToEnrich = cost;
         }
@@ -356,7 +385,8 @@ export async function enrichLead(
       step: "Skip Trace (Tracerfy)",
       status: "skipped",
       duration: 0,
-      details: "Missing required fields (address, firstName, lastName) or disabled",
+      details:
+        "Missing required fields (address, firstName, lastName) or disabled",
     });
   }
 
@@ -392,7 +422,7 @@ export async function enrichLead(
 export async function enrichBatch(
   leads: RawLead[],
   config: Partial<PipelineConfig> = {},
-  onProgress?: (completed: number, total: number) => void
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<{
   results: EnrichmentResult[];
   summary: {
@@ -422,9 +452,15 @@ export async function enrichBatch(
     }
   }
 
-  const enriched = results.filter((r) => r.lead.enrichmentStatus === "enriched").length;
-  const verified = results.filter((r) => r.lead.enrichmentStatus === "verified").length;
-  const failed = results.filter((r) => r.lead.enrichmentStatus === "failed").length;
+  const enriched = results.filter(
+    (r) => r.lead.enrichmentStatus === "enriched",
+  ).length;
+  const verified = results.filter(
+    (r) => r.lead.enrichmentStatus === "verified",
+  ).length;
+  const failed = results.filter(
+    (r) => r.lead.enrichmentStatus === "failed",
+  ).length;
 
   return {
     results,
@@ -464,7 +500,10 @@ export function quickValidatePhone(phone: string): {
 
   // Mobile heuristic: area codes often associated with mobile
   // This is imperfect - Tracerfy skip trace is the real source of truth
-  const areaCode = cleaned.slice(cleaned.length === 11 ? 1 : 0, cleaned.length === 11 ? 4 : 3);
+  const areaCode = cleaned.slice(
+    cleaned.length === 11 ? 1 : 0,
+    cleaned.length === 11 ? 4 : 3,
+  );
 
   // Can't reliably determine mobile vs landline from number alone
   // Return Unknown - use Tracerfy for actual line type
@@ -491,7 +530,7 @@ export const ENRICHMENT_COSTS = {
  */
 export function estimateEnrichmentCost(
   leadCount: number,
-  config: Partial<PipelineConfig> = {}
+  config: Partial<PipelineConfig> = {},
 ): {
   tracerfyCost: number;
   perplexityCost: number;

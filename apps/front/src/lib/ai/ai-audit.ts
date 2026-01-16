@@ -37,7 +37,13 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type AIWorker = "gianna" | "cathy" | "sabrina" | "luci" | "copilot" | "system";
+export type AIWorker =
+  | "gianna"
+  | "cathy"
+  | "sabrina"
+  | "luci"
+  | "copilot"
+  | "system";
 
 export interface AuditLogInput {
   leadId: string;
@@ -99,7 +105,9 @@ function hashPrompt(content: string): string {
 /**
  * Log an AI decision to the audit table
  */
-export async function logAIDecision(input: AuditLogInput): Promise<string | null> {
+export async function logAIDecision(
+  input: AuditLogInput,
+): Promise<string | null> {
   try {
     const estimatedCost =
       input.model && input.promptTokens && input.completionTokens

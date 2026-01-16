@@ -86,10 +86,7 @@ export async function getAuthenticatedSubscription(): Promise<
       })
       .from(subscriptions)
       .where(
-        or(
-          eq(subscriptions.userId, userId),
-          eq(subscriptions.teamId, teamId)
-        )
+        or(eq(subscriptions.userId, userId), eq(subscriptions.teamId, teamId)),
       )
       .orderBy(desc(subscriptions.createdAt))
       .limit(1);
@@ -152,7 +149,7 @@ export async function getAuthenticatedSubscription(): Promise<
  * This allows backward compatibility with existing integrations while adding security.
  */
 export async function verifySubscriptionOwnership(
-  subscriptionId: string
+  subscriptionId: string,
 ): Promise<BillingAuthResult | BillingAuthError> {
   try {
     const ctx = await requireTenantContext();
@@ -186,8 +183,8 @@ export async function verifySubscriptionOwnership(
       .where(
         or(
           eq(subscriptions.stripeSubscriptionId, subscriptionId),
-          eq(subscriptions.id, subscriptionId)
-        )
+          eq(subscriptions.id, subscriptionId),
+        ),
       )
       .limit(1);
 
@@ -203,8 +200,7 @@ export async function verifySubscriptionOwnership(
 
     // CRITICAL: Verify ownership - subscription must belong to this user/team
     const isOwner =
-      subscription.userId === userId ||
-      subscription.teamId === teamId;
+      subscription.userId === userId || subscription.teamId === teamId;
 
     if (!isOwner) {
       Logger.warn("Billing", "Unauthorized subscription access attempt", {
@@ -268,7 +264,7 @@ export async function verifySubscriptionOwnership(
  * 3. Otherwise, require authentication
  */
 export async function getSubscriptionWithFallback(
-  providedSubscriptionId?: string
+  providedSubscriptionId?: string,
 ): Promise<BillingAuthResult | BillingAuthError> {
   // First, try authenticated path
   const auth = await apiAuth();
@@ -320,8 +316,8 @@ export async function getSubscriptionWithFallback(
       .where(
         or(
           eq(subscriptions.stripeSubscriptionId, providedSubscriptionId),
-          eq(subscriptions.id, providedSubscriptionId)
-        )
+          eq(subscriptions.id, providedSubscriptionId),
+        ),
       )
       .limit(1);
 

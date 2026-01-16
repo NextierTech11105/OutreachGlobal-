@@ -20,7 +20,11 @@ import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { getIndustryById, ALL_INDUSTRIES } from "@/config/industries";
-import { createLeadSourceBucket, type LeadSourceBucket, type LeadBatch } from "@/lib/ai/copilot-engine";
+import {
+  createLeadSourceBucket,
+  type LeadSourceBucket,
+  type LeadBatch,
+} from "@/lib/ai/copilot-engine";
 import { CAMPAIGN_MACROS } from "@/config/constants";
 
 // Batch size - 1K blocks as requested
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
       if (!leadData || !Array.isArray(leadData) || leadData.length === 0) {
         return NextResponse.json(
           { error: "leads array is required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
         bucketName || `${source}_import_${Date.now()}`,
         source as LeadSourceBucket["source"],
         campaign,
-        leadData.length
+        leadData.length,
       );
 
       // Process leads in 1K batches
@@ -91,7 +95,11 @@ export async function POST(request: NextRequest) {
         total: leadData.length,
         imported: 0,
         failed: 0,
-        batches: [] as Array<{ batchNumber: number; size: number; status: string }>,
+        batches: [] as Array<{
+          batchNumber: number;
+          size: number;
+          status: string;
+        }>,
       };
 
       for (let i = 0; i < leadData.length; i += BATCH_SIZE) {
@@ -134,8 +142,8 @@ export async function POST(request: NextRequest) {
                       "city",
                       "state",
                       "zip",
-                    ].includes(key)
-                )
+                    ].includes(key),
+                ),
               ),
             },
             createdAt: new Date(),
@@ -203,7 +211,7 @@ export async function POST(request: NextRequest) {
       if (!file) {
         return NextResponse.json(
           { error: "CSV file is required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -214,7 +222,7 @@ export async function POST(request: NextRequest) {
       if (leadData.length === 0) {
         return NextResponse.json(
           { error: "No valid leads found in CSV" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -223,7 +231,7 @@ export async function POST(request: NextRequest) {
         bucketName || `${source}_${file.name}_${Date.now()}`,
         source as LeadSourceBucket["source"],
         campaign as keyof typeof CAMPAIGN_MACROS,
-        leadData.length
+        leadData.length,
       );
 
       // Store bucket (actual import happens async)
@@ -245,13 +253,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Unsupported content type" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("[Import API] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Import failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -272,7 +280,7 @@ export async function GET(request: NextRequest) {
       if (!bucket) {
         return NextResponse.json(
           { error: "Bucket not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -298,8 +306,9 @@ export async function GET(request: NextRequest) {
       totalLeads: buckets.reduce((sum, b) => sum + b.totalLeads, 0),
       processedLeads: buckets.reduce((sum, b) => sum + b.processedLeads, 0),
       pendingBatches: buckets.reduce(
-        (sum, b) => sum + b.batches.filter((batch) => batch.status === "pending").length,
-        0
+        (sum, b) =>
+          sum + b.batches.filter((batch) => batch.status === "pending").length,
+        0,
       ),
     };
 
@@ -327,7 +336,7 @@ export async function GET(request: NextRequest) {
     console.error("[Import API] GET Error:", error);
     return NextResponse.json(
       { error: "Failed to get import status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -391,7 +400,10 @@ function parseCSVLine(line: string): string[] {
 }
 
 function normalizeHeader(header: string): string {
-  const normalized = header.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+  const normalized = header
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, "_");
 
   // Common mappings
   const mappings: Record<string, string> = {

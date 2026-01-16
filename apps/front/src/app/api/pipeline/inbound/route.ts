@@ -117,11 +117,14 @@ export async function POST(request: NextRequest) {
     if (!from || !message) {
       return NextResponse.json(
         { error: "from and message required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    log.info("Processing inbound response", { from, messageLength: message.length });
+    log.info("Processing inbound response", {
+      from,
+      messageLength: message.length,
+    });
 
     // Step 1: Classify the response
     const classification = await classifyMessage(message);
@@ -177,7 +180,7 @@ export async function POST(request: NextRequest) {
     log.error("Inbound processing error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Processing failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -195,27 +198,46 @@ async function classifyMessage(message: string): Promise<Classification> {
   }
 
   // BOOKING_REQUEST
-  if (/\b(book|schedule|calendar|call|chat|talk|meet|when.*available|what time)\b/i.test(lower)) {
+  if (
+    /\b(book|schedule|calendar|call|chat|talk|meet|when.*available|what time)\b/i.test(
+      lower,
+    )
+  ) {
     return "BOOKING_REQUEST";
   }
 
   // POSITIVE
-  if (/\b(yes|sure|okay|ok|interested|sounds good|tell me more|let's|love to)\b/i.test(lower)) {
+  if (
+    /\b(yes|sure|okay|ok|interested|sounds good|tell me more|let's|love to)\b/i.test(
+      lower,
+    )
+  ) {
     return "POSITIVE";
   }
 
   // NEGATIVE
-  if (/\b(no|not interested|don't|stop|leave me|spam|scam|fake)\b/i.test(lower)) {
+  if (
+    /\b(no|not interested|don't|stop|leave me|spam|scam|fake)\b/i.test(lower)
+  ) {
     return "NEGATIVE";
   }
 
   // OBJECTION
-  if (/\b(busy|later|maybe|not now|don't need|already have|too expensive)\b/i.test(lower)) {
+  if (
+    /\b(busy|later|maybe|not now|don't need|already have|too expensive)\b/i.test(
+      lower,
+    )
+  ) {
     return "OBJECTION";
   }
 
   // QUESTION
-  if (/\?$/.test(lower) || /\b(what|how|who|when|where|why|which|can you|could you|is this)\b/i.test(lower)) {
+  if (
+    /\?$/.test(lower) ||
+    /\b(what|how|who|when|where|why|which|can you|could you|is this)\b/i.test(
+      lower,
+    )
+  ) {
     return "QUESTION";
   }
 
@@ -229,7 +251,7 @@ async function classifyMessage(message: string): Promise<Classification> {
 
 function getSuggestedReply(
   classification: Classification,
-  captures: { type: string; value: string }[]
+  captures: { type: string; value: string }[],
 ): string {
   const hasBookingRequest = captures.some((c) => c.type === "booking");
 

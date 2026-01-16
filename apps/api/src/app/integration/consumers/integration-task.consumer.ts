@@ -9,20 +9,9 @@ import { IntegrationTaskSelect } from "../models/integration-task.model";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { IntegrationTaskService } from "../services/integration-task.service";
-import { ZohoService } from "../services/zoho.service";
 import { IntegrationService } from "../services/integration.service";
 import { orFail } from "@/database/exceptions";
-import { IntegrationFieldService } from "../services/integration-field.service";
-import { ZohoAuthData } from "../types/zoho.type";
-import { LeadInsert } from "@/app/lead/models/lead.model";
-import { leadsTable } from "@/database/schema-alias";
-import { sql } from "drizzle-orm";
-import { leadImportSchema } from "@/app/lead/dto/lead-import.dto";
-import { getProperty } from "@nextier/common";
 import { DeadLetterQueueService } from "@/lib/dlq";
-// NOTE: This consumer doesn't use validateTenantJob because teamId is accessed
-// via integration.teamId (the task belongs to an integration which belongs to a team).
-// Tenant isolation is enforced through DB relations.
 
 type JobData = Job<{ task: IntegrationTaskSelect }>;
 
@@ -33,16 +22,13 @@ export class IntegrationTaskConsumer extends WorkerHost {
   constructor(
     @InjectDB() private db: DrizzleClient,
     private service: IntegrationTaskService,
-    private zohoService: ZohoService,
     private integrationService: IntegrationService,
-    private fieldService: IntegrationFieldService,
     private dlqService: DeadLetterQueueService,
   ) {
     super();
   }
 
   async process(job: JobData) {
-    // P0: Tenant isolation enforced via integration.teamId in syncLead()
     this.logger.log(
       `[${INTEGRATION_TASK_QUEUE}] Processing job ${job.id}: ${job.name}`,
     );
@@ -59,120 +45,9 @@ export class IntegrationTaskConsumer extends WorkerHost {
       })
       .then(orFail("integration"));
 
-    if (integration.name === "zoho") {
-      const fields = await this.fieldService.findMany({
-        integrationId: integration.id,
-        moduleName: task.moduleName,
-      });
-      const authData = integration.authData;
-      const zohoFields = fields.map((field) => field.targetField);
-      if (authData) {
-        // Call the recursive function to handle pagination
-        await this.syncLeadRecursive({
-          authData: authData as ZohoAuthData,
-          fields,
-          zohoFields,
-          moduleName: task.moduleName,
-          integration,
-          pageToken: undefined,
-        });
-      }
-    }
-  }
-
-  private async syncLeadRecursive({
-    authData,
-    fields,
-    zohoFields,
-    moduleName,
-    integration,
-    pageToken,
-  }: {
-    authData: ZohoAuthData;
-    fields: any[];
-    zohoFields: string[];
-    moduleName: string;
-    integration: any;
-    pageToken?: string;
-  }) {
-    // Fetch records with pagination
-    const data = await this.zohoService.records(authData, {
-      fields: zohoFields,
-      moduleName: moduleName,
-      pageToken: pageToken,
-    });
-
-    const leadValues: LeadInsert[] = [];
-    data.data.forEach((record) => {
-      const leadValue: LeadInsert = {
-        teamId: integration.teamId,
-        integrationId: integration.id,
-      };
-
-      fields.forEach((integrationField) => {
-        const zohoFieldName = integrationField.targetField;
-        const localFieldName = integrationField.sourceField;
-        const zohoValue = integrationField.subField
-          ? getProperty(record[zohoFieldName], integrationField.subField)
-          : record[zohoFieldName];
-
-        if (zohoValue !== undefined) {
-          (leadValue as any)[localFieldName] = zohoValue;
-        }
-      });
-
-      leadValue.externalId = record.id;
-      // make sure id from zoho does not inserted
-      leadValue.id = undefined;
-
-      leadValues.push(leadValue);
-    });
-
-    const validatedValues = leadImportSchema.parse({
-      values: leadValues,
-    });
-
-    if (validatedValues.values.length) {
-      await this.db
-        .insert(leadsTable)
-        .values(validatedValues.values)
-        .onConflictDoUpdate({
-          target: [
-            leadsTable.teamId,
-            leadsTable.integrationId,
-            leadsTable.externalId,
-          ],
-          set: {
-            firstName: sql`excluded.first_name`,
-            lastName: sql`excluded.last_name`,
-            email: sql`excluded.email`,
-            phone: sql`excluded.phone`,
-            title: sql`excluded.title`,
-            company: sql`excluded.company`,
-            zipCode: sql`excluded.zip_code`,
-            country: sql`excluded.country`,
-            state: sql`excluded.state`,
-            city: sql`excluded.city`,
-            address: sql`excluded.address`,
-            source: sql`excluded.source`,
-            notes: sql`excluded.notes`,
-            status: sql`excluded.status`,
-          },
-        });
-    }
-
-    // Check if there are more records to fetch
-    if (data.info.more_records && data.info.next_page_token) {
-      // Recursively call to fetch the next page
-      await this.syncLeadRecursive({
-        authData,
-        fields,
-        zohoFields,
-        moduleName,
-        integration,
-        pageToken: data.info.next_page_token,
-      });
-    }
+    // TODO: Add provider-specific sync logic here
+    this.logger.log(`Sync lead task for integration: ${integration.name}`);
+    throw new Error(`Provider ${integration.name} sync not yet implemented`);
   }
 
   @OnWorkerEvent("failed")

@@ -54,8 +54,13 @@ export const B2B_INDUSTRIES: Industry[] = [
     description: "SaaS, IT Services, Software Development",
     titles: ["CEO", "CTO", "VP Engineering", "Founder", "Tech Lead"],
     painPoints: ["Lead generation", "Sales pipeline", "Scaling teams"],
-    valueProps: ["20+ hrs/week saved", "Predictable pipeline", "Scale without hiring"],
-    smsOpener: "Hi {firstName}, quick q - are you still handling outbound manually? Built something that saves tech CEOs 20+ hrs/week. Worth a look? -Emily",
+    valueProps: [
+      "20+ hrs/week saved",
+      "Predictable pipeline",
+      "Scale without hiring",
+    ],
+    smsOpener:
+      "Hi {firstName}, quick q - are you still handling outbound manually? Built something that saves tech CEOs 20+ hrs/week. Worth a look? -Emily",
     leadSources: ["apollo", "usbizdata"],
     enrichmentProviders: ["apollo", "fastappend"],
   },
@@ -67,7 +72,8 @@ export const B2B_INDUSTRIES: Industry[] = [
     titles: ["Agency Owner", "CMO", "Marketing Director", "Account Director"],
     painPoints: ["Client acquisition", "Lead quality", "CAC"],
     valueProps: ["Lower CAC", "More qualified leads", "White-label solutions"],
-    smsOpener: "Hi {firstName}, curious - how's your agency handling client acquisition right now? Have something that's working great for agencies. Quick call? -Emily",
+    smsOpener:
+      "Hi {firstName}, curious - how's your agency handling client acquisition right now? Have something that's working great for agencies. Quick call? -Emily",
     leadSources: ["apollo", "usbizdata"],
     enrichmentProviders: ["apollo", "fastappend"],
   },
@@ -79,7 +85,8 @@ export const B2B_INDUSTRIES: Industry[] = [
     titles: ["VP Sales", "Sales Director", "CRO", "Head of Sales"],
     painPoints: ["Pipeline", "Conversion rates", "Rep productivity"],
     valueProps: ["Scale outbound", "Book more meetings", "Predictable revenue"],
-    smsOpener: "Hi {firstName}, quick q - is your team still doing manual outbound? Built a system that books meetings on autopilot. 15 min to show you? -Emily",
+    smsOpener:
+      "Hi {firstName}, quick q - is your team still doing manual outbound? Built a system that books meetings on autopilot. 15 min to show you? -Emily",
     leadSources: ["apollo", "usbizdata"],
     enrichmentProviders: ["apollo", "fastappend"],
   },
@@ -98,7 +105,8 @@ export const REAL_ESTATE_INDUSTRIES: Industry[] = [
     titles: ["Real Estate Agent", "Realtor", "Broker", "Associate Broker"],
     painPoints: ["Lead generation", "Follow-up", "Time management"],
     valueProps: ["More listings", "Automated follow-up", "Never miss a lead"],
-    smsOpener: "Hi {firstName}! Curious - how are you finding new listings right now? Have a system that's working great for agents. Want to see? -Emily",
+    smsOpener:
+      "Hi {firstName}! Curious - how are you finding new listings right now? Have a system that's working great for agents. Want to see? -Emily",
     leadSources: ["tracerfy", "usbizdata"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -109,8 +117,13 @@ export const REAL_ESTATE_INDUSTRIES: Industry[] = [
     description: "Property Investors, Flippers, Landlords",
     titles: ["Real Estate Investor", "Property Owner", "Landlord", "Developer"],
     painPoints: ["Deal flow", "Off-market deals", "Seller outreach"],
-    valueProps: ["Off-market deals", "Seller outreach at scale", "Beat competition"],
-    smsOpener: "Hi {firstName}, you invest in properties right? Built something for off-market seller outreach at scale. Interested? -Emily",
+    valueProps: [
+      "Off-market deals",
+      "Seller outreach at scale",
+      "Beat competition",
+    ],
+    smsOpener:
+      "Hi {firstName}, you invest in properties right? Built something for off-market seller outreach at scale. Interested? -Emily",
     leadSources: ["tracerfy", "usbizdata"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -121,8 +134,13 @@ export const REAL_ESTATE_INDUSTRIES: Industry[] = [
     description: "Property Management Companies",
     titles: ["Property Manager", "Portfolio Manager", "Operations Director"],
     painPoints: ["Tenant communication", "Owner relations", "Vacancy"],
-    valueProps: ["Automated outreach", "Fill vacancies faster", "Owner retention"],
-    smsOpener: "Hi {firstName}, managing properties right? Built a system that helps PMs fill vacancies faster. Quick call? -Emily",
+    valueProps: [
+      "Automated outreach",
+      "Fill vacancies faster",
+      "Owner retention",
+    ],
+    smsOpener:
+      "Hi {firstName}, managing properties right? Built a system that helps PMs fill vacancies faster. Quick call? -Emily",
     leadSources: ["tracerfy", "usbizdata"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -141,8 +159,13 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     avgJobValue: { min: 8000, max: 15000 },
     titles: ["Roofing Contractor", "Owner", "Estimator", "Project Manager"],
     painPoints: ["Lead generation", "Storm chasing competition", "Seasonality"],
-    valueProps: ["Exclusive leads", "Pre-qualified homeowners", "50-70% close rates"],
-    smsOpener: "Hi {firstName}, running a roofing company right? Got exclusive homeowner leads looking for roof work in your area. Interested? -Emily",
+    valueProps: [
+      "Exclusive leads",
+      "Pre-qualified homeowners",
+      "50-70% close rates",
+    ],
+    smsOpener:
+      "Hi {firstName}, running a roofing company right? Got exclusive homeowner leads looking for roof work in your area. Interested? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -155,7 +178,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Kitchen Remodeler", "Owner", "Designer", "Project Manager"],
     painPoints: ["High ticket sales cycle", "Lead quality", "Competition"],
     valueProps: ["Pre-qualified leads", "Live transfers", "Higher close rates"],
-    smsOpener: "Hi {firstName}, you do kitchen remodels right? Got homeowners actively planning kitchen projects in your area. Quick call? -Emily",
+    smsOpener:
+      "Hi {firstName}, you do kitchen remodels right? Got homeowners actively planning kitchen projects in your area. Quick call? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -168,7 +192,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Window Installer", "Owner", "Sales Rep", "Estimator"],
     painPoints: ["Lead quality", "No-shows", "Price shoppers"],
     valueProps: ["Pre-qualified for budget", "Timeline confirmed", "Exclusive"],
-    smsOpener: "Hi {firstName}, you install windows right? Got homeowners ready for replacement windows in your area. Interested? -Emily",
+    smsOpener:
+      "Hi {firstName}, you install windows right? Got homeowners ready for replacement windows in your area. Interested? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -181,7 +206,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["HVAC Contractor", "Owner", "Technician", "Service Manager"],
     painPoints: ["Emergency calls", "Seasonality", "Competition"],
     valueProps: ["Live transfers", "Immediate service needs", "Pre-qualified"],
-    smsOpener: "Hi {firstName}, you do HVAC work right? Got homeowners needing AC/heating service in your area. Live transfers available. -Emily",
+    smsOpener:
+      "Hi {firstName}, you do HVAC work right? Got homeowners needing AC/heating service in your area. Live transfers available. -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -194,7 +220,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Plumber", "Owner", "Service Manager", "Technician"],
     painPoints: ["Emergency response", "Lead volume", "Competition"],
     valueProps: ["Live transfers", "Pre-qualified emergencies", "Exclusive"],
-    smsOpener: "Hi {firstName}, you run a plumbing company right? Got homeowners with plumbing needs in your area. Live transfers. -Emily",
+    smsOpener:
+      "Hi {firstName}, you run a plumbing company right? Got homeowners with plumbing needs in your area. Live transfers. -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -207,7 +234,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Solar Installer", "Owner", "Sales Rep", "Project Manager"],
     painPoints: ["Lead quality", "Roof suitability", "Financing"],
     valueProps: ["Pre-screened for roof", "Financing confirmed", "High intent"],
-    smsOpener: "Hi {firstName}, you install solar right? Got homeowners exploring solar in your area, pre-screened for roof suitability. -Emily",
+    smsOpener:
+      "Hi {firstName}, you install solar right? Got homeowners exploring solar in your area, pre-screened for roof suitability. -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -220,7 +248,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Bathroom Remodeler", "Owner", "Designer", "Contractor"],
     painPoints: ["Lead quality", "Design scope creep", "Competition"],
     valueProps: ["Pre-qualified leads", "Budget confirmed", "Timeline ready"],
-    smsOpener: "Hi {firstName}, you do bathroom remodels right? Got homeowners planning bathroom projects in your area. Quick call? -Emily",
+    smsOpener:
+      "Hi {firstName}, you do bathroom remodels right? Got homeowners planning bathroom projects in your area. Quick call? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -232,8 +261,13 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     avgJobValue: { min: 3000, max: 15000 },
     titles: ["Flooring Installer", "Owner", "Estimator", "Sales Rep"],
     painPoints: ["Lead quality", "Material preferences", "Timing"],
-    valueProps: ["Pre-qualified leads", "Material type confirmed", "Ready to buy"],
-    smsOpener: "Hi {firstName}, you install flooring right? Got homeowners ready for new floors in your area. Interested? -Emily",
+    valueProps: [
+      "Pre-qualified leads",
+      "Material type confirmed",
+      "Ready to buy",
+    ],
+    smsOpener:
+      "Hi {firstName}, you install flooring right? Got homeowners ready for new floors in your area. Interested? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -246,7 +280,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Pest Control Tech", "Owner", "Service Manager", "Sales Rep"],
     painPoints: ["Recurring revenue", "Seasonality", "Lead volume"],
     valueProps: ["Live transfers", "Recurring customers", "Pre-qualified"],
-    smsOpener: "Hi {firstName}, you do pest control right? Got homeowners with pest issues in your area. Live transfers available. -Emily",
+    smsOpener:
+      "Hi {firstName}, you do pest control right? Got homeowners with pest issues in your area. Live transfers available. -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -259,7 +294,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Landscaper", "Owner", "Crew Lead", "Designer"],
     painPoints: ["Seasonality", "Recurring contracts", "Competition"],
     valueProps: ["Recurring customers", "Pre-qualified", "Ready to schedule"],
-    smsOpener: "Hi {firstName}, you do landscaping right? Got homeowners looking for lawn service in your area. Interested? -Emily",
+    smsOpener:
+      "Hi {firstName}, you do landscaping right? Got homeowners looking for lawn service in your area. Interested? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -272,7 +308,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Painter", "Owner", "Estimator", "Project Manager"],
     painPoints: ["Lead quality", "Scope changes", "Competition"],
     valueProps: ["Pre-qualified leads", "Scope confirmed", "Ready to hire"],
-    smsOpener: "Hi {firstName}, you do painting work right? Got homeowners ready for paint jobs in your area. Quick call? -Emily",
+    smsOpener:
+      "Hi {firstName}, you do painting work right? Got homeowners ready for paint jobs in your area. Quick call? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -285,7 +322,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Deck Builder", "Owner", "Designer", "Contractor"],
     painPoints: ["Seasonality", "Permits", "Material costs"],
     valueProps: ["Pre-qualified leads", "Budget confirmed", "Ready to start"],
-    smsOpener: "Hi {firstName}, you build decks right? Got homeowners planning deck projects in your area. Interested? -Emily",
+    smsOpener:
+      "Hi {firstName}, you build decks right? Got homeowners planning deck projects in your area. Interested? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -298,7 +336,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Garage Door Tech", "Owner", "Installer", "Service Manager"],
     painPoints: ["Emergency calls", "Lead volume", "Competition"],
     valueProps: ["Live transfers", "Emergency ready", "Pre-qualified"],
-    smsOpener: "Hi {firstName}, you install garage doors right? Got homeowners needing garage door service in your area. -Emily",
+    smsOpener:
+      "Hi {firstName}, you install garage doors right? Got homeowners needing garage door service in your area. -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -310,8 +349,13 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     avgJobValue: { min: 2000, max: 10000 },
     titles: ["Fence Contractor", "Owner", "Estimator", "Installer"],
     painPoints: ["Lead quality", "Material preferences", "Permits"],
-    valueProps: ["Pre-qualified leads", "Material type confirmed", "Ready to hire"],
-    smsOpener: "Hi {firstName}, you install fences right? Got homeowners ready for fence projects in your area. Quick call? -Emily",
+    valueProps: [
+      "Pre-qualified leads",
+      "Material type confirmed",
+      "Ready to hire",
+    ],
+    smsOpener:
+      "Hi {firstName}, you install fences right? Got homeowners ready for fence projects in your area. Quick call? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -324,7 +368,8 @@ export const HOME_SERVICES_INDUSTRIES: Industry[] = [
     titles: ["Handyman", "Owner", "Technician", "Service Provider"],
     painPoints: ["Recurring work", "Lead volume", "Pricing"],
     valueProps: ["Recurring customers", "Pre-qualified", "Ready to schedule"],
-    smsOpener: "Hi {firstName}, you do handyman work right? Got homeowners with repair needs in your area. Interested? -Emily",
+    smsOpener:
+      "Hi {firstName}, you do handyman work right? Got homeowners with repair needs in your area. Interested? -Emily",
     leadSources: ["tracerfy_ppl"],
     enrichmentProviders: ["tracerfy", "fastappend"],
   },
@@ -340,10 +385,16 @@ export const TRUCKING_INDUSTRIES: Industry[] = [
     name: "Fleet Owners",
     category: "TRUCKING",
     description: "Trucking fleet owners and operators",
-    titles: ["Fleet Owner", "Owner Operator", "Trucking Company Owner", "Fleet Manager"],
+    titles: [
+      "Fleet Owner",
+      "Owner Operator",
+      "Trucking Company Owner",
+      "Fleet Manager",
+    ],
     painPoints: ["Driver recruitment", "Load booking", "Cash flow"],
     valueProps: ["More loads", "Better rates", "Driver recruitment"],
-    smsOpener: "Hi {firstName}, running a trucking fleet right? Got something that helps fleet owners book more loads at better rates. Quick call? -Emily",
+    smsOpener:
+      "Hi {firstName}, running a trucking fleet right? Got something that helps fleet owners book more loads at better rates. Quick call? -Emily",
     leadSources: ["usbizdata"],
     enrichmentProviders: ["fastappend", "usbizdata"],
   },
@@ -355,7 +406,8 @@ export const TRUCKING_INDUSTRIES: Industry[] = [
     titles: ["Owner Operator", "Independent Trucker", "CDL Driver/Owner"],
     painPoints: ["Finding loads", "Fuel costs", "Paperwork"],
     valueProps: ["Better loads", "Less deadhead", "More profit"],
-    smsOpener: "Hi {firstName}, you an owner operator? Got a way to help you book better loads and cut deadhead miles. Interested? -Emily",
+    smsOpener:
+      "Hi {firstName}, you an owner operator? Got a way to help you book better loads and cut deadhead miles. Interested? -Emily",
     leadSources: ["usbizdata"],
     enrichmentProviders: ["fastappend", "usbizdata"],
   },
@@ -364,10 +416,16 @@ export const TRUCKING_INDUSTRIES: Industry[] = [
     name: "Logistics Companies",
     category: "TRUCKING",
     description: "3PL, freight brokers, logistics providers",
-    titles: ["Logistics Manager", "Owner", "Freight Broker", "Operations Director"],
+    titles: [
+      "Logistics Manager",
+      "Owner",
+      "Freight Broker",
+      "Operations Director",
+    ],
     painPoints: ["Carrier capacity", "Shipper acquisition", "Margins"],
     valueProps: ["More capacity", "Better margins", "Shipper leads"],
-    smsOpener: "Hi {firstName}, running a logistics company right? Got a system that helps 3PLs find more capacity and shippers. Quick call? -Emily",
+    smsOpener:
+      "Hi {firstName}, running a logistics company right? Got a system that helps 3PLs find more capacity and shippers. Quick call? -Emily",
     leadSources: ["usbizdata", "apollo"],
     enrichmentProviders: ["apollo", "fastappend"],
   },
@@ -395,7 +453,13 @@ export const LEAD_SOURCES: LeadSource[] = [
     type: "csv_import",
     provider: "USBizData",
     costPerLead: 0.01,
-    industries: ["b2b_tech", "b2b_marketing", "b2b_sales", "trucking_fleet", "trucking_logistics"],
+    industries: [
+      "b2b_tech",
+      "b2b_marketing",
+      "b2b_sales",
+      "trucking_fleet",
+      "trucking_logistics",
+    ],
   },
   {
     id: "apollo",
@@ -419,7 +483,7 @@ export const LEAD_SOURCES: LeadSource[] = [
     type: "api",
     provider: "Tracerfy",
     costPerLead: undefined, // Variable pricing
-    industries: HOME_SERVICES_INDUSTRIES.map(i => i.id),
+    industries: HOME_SERVICES_INDUSTRIES.map((i) => i.id),
   },
   {
     id: "fastappend",
@@ -427,7 +491,7 @@ export const LEAD_SOURCES: LeadSource[] = [
     type: "api",
     provider: "Tracerfy/FastAppend",
     costPerLead: 0.02,
-    industries: ALL_INDUSTRIES.map(i => i.id),
+    industries: ALL_INDUSTRIES.map((i) => i.id),
   },
 ];
 
@@ -436,20 +500,26 @@ export const LEAD_SOURCES: LeadSource[] = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function getIndustryById(id: string): Industry | undefined {
-  return ALL_INDUSTRIES.find(i => i.id === id);
+  return ALL_INDUSTRIES.find((i) => i.id === id);
 }
 
-export function getIndustriesByCategory(category: Industry["category"]): Industry[] {
-  return ALL_INDUSTRIES.filter(i => i.category === category);
+export function getIndustriesByCategory(
+  category: Industry["category"],
+): Industry[] {
+  return ALL_INDUSTRIES.filter((i) => i.category === category);
 }
 
 export function getLeadSourcesForIndustry(industryId: string): LeadSource[] {
-  return LEAD_SOURCES.filter(s => s.industries.includes(industryId));
+  return LEAD_SOURCES.filter((s) => s.industries.includes(industryId));
 }
 
-export function getIndustryOpener(industryId: string, firstName: string): string {
+export function getIndustryOpener(
+  industryId: string,
+  firstName: string,
+): string {
   const industry = getIndustryById(industryId);
-  if (!industry) return `Hi ${firstName}, quick question - do you have a few minutes to chat? -Emily`;
+  if (!industry)
+    return `Hi ${firstName}, quick question - do you have a few minutes to chat? -Emily`;
   return industry.smsOpener.replace("{firstName}", firstName);
 }
 
@@ -466,4 +536,6 @@ export const INDUSTRY_STATS = {
   leadSources: LEAD_SOURCES.length,
 };
 
-console.log(`[Industries] Loaded ${INDUSTRY_STATS.totalIndustries} industries across ${Object.keys(INDUSTRY_STATS).length - 2} categories`);
+console.log(
+  `[Industries] Loaded ${INDUSTRY_STATS.totalIndustries} industries across ${Object.keys(INDUSTRY_STATS).length - 2} categories`,
+);

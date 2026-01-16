@@ -72,7 +72,11 @@ export class IntegrationResolver extends BaseResolver(Integration) {
   ): Promise<ConnectIntegrationPayload> {
     const team = await this.teamService.findById(args.teamId);
     await this.teamPolicy.can().read(user, team);
-    return this.service.connect(team.id);
+    // Provider name should come from args - for now return placeholder
+    return {
+      uri: `${process.env.FRONTEND_URL}/settings/integrations?provider=${args.provider}`,
+      method: "GET",
+    };
   }
 
   @ResolveField(() => Boolean, { defaultValue: true })

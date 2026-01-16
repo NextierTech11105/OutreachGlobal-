@@ -164,7 +164,10 @@ export async function POST(request: NextRequest) {
         to: recipientEmail,
       });
       return NextResponse.json(
-        { error: "Failed to send message. Please try again or email us directly." },
+        {
+          error:
+            "Failed to send message. Please try again or email us directly.",
+        },
         { status: 500 },
       );
     }

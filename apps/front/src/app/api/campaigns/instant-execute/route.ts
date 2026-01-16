@@ -101,13 +101,15 @@ export async function POST(request: NextRequest) {
           isNotNull(leads.phone),
           notInArray(leads.status, EXCLUDED_STATUSES),
           // Not yet contacted by GIANNA
-          sql`(custom_fields->>'giannaStatus' IS NULL OR custom_fields->>'giannaStatus' = '')`
-        )
+          sql`(custom_fields->>'giannaStatus' IS NULL OR custom_fields->>'giannaStatus' = '')`,
+        ),
       )
       .limit(execBatchSize);
 
     const prepTime = Date.now() - prepStart;
-    console.log(`[Instant Execute] 📋 PREP: ${readyLeads.length} leads in ${prepTime}ms`);
+    console.log(
+      `[Instant Execute] 📋 PREP: ${readyLeads.length} leads in ${prepTime}ms`,
+    );
 
     if (readyLeads.length === 0) {
       return NextResponse.json({
@@ -155,7 +157,9 @@ export async function POST(request: NextRequest) {
           count: 1,
         });
 
-        message = openers[0] || `Hi ${lead.firstName || "there"}, this is Emily from Homeowner Advisors. Quick question - are you open to a conversation about your property? Just reply YES or NO.`;
+        message =
+          openers[0] ||
+          `Hi ${lead.firstName || "there"}, this is Emily from Homeowner Advisors. Quick question - are you open to a conversation about your property? Just reply YES or NO.`;
       }
 
       previews.push({
@@ -168,7 +172,9 @@ export async function POST(request: NextRequest) {
     }
 
     const previewTime = Date.now() - previewStart;
-    console.log(`[Instant Execute] 👁️ PREVIEW: ${previews.length} messages in ${previewTime}ms`);
+    console.log(
+      `[Instant Execute] 👁️ PREVIEW: ${previews.length} messages in ${previewTime}ms`,
+    );
 
     // If dry run, return preview only
     if (dryRun) {
@@ -214,7 +220,8 @@ export async function POST(request: NextRequest) {
             if (smsResult.success && smsResult.data) {
               // Update lead status
               const lead = readyLeads.find((l) => l.id === preview.leadId);
-              const customFields = (lead?.customFields as Record<string, unknown>) || {};
+              const customFields =
+                (lead?.customFields as Record<string, unknown>) || {};
 
               await db
                 .update(leads)
@@ -223,7 +230,8 @@ export async function POST(request: NextRequest) {
                     ...customFields,
                     giannaStatus: "sent",
                     giannaLastSentAt: new Date().toISOString(),
-                    giannaMessageCount: ((customFields.giannaMessageCount as number) || 0) + 1,
+                    giannaMessageCount:
+                      ((customFields.giannaMessageCount as number) || 0) + 1,
                     campaignMacro: macro,
                   },
                   status: "contacted",
@@ -253,22 +261,28 @@ export async function POST(request: NextRequest) {
               error: error instanceof Error ? error.message : "Unknown error",
             };
           }
-        })
+        }),
       );
 
       results.push(...batchResults);
 
       // Minimal delay between batches to respect rate limits
       if (i + PARALLEL_BATCH < previews.length) {
-        await new Promise((resolve) => setTimeout(resolve, INSTANT_EXECUTION.SEND_DELAY_MS));
+        await new Promise((resolve) =>
+          setTimeout(resolve, INSTANT_EXECUTION.SEND_DELAY_MS),
+        );
       }
     }
 
     const executeTime = Date.now() - executeStart;
     const totalTime = Date.now() - startTime;
 
-    console.log(`[Instant Execute] ⚡ EXECUTE: ${sentCount} sent, ${failedCount} failed in ${executeTime}ms`);
-    console.log(`[Instant Execute] 🏁 TOTAL: ${totalTime}ms (prep: ${prepTime}ms, preview: ${previewTime}ms, execute: ${executeTime}ms)`);
+    console.log(
+      `[Instant Execute] ⚡ EXECUTE: ${sentCount} sent, ${failedCount} failed in ${executeTime}ms`,
+    );
+    console.log(
+      `[Instant Execute] 🏁 TOTAL: ${totalTime}ms (prep: ${prepTime}ms, preview: ${previewTime}ms, execute: ${executeTime}ms)`,
+    );
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 4: RETURN RESULTS - Dopamine hit!
@@ -331,8 +345,8 @@ export async function GET(request: NextRequest) {
             and(
               eq(leads.teamId, teamId),
               isNotNull(leads.phone),
-              notInArray(leads.status, EXCLUDED_STATUSES)
-            )
+              notInArray(leads.status, EXCLUDED_STATUSES),
+            ),
           );
 
         // Count contacted leads
@@ -343,8 +357,8 @@ export async function GET(request: NextRequest) {
             and(
               eq(leads.teamId, teamId),
               sql`custom_fields->>'giannaStatus' = 'sent'`,
-              sql`custom_fields->>'campaignMacro' = ${config.id}`
-            )
+              sql`custom_fields->>'campaignMacro' = ${config.id}`,
+            ),
           );
 
         // Count ready (enriched but not contacted)
@@ -356,8 +370,8 @@ export async function GET(request: NextRequest) {
               eq(leads.teamId, teamId),
               isNotNull(leads.phone),
               notInArray(leads.status, EXCLUDED_STATUSES),
-              sql`(custom_fields->>'giannaStatus' IS NULL OR custom_fields->>'giannaStatus' = '')`
-            )
+              sql`(custom_fields->>'giannaStatus' IS NULL OR custom_fields->>'giannaStatus' = '')`,
+            ),
           );
 
         const enriched = Number(enrichedResult[0]?.count || 0);
@@ -374,7 +388,7 @@ export async function GET(request: NextRequest) {
           progress: Math.round((contacted / MACRO_STABILIZATION_TARGET) * 100),
           stabilized: contacted >= MACRO_STABILIZATION_TARGET,
         };
-      })
+      }),
     );
 
     return NextResponse.json({

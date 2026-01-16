@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       if (!campaign) {
         return NextResponse.json(
           { error: "Campaign not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -65,7 +65,10 @@ export async function GET(request: NextRequest) {
         })
         .from(leads)
         .where(sql`custom_fields->>'campaignId' = ${campaignId}`)
-        .groupBy(sql`custom_fields->>'stageId'`, sql`custom_fields->>'temperature'`);
+        .groupBy(
+          sql`custom_fields->>'stageId'`,
+          sql`custom_fields->>'temperature'`,
+        );
 
       // Get outcome metrics
       const outcomes = await db
@@ -137,7 +140,7 @@ export async function GET(request: NextRequest) {
       .groupBy(sql`custom_fields->>'campaignId'`);
 
     const leadCountMap = Object.fromEntries(
-      campaignLeadCounts.map((c) => [c.campaignId, c.count])
+      campaignLeadCounts.map((c) => [c.campaignId, c.count]),
     );
 
     return NextResponse.json({
@@ -153,20 +156,29 @@ export async function GET(request: NextRequest) {
         stageCount: c.stages.length,
         leadCount: leadCountMap[c.id] || 0,
       })),
-      intents: ["DISCOVERY", "QUALIFICATION", "NURTURE", "REACTIVATION", "RETENTION", "REFERRAL"],
+      intents: [
+        "DISCOVERY",
+        "QUALIFICATION",
+        "NURTURE",
+        "REACTIVATION",
+        "RETENTION",
+        "REFERRAL",
+      ],
       verticals: ["B2B", "REAL_ESTATE", "HOME_SERVICES", "TRUCKING", "ALL"],
       scaleTargets: SCALE_TARGETS,
       formula: {
         description: "Numbers Game → High-Impact Meetings",
-        daily: "2000 SMS → 100 responses → 20 meetings → 10 qualified → 2 deals",
-        weekly: "10K leads → 500 responses → 100 meetings → 50 qualified → 10 deals",
+        daily:
+          "2000 SMS → 100 responses → 20 meetings → 10 qualified → 2 deals",
+        weekly:
+          "10K leads → 500 responses → 100 meetings → 50 qualified → 10 deals",
       },
     });
   } catch (error) {
     log.error("[CampaignIntents] GET Error:", error);
     return NextResponse.json(
       { error: "Failed to get campaign intents" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -198,7 +210,7 @@ export async function POST(request: NextRequest) {
     if (!campaign) {
       return NextResponse.json(
         { error: "Campaign not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -207,7 +219,7 @@ export async function POST(request: NextRequest) {
       if (!leadIds && !batchId) {
         return NextResponse.json(
           { error: "leadIds or batchId required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -300,7 +312,7 @@ export async function POST(request: NextRequest) {
       if (!leadIds || !classification) {
         return NextResponse.json(
           { error: "leadIds and classification required for escalate" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -321,17 +333,26 @@ export async function POST(request: NextRequest) {
 
         if (!lead[0]) continue;
 
-        const customFields = (lead[0].customFields as Record<string, string>) || {};
+        const customFields =
+          (lead[0].customFields as Record<string, string>) || {};
         const currentStageId = customFields.stageId;
-        const currentTemp = (customFields.temperature as LeadTemperature) || "COLD";
+        const currentTemp =
+          (customFields.temperature as LeadTemperature) || "COLD";
 
         // Check if should escalate
-        const { escalate, nextStageId } = shouldEscalate(currentStageId, classification);
+        const { escalate, nextStageId } = shouldEscalate(
+          currentStageId,
+          classification,
+        );
 
         if (escalate && nextStageId) {
           // Escalate temperature
           const newTemp: LeadTemperature =
-            currentTemp === "COLD" ? "WARM" : currentTemp === "WARM" ? "HOT" : "HOT";
+            currentTemp === "COLD"
+              ? "WARM"
+              : currentTemp === "WARM"
+                ? "HOT"
+                : "HOT";
 
           await db
             .update(leads)
@@ -386,7 +407,7 @@ export async function POST(request: NextRequest) {
         .groupBy(
           sql`custom_fields->>'stageId'`,
           sql`custom_fields->>'temperature'`,
-          sql`custom_fields->>'intent'`
+          sql`custom_fields->>'intent'`,
         );
 
       const leadGroups: LeadGroup[] = groups.map((g) => ({
@@ -414,22 +435,31 @@ export async function POST(request: NextRequest) {
         totalGroups: leadGroups.length,
         totalLeads: leadGroups.reduce((sum, g) => sum + g.leadCount, 0),
         byTemperature: {
-          cold: leadGroups.filter((g) => g.temperature === "COLD").reduce((s, g) => s + g.leadCount, 0),
-          warm: leadGroups.filter((g) => g.temperature === "WARM").reduce((s, g) => s + g.leadCount, 0),
-          hot: leadGroups.filter((g) => g.temperature === "HOT").reduce((s, g) => s + g.leadCount, 0),
+          cold: leadGroups
+            .filter((g) => g.temperature === "COLD")
+            .reduce((s, g) => s + g.leadCount, 0),
+          warm: leadGroups
+            .filter((g) => g.temperature === "WARM")
+            .reduce((s, g) => s + g.leadCount, 0),
+          hot: leadGroups
+            .filter((g) => g.temperature === "HOT")
+            .reduce((s, g) => s + g.leadCount, 0),
         },
       });
     }
 
     return NextResponse.json(
       { error: "Invalid action. Use 'assign', 'escalate', or 'group'" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     log.error("[CampaignIntents] POST Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Campaign action failed" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Campaign action failed",
+      },
+      { status: 500 },
     );
   }
 }

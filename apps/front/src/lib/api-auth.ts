@@ -54,10 +54,7 @@ async function lookupUserTeam(userId: string): Promise<string | null> {
       .select({ teamId: teamMembers.teamId })
       .from(teamMembers)
       .where(
-        and(
-          eq(teamMembers.userId, userId),
-          eq(teamMembers.status, "ACTIVE")
-        )
+        and(eq(teamMembers.userId, userId), eq(teamMembers.status, "ACTIVE")),
       )
       .limit(1);
 

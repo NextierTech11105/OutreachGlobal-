@@ -76,7 +76,7 @@ export interface CampaignBlockMapping {
  */
 export async function getTeamContext(
   userId: string,
-  teamId: string
+  teamId: string,
 ): Promise<TeamContext | null> {
   if (!db) {
     Logger.error("TeamsService", "Database not configured");
@@ -115,8 +115,8 @@ export async function getTeamContext(
         and(
           eq(teamMembers.teamId, teamId),
           eq(teamMembers.userId, userId),
-          eq(teamMembers.status, "ACTIVE")
-        )
+          eq(teamMembers.status, "ACTIVE"),
+        ),
       )
       .limit(1);
 
@@ -185,7 +185,7 @@ export async function getUserTeams(userId: string): Promise<
       })
       .from(teamMembers)
       .where(
-        and(eq(teamMembers.userId, userId), eq(teamMembers.status, "ACTIVE"))
+        and(eq(teamMembers.userId, userId), eq(teamMembers.status, "ACTIVE")),
       );
 
     for (const membership of memberships) {
@@ -229,7 +229,7 @@ export async function getUserTeams(userId: string): Promise<
  * This links the team to its SignalHouse tenant/brand/campaigns
  */
 export async function getTeamSignalHouseConfig(
-  teamId: string
+  teamId: string,
 ): Promise<TeamSignalHouseConfig> {
   if (!db) {
     return {
@@ -259,8 +259,8 @@ export async function getTeamSignalHouseConfig(
         .where(
           and(
             eq(signalhouseCampaigns.teamId, teamId),
-            eq(signalhouseCampaigns.status, "ACTIVE")
-          )
+            eq(signalhouseCampaigns.status, "ACTIVE"),
+          ),
         );
       activeCampaigns = campaignResult.length;
     }
@@ -270,7 +270,7 @@ export async function getTeamSignalHouseConfig(
       .select()
       .from(smsPhonePool)
       .where(
-        and(eq(smsPhonePool.teamId, teamId), eq(smsPhonePool.status, "ACTIVE"))
+        and(eq(smsPhonePool.teamId, teamId), eq(smsPhonePool.status, "ACTIVE")),
       );
     const phonePoolSize = phoneResult.length;
 
@@ -308,7 +308,7 @@ export async function getTeamSignalHouseConfig(
  * - We can track the full journey: SMS → Response → Call Queue → Outcome
  */
 export async function getCampaignBlockMappings(
-  teamId: string
+  teamId: string,
 ): Promise<CampaignBlockMapping[]> {
   if (!db) {
     return [];
@@ -331,8 +331,8 @@ export async function getCampaignBlockMappings(
         .where(
           and(
             eq(smsPhonePool.teamId, teamId),
-            eq(smsPhonePool.status, "ACTIVE")
-          )
+            eq(smsPhonePool.status, "ACTIVE"),
+          ),
         );
 
       mappings.push({
@@ -402,24 +402,24 @@ export interface CallQueuePromotion {
 
   // SignalHouse Traceability (CRITICAL)
   signalhouseCampaignId: string | null; // 10DLC campaign ID (e.g., CW7I6X5)
-  signalhouseBrandId: string | null;    // 10DLC brand ID (e.g., BZOYPIH)
-  sourcePhoneNumber: string;            // The number that sent the SMS
-  campaignBlockId?: string;             // Internal block tag (e.g., "campaign:ABC123")
+  signalhouseBrandId: string | null; // 10DLC brand ID (e.g., BZOYPIH)
+  sourcePhoneNumber: string; // The number that sent the SMS
+  campaignBlockId?: string; // Internal block tag (e.g., "campaign:ABC123")
 
   // Response Context
-  responseType: string;                 // Classification: positive, email_capture, question
-  responseText?: string;                // The actual response text
-  capturedEmail?: string;               // If email was captured
+  responseType: string; // Classification: positive, email_capture, question
+  responseText?: string; // The actual response text
+  capturedEmail?: string; // If email was captured
 
   // Queue Config
   persona: "gianna" | "cathy" | "sabrina";
   campaignLane: string;
-  priority: number;                     // 1-10, boosted for GOLD labels
-  tags: string[];                       // ["responded", "gold", "email_captured", etc.]
+  priority: number; // 1-10, boosted for GOLD labels
+  tags: string[]; // ["responded", "gold", "email_captured", etc.]
 
   // Industry-Agnostic Context
-  industryId?: string;                  // Optional - campaigns work across all industries
-  leadSource?: string;                  // usbizdata, realtor, property, etc.
+  industryId?: string; // Optional - campaigns work across all industries
+  leadSource?: string; // usbizdata, realtor, property, etc.
 }
 
 /**
@@ -513,7 +513,7 @@ export function buildCallQueuePromotion(params: {
  */
 export async function getTeamSetting(
   teamId: string,
-  name: string
+  name: string,
 ): Promise<string | null> {
   if (!db) {
     return null;
@@ -523,9 +523,7 @@ export async function getTeamSetting(
     const result = await db
       .select({ value: teamSettings.value })
       .from(teamSettings)
-      .where(
-        and(eq(teamSettings.teamId, teamId), eq(teamSettings.name, name))
-      )
+      .where(and(eq(teamSettings.teamId, teamId), eq(teamSettings.name, name)))
       .limit(1);
 
     return result.length > 0 ? result[0].value : null;
@@ -543,7 +541,7 @@ export async function getTeamSetting(
  * Get all settings for a team
  */
 export async function getAllTeamSettings(
-  teamId: string
+  teamId: string,
 ): Promise<Record<string, string>> {
   if (!db) {
     return {};
@@ -602,10 +600,12 @@ export async function getTeamStats(teamId: string): Promise<{
 
     const totalLeads = allLeads.length;
     const enrichedLeads = allLeads.filter(
-      (l) => l.status === "ENRICHED" || l.mobile
+      (l) => l.status === "ENRICHED" || l.mobile,
     ).length;
     const contactedLeads = allLeads.filter((l) =>
-      ["CONTACTED", "RESPONDED", "BOOKED", "CONVERTED"].includes(l.status || "")
+      ["CONTACTED", "RESPONDED", "BOOKED", "CONVERTED"].includes(
+        l.status || "",
+      ),
     ).length;
 
     // Phone pool
@@ -613,7 +613,7 @@ export async function getTeamStats(teamId: string): Promise<{
       .select()
       .from(smsPhonePool)
       .where(
-        and(eq(smsPhonePool.teamId, teamId), eq(smsPhonePool.status, "ACTIVE"))
+        and(eq(smsPhonePool.teamId, teamId), eq(smsPhonePool.status, "ACTIVE")),
       );
 
     // Active campaigns
@@ -623,8 +623,8 @@ export async function getTeamStats(teamId: string): Promise<{
       .where(
         and(
           eq(signalhouseCampaigns.teamId, teamId),
-          eq(signalhouseCampaigns.status, "ACTIVE")
-        )
+          eq(signalhouseCampaigns.status, "ACTIVE"),
+        ),
       );
 
     return {

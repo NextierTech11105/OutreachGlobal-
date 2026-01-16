@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { apiAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { users, teams, teamMembers, buckets, messageTemplates } from "@/lib/db/schema";
+import {
+  users,
+  teams,
+  teamMembers,
+  buckets,
+  messageTemplates,
+} from "@/lib/db/schema";
 import { eq, count, and, or, isNotNull } from "drizzle-orm";
 import { isConfigured as isSignalHouseConfigured } from "@/lib/signalhouse/client";
 
@@ -20,10 +26,7 @@ export async function GET() {
     const { userId, teamId } = await apiAuth();
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Default all to false
@@ -94,9 +97,9 @@ export async function GET() {
               // Only count buckets with actual data
               or(
                 isNotNull(buckets.totalRecords),
-                isNotNull(buckets.enrichedCount)
-              )
-            )
+                isNotNull(buckets.enrichedCount),
+              ),
+            ),
           );
 
         const bucketCount = bucketResult[0]?.count || 0;

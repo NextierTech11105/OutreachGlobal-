@@ -111,7 +111,8 @@ export async function GET(request: NextRequest) {
         used: currentUsage?.leadsCreated || 0,
         limit: plan?.maxLeadsPerMonth || 1000,
         percentage: Math.round(
-          ((currentUsage?.leadsCreated || 0) / (plan?.maxLeadsPerMonth || 1000)) *
+          ((currentUsage?.leadsCreated || 0) /
+            (plan?.maxLeadsPerMonth || 1000)) *
             100,
         ),
         overage: Math.max(
@@ -148,8 +149,7 @@ export async function GET(request: NextRequest) {
         used: currentUsage?.skipTraces || 0,
         limit: plan?.maxSkipTraces || 50,
         percentage: Math.round(
-          ((currentUsage?.skipTraces || 0) / (plan?.maxSkipTraces || 50)) *
-            100,
+          ((currentUsage?.skipTraces || 0) / (plan?.maxSkipTraces || 50)) * 100,
         ),
         overage: Math.max(
           0,

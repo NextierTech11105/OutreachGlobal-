@@ -39,8 +39,16 @@ const tracerfy = new TracerfyClient();
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const ENTITY_PATTERNS = [
-  /\bllc\b/i, /\binc\b/i, /\bcorp\b/i, /\bltd\b/i, /\btrust\b/i,
-  /\btrustee\b/i, /\bestate\b/i, /\bbank\b/i, /\bhoa\b/i, /\bassociation\b/i,
+  /\bllc\b/i,
+  /\binc\b/i,
+  /\bcorp\b/i,
+  /\bltd\b/i,
+  /\btrust\b/i,
+  /\btrustee\b/i,
+  /\bestate\b/i,
+  /\bbank\b/i,
+  /\bhoa\b/i,
+  /\bassociation\b/i,
 ];
 
 function isEntity(name: string): boolean {
@@ -117,7 +125,8 @@ export async function GET() {
       usage: usageStats,
       endpoints: {
         enrich: "POST /api/luci/enrich { propertyIds: [...] }",
-        search: "POST /api/luci/enrich { search: { zip, absentee_owner, etc } }",
+        search:
+          "POST /api/luci/enrich { search: { zip, absentee_owner, etc } }",
       },
     });
   } catch (error) {
@@ -159,7 +168,7 @@ export async function POST(request: NextRequest) {
         log.error("Property search failed", { error: err });
         return NextResponse.json(
           { success: false, error: "Property search failed" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -171,21 +180,26 @@ export async function POST(request: NextRequest) {
           error: "Provide propertyIds array or search criteria",
           example: {
             byIds: { propertyIds: ["id1", "id2", "..."] },
-            bySearch: { search: { zip: "33101", absentee_owner: true, size: 100 } },
+            bySearch: {
+              search: { zip: "33101", absentee_owner: true, size: 100 },
+            },
           },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Check usage limit
     const usageStats = getUsage();
-    const toProcess = idsToEnrich.slice(0, Math.min(BATCH_SIZE, usageStats.remaining));
+    const toProcess = idsToEnrich.slice(
+      0,
+      Math.min(BATCH_SIZE, usageStats.remaining),
+    );
 
     if (toProcess.length === 0) {
       return NextResponse.json(
         { success: false, error: "Daily limit reached", usage: usageStats },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -196,12 +210,16 @@ export async function POST(request: NextRequest) {
     });
 
     // Step 1: Get property details from RealEstateAPI
-    const propertyDetails = await realEstateApi.getPropertyDetailsBatch(toProcess);
+    const propertyDetails =
+      await realEstateApi.getPropertyDetailsBatch(toProcess);
 
     // Step 2: Prepare trace inputs (filter entities)
     const traceInputs: TraceJobInput[] = [];
     const skipped: { id: string; reason: string }[] = [];
-    const propertyMap = new Map<number, { id: string; detail: typeof propertyDetails[0] }>();
+    const propertyMap = new Map<
+      number,
+      { id: string; detail: (typeof propertyDetails)[0] }
+    >();
 
     for (const detail of propertyDetails) {
       const data = detail.data;
@@ -224,7 +242,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Skip if no address
-      if (!data.address?.address || !data.address?.city || !data.address?.state) {
+      if (
+        !data.address?.address ||
+        !data.address?.city ||
+        !data.address?.state
+      ) {
         skipped.push({ id: data.id, reason: "Missing address" });
         continue;
       }
@@ -264,7 +286,7 @@ export async function POST(request: NextRequest) {
           balance: analytics.balance,
           needed: traceInputs.length,
         },
-        { status: 402 }
+        { status: 402 },
       );
     }
 
@@ -283,12 +305,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Get and process results
-    const traceResults = (await tracerfy.getQueueResults(queue.id)) as TracerfyNormalResult[];
+    const traceResults = (await tracerfy.getQueueResults(
+      queue.id,
+    )) as TracerfyNormalResult[];
 
     const enrichedLeads: EnrichedLead[] = traceResults.map((result, idx) => {
       const phones = extractPhones(result);
       const emails = extractEmails(result);
-      const mobiles = phones.filter((p) => p.type === "Mobile").map((p) => p.number);
+      const mobiles = phones
+        .filter((p) => p.type === "Mobile")
+        .map((p) => p.number);
       const propData = propertyMap.get(idx);
       const data = propData?.detail?.data;
 
@@ -300,7 +326,9 @@ export async function POST(request: NextRequest) {
         zip: data?.address?.zip || "",
         propertyType: data?.propertyType,
         estimatedValue: data?.estimatedValue,
-        ownerName: [result.first_name, result.last_name].filter(Boolean).join(" "),
+        ownerName: [result.first_name, result.last_name]
+          .filter(Boolean)
+          .join(" "),
         firstName: result.first_name,
         lastName: result.last_name,
         ownerOccupied: data?.ownerOccupied || false,
@@ -346,14 +374,16 @@ export async function POST(request: NextRequest) {
       teamId,
     });
   } catch (error) {
-    log.error("Enrichment failed", { error: error instanceof Error ? error.message : error });
+    log.error("Enrichment failed", {
+      error: error instanceof Error ? error.message : error,
+    });
     return NextResponse.json(
       {
         success: false,
         worker: "LUCI",
         error: error instanceof Error ? error.message : "Enrichment failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

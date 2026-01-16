@@ -30,7 +30,13 @@ interface CallQueueItem {
   priority: "HOT" | "WARM" | "COLD";
   reason: string;
   addedAt: Date;
-  status: "pending" | "dialing" | "connected" | "completed" | "no_answer" | "callback";
+  status:
+    | "pending"
+    | "dialing"
+    | "connected"
+    | "completed"
+    | "no_answer"
+    | "callback";
   assignedTo?: string;
   callbackAt?: Date;
   notes?: string;
@@ -60,15 +66,12 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!phone) {
-      return NextResponse.json(
-        { error: "phone is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "phone is required" }, { status: 400 });
     }
 
     // Check if already in queue
     const existing = callQueue.find(
-      (item) => item.phone === phone && item.status === "pending"
+      (item) => item.phone === phone && item.status === "pending",
     );
 
     if (existing) {
@@ -124,8 +127,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Call Queue] POST Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to add to queue" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to add to queue",
+      },
+      { status: 500 },
     );
   }
 }
@@ -157,7 +163,8 @@ export async function GET(request: NextRequest) {
     // Sort by priority (HOT first), then by time
     const priorityOrder = { HOT: 0, WARM: 1, COLD: 2 };
     filtered.sort((a, b) => {
-      const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+      const priorityDiff =
+        priorityOrder[a.priority] - priorityOrder[b.priority];
       if (priorityDiff !== 0) return priorityDiff;
       return a.addedAt.getTime() - b.addedAt.getTime();
     });
@@ -170,9 +177,15 @@ export async function GET(request: NextRequest) {
       noAnswer: callQueue.filter((i) => i.status === "no_answer").length,
       callback: callQueue.filter((i) => i.status === "callback").length,
       byPriority: {
-        HOT: callQueue.filter((i) => i.priority === "HOT" && i.status === "pending").length,
-        WARM: callQueue.filter((i) => i.priority === "WARM" && i.status === "pending").length,
-        COLD: callQueue.filter((i) => i.priority === "COLD" && i.status === "pending").length,
+        HOT: callQueue.filter(
+          (i) => i.priority === "HOT" && i.status === "pending",
+        ).length,
+        WARM: callQueue.filter(
+          (i) => i.priority === "WARM" && i.status === "pending",
+        ).length,
+        COLD: callQueue.filter(
+          (i) => i.priority === "COLD" && i.status === "pending",
+        ).length,
       },
     };
 
@@ -188,7 +201,7 @@ export async function GET(request: NextRequest) {
     console.error("[Call Queue] GET Error:", error);
     return NextResponse.json(
       { error: "Failed to get call queue" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -200,27 +213,17 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      id,
-      status,
-      assignedTo,
-      callbackAt,
-      notes,
-      outcome,
-    } = body;
+    const { id, status, assignedTo, callbackAt, notes, outcome } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
     const index = callQueue.findIndex((item) => item.id === id);
     if (index === -1) {
       return NextResponse.json(
         { error: "Call queue item not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -265,8 +268,10 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("[Call Queue] PATCH Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update call" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to update call",
+      },
+      { status: 500 },
     );
   }
 }
@@ -281,17 +286,14 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
     const index = callQueue.findIndex((item) => item.id === id);
     if (index === -1) {
       return NextResponse.json(
         { error: "Call queue item not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -305,7 +307,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Call Queue] DELETE Error:", error);
     return NextResponse.json(
       { error: "Failed to remove from queue" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

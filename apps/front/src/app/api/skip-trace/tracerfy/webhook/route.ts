@@ -76,7 +76,9 @@ export async function POST(request: NextRequest) {
       const enrichedData = (results as TracerfyNormalResult[]).map((result) => {
         const phones = extractPhones(result);
         const emails = extractEmails(result);
-        const mobiles = phones.filter((p) => p.type === "Mobile").map((p) => p.number);
+        const mobiles = phones
+          .filter((p) => p.type === "Mobile")
+          .map((p) => p.number);
 
         return {
           address: result.address,
@@ -137,13 +139,16 @@ export async function POST(request: NextRequest) {
       queueId: payload.id,
     });
   } catch (error) {
-    log.error("Webhook error", { error: error instanceof Error ? error.message : error });
+    log.error("Webhook error", {
+      error: error instanceof Error ? error.message : error,
+    });
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Webhook processing failed",
+        error:
+          error instanceof Error ? error.message : "Webhook processing failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

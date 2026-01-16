@@ -141,13 +141,15 @@ export class TracerfyClient {
     // Get from: https://tracerfy.com/dashboard
     this.apiToken = apiToken || process.env.TRACERFY_API_TOKEN || "";
     if (!this.apiToken) {
-      console.warn("[Tracerfy] No API token - set TRACERFY_API_TOKEN in .env.local");
+      console.warn(
+        "[Tracerfy] No API token - set TRACERFY_API_TOKEN in .env.local",
+      );
     }
   }
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${TRACERFY_BASE_URL}${endpoint}`;
     const headers: HeadersInit = {
@@ -186,7 +188,7 @@ export class TracerfyClient {
    * Get single queue results
    */
   async getQueueResults(
-    queueId: number
+    queueId: number,
   ): Promise<TracerfyNormalResult[] | TracerfyEnhancedResult[]> {
     return this.request(`/queue/${queueId}`);
   }
@@ -196,7 +198,7 @@ export class TracerfyClient {
    */
   async beginTrace(
     records: TraceJobInput[],
-    traceType: TraceType = "normal"
+    traceType: TraceType = "normal",
   ): Promise<TraceJobResponse> {
     return this.request<TraceJobResponse>("/trace/", {
       method: "POST",
@@ -237,7 +239,7 @@ export class TracerfyClient {
       mail_state_column: string;
       mailing_zip_column?: string;
     },
-    traceType: TraceType = "normal"
+    traceType: TraceType = "normal",
   ): Promise<TraceJobResponse> {
     const formData = new FormData();
     formData.append("csv_file", csvFile);
@@ -280,7 +282,7 @@ export class TracerfyClient {
   async waitForQueue(
     queueId: number,
     pollIntervalMs = 5000,
-    maxWaitMs = 300000
+    maxWaitMs = 300000,
   ): Promise<TracerfyQueue> {
     const startTime = Date.now();
 
@@ -324,7 +326,7 @@ export function getTracerfyClient(): TracerfyClient {
  * Extract all valid phone numbers from a trace result
  */
 export function extractPhones(
-  result: TracerfyNormalResult
+  result: TracerfyNormalResult,
 ): { number: string; type: string }[] {
   const phones: { number: string; type: string }[] = [];
 
@@ -383,7 +385,7 @@ export function extractEmails(result: TracerfyNormalResult): string[] {
  */
 export function calculateCreditsNeeded(
   recordCount: number,
-  traceType: TraceType
+  traceType: TraceType,
 ): number {
   const creditsPerLead = traceType === "enhanced" ? 15 : 1;
   return recordCount * creditsPerLead;
@@ -459,7 +461,7 @@ export class TracerfyNameAppendClient extends TracerfyClient {
    * Use when you have names + locations but need phones/emails
    */
   async beginNameAppend(
-    records: NameAppendInput[]
+    records: NameAppendInput[],
   ): Promise<NameAppendJobResponse> {
     const url = `${TRACERFY_BASE_URL}/name-append/`;
 
@@ -481,7 +483,9 @@ export class TracerfyNameAppendClient extends TracerfyClient {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Tracerfy Name Append error: ${response.status} - ${error}`);
+      throw new Error(
+        `Tracerfy Name Append error: ${response.status} - ${error}`,
+      );
     }
 
     return response.json();
@@ -498,7 +502,7 @@ export class TracerfyNameAppendClient extends TracerfyClient {
       city_column: string;
       state_column: string;
       middle_name_column?: string;
-    }
+    },
   ): Promise<NameAppendJobResponse> {
     const formData = new FormData();
     formData.append("csv_file", csvFile);
@@ -521,7 +525,9 @@ export class TracerfyNameAppendClient extends TracerfyClient {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Tracerfy Name Append error: ${response.status} - ${error}`);
+      throw new Error(
+        `Tracerfy Name Append error: ${response.status} - ${error}`,
+      );
     }
 
     return response.json();
@@ -539,13 +545,17 @@ export class TracerfyNameAppendClient extends TracerfyClient {
  * Extract all phones from a name append result
  */
 export function extractNameAppendPhones(
-  result: NameAppendResult
+  result: NameAppendResult,
 ): { number: string; type: string }[] {
   const phones: { number: string; type: string }[] = [];
 
   for (let i = 1; i <= 8; i++) {
-    const phone = result[`phone_${i}` as keyof NameAppendResult] as string | undefined;
-    const type = result[`phone_${i}_type` as keyof NameAppendResult] as string | undefined;
+    const phone = result[`phone_${i}` as keyof NameAppendResult] as
+      | string
+      | undefined;
+    const type = result[`phone_${i}_type` as keyof NameAppendResult] as
+      | string
+      | undefined;
     if (phone && phone.trim()) {
       phones.push({ number: phone, type: type || "Unknown" });
     }
@@ -568,7 +578,9 @@ export function extractNameAppendEmails(result: NameAppendResult): string[] {
   const emails: string[] = [];
 
   for (let i = 1; i <= 5; i++) {
-    const email = result[`email_${i}` as keyof NameAppendResult] as string | undefined;
+    const email = result[`email_${i}` as keyof NameAppendResult] as
+      | string
+      | undefined;
     if (email && email.trim()) {
       emails.push(email);
     }
@@ -605,7 +617,7 @@ export type EnrichmentStrategy = "skip_trace" | "name_append" | "both";
  * This means SKIP TRACE is always the best choice for USBizData
  */
 export function determineEnrichmentStrategy(
-  record: Record<string, string | undefined>
+  record: Record<string, string | undefined>,
 ): EnrichmentStrategy {
   // Check for proper USBizData fields
   const hasFirstName = !!(
@@ -626,7 +638,12 @@ export function determineEnrichmentStrategy(
   );
   const hasCity = !!(record.city || record.City);
   const hasState = !!(record.state || record.State || record.ST);
-  const hasZip = !!(record.zip || record.zipCode || record["Zip Code"] || record.ZIP);
+  const hasZip = !!(
+    record.zip ||
+    record.zipCode ||
+    record["Zip Code"] ||
+    record.ZIP
+  );
 
   const hasFullAddress = hasAddress && hasCity && hasState;
   const hasName = hasFirstName || hasLastName;
@@ -654,7 +671,7 @@ export function determineEnrichmentStrategy(
  * Map USBizData fields to Tracerfy input format
  */
 export function mapUSBizDataToTraceInput(
-  record: Record<string, string>
+  record: Record<string, string>,
 ): TraceJobInput {
   return {
     first_name:
@@ -675,41 +692,14 @@ export function mapUSBizDataToTraceInput(
       record["Street Address"] ||
       record.Address ||
       "",
-    city:
-      record.city ||
-      record.City ||
-      "",
-    state:
-      record.state ||
-      record.State ||
-      record.ST ||
-      "",
-    zip:
-      record.zip ||
-      record.zipCode ||
-      record["Zip Code"] ||
-      record.ZIP ||
-      "",
+    city: record.city || record.City || "",
+    state: record.state || record.State || record.ST || "",
+    zip: record.zip || record.zipCode || record["Zip Code"] || record.ZIP || "",
     // Mailing address defaults to same as property address
     mail_address:
-      record.mail_address ||
-      record.address ||
-      record["Street Address"] ||
-      "",
-    mail_city:
-      record.mail_city ||
-      record.city ||
-      record.City ||
-      "",
-    mail_state:
-      record.mail_state ||
-      record.state ||
-      record.State ||
-      "",
-    mailing_zip:
-      record.mailing_zip ||
-      record.zip ||
-      record["Zip Code"] ||
-      "",
+      record.mail_address || record.address || record["Street Address"] || "",
+    mail_city: record.mail_city || record.city || record.City || "",
+    mail_state: record.mail_state || record.state || record.State || "",
+    mailing_zip: record.mailing_zip || record.zip || record["Zip Code"] || "",
   };
 }

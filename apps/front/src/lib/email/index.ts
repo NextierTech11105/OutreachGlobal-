@@ -76,7 +76,9 @@ function getTransport() {
     });
   }
 
-  throw new Error("No email transport configured. Set RESEND_API_KEY or SMTP_* env vars.");
+  throw new Error(
+    "No email transport configured. Set RESEND_API_KEY or SMTP_* env vars.",
+  );
 }
 
 // ============================================================================
@@ -101,7 +103,9 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
       attachments: options.attachments,
     });
 
-    Logger.info("Email", `Sent email to ${options.to}`, { messageId: result.messageId });
+    Logger.info("Email", `Sent email to ${options.to}`, {
+      messageId: result.messageId,
+    });
 
     return {
       success: true,
@@ -215,7 +219,7 @@ export const EmailTemplates = {
 
       <p>Best,<br>The ${APP_NAME} Team</p>
       `,
-      `Welcome to ${APP_NAME}! Your AI sales development platform is ready.`
+      `Welcome to ${APP_NAME}! Your AI sales development platform is ready.`,
     ),
   }),
 
@@ -254,7 +258,7 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Happy building!<br>The ${APP_NAME} Team</p>
       `,
-      `Your ${APP_NAME} API key is ready! Start building now.`
+      `Your ${APP_NAME} API key is ready! Start building now.`,
     ),
   }),
 
@@ -307,14 +311,18 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Thank you for choosing ${APP_NAME}!</p>
       `,
-      `Payment receipt for ${APP_NAME} - $${data.amount.toFixed(2)}`
+      `Payment receipt for ${APP_NAME} - $${data.amount.toFixed(2)}`,
     ),
   }),
 
   /**
    * Trial expiration warning (7 days before)
    */
-  trialExpiringWarning: (data: { name: string; daysLeft: number; plan: string }) => ({
+  trialExpiringWarning: (data: {
+    name: string;
+    daysLeft: number;
+    plan: string;
+  }) => ({
     subject: `Your ${APP_NAME} Trial Ends in ${data.daysLeft} Days`,
     html: wrapInTemplate(
       `
@@ -342,7 +350,7 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Best,<br>The ${APP_NAME} Team</p>
       `,
-      `Your ${APP_NAME} trial ends in ${data.daysLeft} days. Upgrade now to keep access.`
+      `Your ${APP_NAME} trial ends in ${data.daysLeft} days. Upgrade now to keep access.`,
     ),
   }),
 
@@ -377,14 +385,18 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Best,<br>The ${APP_NAME} Team</p>
       `,
-      `Your ${APP_NAME} trial has ended. Upgrade to restore access.`
+      `Your ${APP_NAME} trial has ended. Upgrade to restore access.`,
     ),
   }),
 
   /**
    * Payment failed email
    */
-  paymentFailed: (data: { name: string; amount: number; retryDate: string }) => ({
+  paymentFailed: (data: {
+    name: string;
+    amount: number;
+    retryDate: string;
+  }) => ({
     subject: `Action Required: Payment Failed - ${APP_NAME}`,
     html: wrapInTemplate(
       `
@@ -411,7 +423,7 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Thank you,<br>The ${APP_NAME} Team</p>
       `,
-      `Action required: Your ${APP_NAME} payment failed. Please update your payment method.`
+      `Action required: Your ${APP_NAME} payment failed. Please update your payment method.`,
     ),
   }),
 
@@ -446,14 +458,18 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Best,<br>The ${APP_NAME} Team</p>
       `,
-      `Your ${APP_NAME} subscription has been cancelled. Access continues until ${data.endDate}.`
+      `Your ${APP_NAME} subscription has been cancelled. Access continues until ${data.endDate}.`,
     ),
   }),
 
   /**
    * Password reset email
    */
-  passwordReset: (data: { name: string; resetLink: string; expiresIn: string }) => ({
+  passwordReset: (data: {
+    name: string;
+    resetLink: string;
+    expiresIn: string;
+  }) => ({
     subject: `Reset Your ${APP_NAME} Password`,
     html: wrapInTemplate(
       `
@@ -476,7 +492,7 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Best,<br>The ${APP_NAME} Team</p>
       `,
-      `Reset your ${APP_NAME} password. Link expires in ${data.expiresIn}.`
+      `Reset your ${APP_NAME} password. Link expires in ${data.expiresIn}.`,
     ),
   }),
 
@@ -510,7 +526,7 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
 
       <p>Best,<br>The ${APP_NAME} Team</p>
       `,
-      `${data.inviterName} invited you to join ${data.teamName} on ${APP_NAME}`
+      `${data.inviterName} invited you to join ${data.teamName} on ${APP_NAME}`,
     ),
   }),
 };
@@ -524,21 +540,42 @@ export async function sendWelcomeEmail(to: string, name: string) {
   return sendEmail({ to, ...template });
 }
 
-export async function sendApiKeyEmail(to: string, name: string, apiKey: string, plan: string) {
+export async function sendApiKeyEmail(
+  to: string,
+  name: string,
+  apiKey: string,
+  plan: string,
+) {
   const template = EmailTemplates.apiKeyDelivery({ name, apiKey, plan });
   return sendEmail({ to, ...template });
 }
 
 export async function sendPaymentReceiptEmail(
   to: string,
-  data: { name: string; amount: number; plan: string; invoiceId: string; date: string; nextBillingDate?: string }
+  data: {
+    name: string;
+    amount: number;
+    plan: string;
+    invoiceId: string;
+    date: string;
+    nextBillingDate?: string;
+  },
 ) {
   const template = EmailTemplates.paymentReceipt(data);
   return sendEmail({ to, ...template });
 }
 
-export async function sendTrialExpiringEmail(to: string, name: string, daysLeft: number, plan: string) {
-  const template = EmailTemplates.trialExpiringWarning({ name, daysLeft, plan });
+export async function sendTrialExpiringEmail(
+  to: string,
+  name: string,
+  daysLeft: number,
+  plan: string,
+) {
+  const template = EmailTemplates.trialExpiringWarning({
+    name,
+    daysLeft,
+    plan,
+  });
   return sendEmail({ to, ...template });
 }
 
@@ -547,24 +584,43 @@ export async function sendTrialExpiredEmail(to: string, name: string) {
   return sendEmail({ to, ...template });
 }
 
-export async function sendPaymentFailedEmail(to: string, name: string, amount: number, retryDate: string) {
+export async function sendPaymentFailedEmail(
+  to: string,
+  name: string,
+  amount: number,
+  retryDate: string,
+) {
   const template = EmailTemplates.paymentFailed({ name, amount, retryDate });
   return sendEmail({ to, ...template });
 }
 
-export async function sendCancellationEmail(to: string, name: string, endDate: string) {
+export async function sendCancellationEmail(
+  to: string,
+  name: string,
+  endDate: string,
+) {
   const template = EmailTemplates.subscriptionCancelled({ name, endDate });
   return sendEmail({ to, ...template });
 }
 
-export async function sendPasswordResetEmail(to: string, name: string, resetLink: string, expiresIn: string = "1 hour") {
+export async function sendPasswordResetEmail(
+  to: string,
+  name: string,
+  resetLink: string,
+  expiresIn: string = "1 hour",
+) {
   const template = EmailTemplates.passwordReset({ name, resetLink, expiresIn });
   return sendEmail({ to, ...template });
 }
 
 export async function sendTeamInvitationEmail(
   to: string,
-  data: { inviterName: string; teamName: string; inviteLink: string; role: string }
+  data: {
+    inviterName: string;
+    teamName: string;
+    inviteLink: string;
+    role: string;
+  },
 ) {
   const template = EmailTemplates.teamInvitation(data);
   return sendEmail({ to, ...template });

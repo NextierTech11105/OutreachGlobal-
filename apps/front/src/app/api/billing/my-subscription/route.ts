@@ -57,14 +57,20 @@ interface SubscriptionResponse {
 }
 
 // Default plan limits by plan slug
-const PLAN_LIMITS: Record<string, { leads: number; sms: number; skipTraces: number; users: number }> = {
+const PLAN_LIMITS: Record<
+  string,
+  { leads: number; sms: number; skipTraces: number; users: number }
+> = {
   starter: { leads: 1000, sms: 500, skipTraces: 50, users: 1 },
   pro: { leads: 5000, sms: 2500, skipTraces: 250, users: 3 },
   agency: { leads: 25000, sms: 10000, skipTraces: 1000, users: 10 },
   "white-label": { leads: 100000, sms: 50000, skipTraces: 5000, users: 50 },
 };
 
-const PLAN_PRICES: Record<string, { monthly: number; yearly: number; name: string }> = {
+const PLAN_PRICES: Record<
+  string,
+  { monthly: number; yearly: number; name: string }
+> = {
   starter: { monthly: 297, yearly: 2970, name: "Starter" },
   pro: { monthly: 597, yearly: 5970, name: "Pro" },
   agency: { monthly: 1497, yearly: 14970, name: "Agency" },
@@ -105,7 +111,9 @@ export async function GET(request: NextRequest) {
           planLimits = PLAN_LIMITS[planSlug] || planLimits;
         }
       } catch (e) {
-        Logger.warn("Billing", "Could not fetch plan details", { planId: subscription.planId });
+        Logger.warn("Billing", "Could not fetch plan details", {
+          planId: subscription.planId,
+        });
       }
     }
 
@@ -131,12 +139,17 @@ export async function GET(request: NextRequest) {
           currentUsage = {
             leads: { used: u.leadsCreated || 0, limit: planLimits.leads },
             sms: { used: u.smsSent || 0, limit: planLimits.sms },
-            skipTraces: { used: u.skipTraces || 0, limit: planLimits.skipTraces },
+            skipTraces: {
+              used: u.skipTraces || 0,
+              limit: planLimits.skipTraces,
+            },
             users: { used: 1, limit: planLimits.users }, // Would need to count team members
           };
         }
       } catch (e) {
-        Logger.warn("Billing", "Could not fetch usage", { subscriptionId: subscription.id });
+        Logger.warn("Billing", "Could not fetch usage", {
+          subscriptionId: subscription.id,
+        });
       }
     }
 
@@ -160,7 +173,9 @@ export async function GET(request: NextRequest) {
           downloadUrl: inv.invoicePdf || undefined,
         }));
       } catch (e) {
-        Logger.warn("Billing", "Could not fetch invoices", { subscriptionId: subscription.id });
+        Logger.warn("Billing", "Could not fetch invoices", {
+          subscriptionId: subscription.id,
+        });
       }
     }
 
@@ -170,11 +185,17 @@ export async function GET(request: NextRequest) {
     if (STRIPE_SECRET_KEY && subscription.stripeCustomerId) {
       try {
         const stripe = new Stripe(STRIPE_SECRET_KEY);
-        const customer = await stripe.customers.retrieve(subscription.stripeCustomerId, {
-          expand: ["invoice_settings.default_payment_method"],
-        });
+        const customer = await stripe.customers.retrieve(
+          subscription.stripeCustomerId,
+          {
+            expand: ["invoice_settings.default_payment_method"],
+          },
+        );
 
-        if (!customer.deleted && customer.invoice_settings?.default_payment_method) {
+        if (
+          !customer.deleted &&
+          customer.invoice_settings?.default_payment_method
+        ) {
           const pm = customer.invoice_settings.default_payment_method;
           if (typeof pm !== "string" && pm.card) {
             paymentMethod = {
@@ -217,7 +238,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error: any) {
-    Logger.error("Billing", "Failed to fetch subscription", { error: error.message });
+    Logger.error("Billing", "Failed to fetch subscription", {
+      error: error.message,
+    });
     return NextResponse.json(
       { error: error.message || "Failed to fetch subscription" },
       { status: 500 },

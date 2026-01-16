@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     const indexes = {
       byState: processedRecords.reduce(
         (acc, r, i) => {
-          const state = r.state?.toUpperCase();
+          const state = ((r as any).state as string | undefined)?.toUpperCase();
           if (state) {
             if (!acc[state]) acc[state] = [];
             acc[state].push(i);
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       ),
       byCounty: processedRecords.reduce(
         (acc, r, i) => {
-          const county = r.county?.replace(/ County$/i, "").trim();
+          const county = ((r as any).county as string | undefined)?.replace(/ County$/i, "").trim();
           if (county) {
             if (!acc[county]) acc[county] = [];
             acc[county].push(i);
@@ -216,8 +216,8 @@ export async function POST(request: NextRequest) {
       ),
       byCity: processedRecords.reduce(
         (acc, r, i) => {
-          const city = r.city?.toLowerCase();
-          const state = r.state?.toUpperCase();
+          const city = ((r as any).city as string | undefined)?.toLowerCase();
+          const state = ((r as any).state as string | undefined)?.toUpperCase();
           if (city && state) {
             const key = `${city}-${state}`;
             if (!acc[key]) acc[key] = [];
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
       ),
       bySicCode: processedRecords.reduce(
         (acc, r, i) => {
-          const sic = r.sicCode;
+          const sic = (r as any).sicCode as string | undefined;
           if (sic) {
             if (!acc[sic]) acc[sic] = [];
             acc[sic].push(i);

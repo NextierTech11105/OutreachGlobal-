@@ -72,7 +72,7 @@ export async function withTenantContext(): Promise<
  * Use this before any data access operation.
  */
 export async function verifyTenantOwnership(
-  resourceTeamId: string | null | undefined
+  resourceTeamId: string | null | undefined,
 ): Promise<boolean> {
   try {
     const ctx = await requireTenantContext();
@@ -100,7 +100,7 @@ export async function getTenantLeads(
     limit?: number;
     offset?: number;
     status?: string;
-  }
+  },
 ) {
   if (!db) {
     throw new Error("Database not configured");
@@ -112,7 +112,7 @@ export async function getTenantLeads(
     .where(
       options?.status
         ? and(eq(leads.teamId, teamId), eq(leads.status, options.status))
-        : eq(leads.teamId, teamId)
+        : eq(leads.teamId, teamId),
     )
     .orderBy(desc(leads.createdAt));
 
@@ -196,22 +196,16 @@ export async function getTenantSubscription(userId: string, teamId: string) {
  * ```
  */
 export function withTenantHandler<T>(
-  handler: (
-    request: Request,
-    context: TenantContext
-  ) => Promise<Response>
+  handler: (request: Request, context: TenantContext) => Promise<Response>,
 ): (request: Request) => Promise<Response> {
   return async (request: Request) => {
     const tenantResult = await withTenantContext();
 
     if (!tenantResult.success) {
-      return new Response(
-        JSON.stringify({ error: tenantResult.error }),
-        {
-          status: tenantResult.status,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: tenantResult.error }), {
+        status: tenantResult.status,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     return handler(request, tenantResult);
@@ -225,7 +219,7 @@ export function logTenantAccess(
   action: string,
   teamId: string,
   resourceType: string,
-  resourceId?: string
+  resourceId?: string,
 ) {
   Logger.info("TenantAccess", action, {
     teamId,
@@ -245,7 +239,7 @@ export function logTenantAccess(
  */
 export async function validateLeadAccess(
   leadId: string,
-  teamId: string
+  teamId: string,
 ): Promise<{ valid: boolean; lead?: any; error?: string }> {
   if (!db) {
     return { valid: false, error: "Database not configured" };
@@ -266,7 +260,7 @@ export async function validateLeadAccess(
  */
 export async function validateLeadsAccess(
   leadIds: string[],
-  teamId: string
+  teamId: string,
 ): Promise<{ validIds: string[]; invalidIds: string[] }> {
   if (!db || leadIds.length === 0) {
     return { validIds: [], invalidIds: leadIds };

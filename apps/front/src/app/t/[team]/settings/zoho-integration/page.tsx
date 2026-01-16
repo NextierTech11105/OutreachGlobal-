@@ -1,40 +1,48 @@
 import type { Metadata } from "next";
-import { ZohoIntegration } from "@/components/zoho-integration";
-import { ZohoSyncButton } from "./zoho-sync-button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Zoho CRM Integration",
-  description: "Configure and manage your Zoho CRM integration",
+  title: "CRM Integration",
+  description: "Configure and manage your CRM integrations",
 };
 
-export default function ZohoIntegrationPage() {
-  // In a real implementation, this would fetch the current configuration from the database
-  const initialConfig = {
-    clientId: process.env.ZOHO_CLIENT_ID || "",
-    clientSecret: process.env.ZOHO_CLIENT_SECRET || "",
-    redirectUri: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/zoho/callback`,
-    refreshToken: process.env.ZOHO_REFRESH_TOKEN || "",
-    syncFrequency: "daily",
-    lastSync: null,
-    nextSync: null,
-  };
-
+export default function CRMIntegrationPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Zoho CRM Integration
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">CRM Integration</h1>
           <p className="text-muted-foreground mt-2">
-            Connect your OutreachGlobal data engine with Zoho CRM for seamless
-            data synchronization
+            Connect your Nextier data engine with your CRM for seamless data
+            synchronization
           </p>
         </div>
-        <ZohoSyncButton />
       </div>
 
-      <ZohoIntegration initialConfig={initialConfig} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-muted-foreground" />
+            Coming Soon
+          </CardTitle>
+          <CardDescription>
+            CRM integrations are being developed. Stay tuned for HubSpot,
+            Salesforce, and other CRM connections.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Contact support if you need a specific CRM integration prioritized.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

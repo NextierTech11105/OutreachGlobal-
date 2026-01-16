@@ -25,12 +25,12 @@ import { SIGNALHOUSE_10DLC, THE_LOOP } from "./constants";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type CampaignIntent =
-  | "DISCOVERY"      // Get them on a 15-min call
-  | "QUALIFICATION"  // Qualify interest and fit
-  | "NURTURE"        // Stay top of mind
-  | "REACTIVATION"   // Wake up cold leads
-  | "RETENTION"      // Keep existing relationships warm
-  | "REFERRAL";      // Ask for introductions
+  | "DISCOVERY" // Get them on a 15-min call
+  | "QUALIFICATION" // Qualify interest and fit
+  | "NURTURE" // Stay top of mind
+  | "REACTIVATION" // Wake up cold leads
+  | "RETENTION" // Keep existing relationships warm
+  | "REFERRAL"; // Ask for introductions
 
 export type CampaignOutcome =
   | "15_MIN_MEETING"
@@ -383,18 +383,20 @@ export interface OutcomeMetrics {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function getCampaignByIntent(intent: CampaignIntent): Campaign[] {
-  return Object.values(CAMPAIGNS).filter((c) => c.intent === intent && c.active);
+  return Object.values(CAMPAIGNS).filter(
+    (c) => c.intent === intent && c.active,
+  );
 }
 
 export function getCampaignByVertical(vertical: string): Campaign[] {
   return Object.values(CAMPAIGNS).filter(
-    (c) => (c.vertical === vertical || c.vertical === "ALL") && c.active
+    (c) => (c.vertical === vertical || c.vertical === "ALL") && c.active,
   );
 }
 
 export function getStageForLead(
   campaignId: string,
-  temperature: LeadTemperature
+  temperature: LeadTemperature,
 ): CampaignStage | undefined {
   const campaign = CAMPAIGNS[campaignId];
   if (!campaign) return undefined;
@@ -411,7 +413,7 @@ export function getStageForLead(
 
 export function shouldEscalate(
   stageId: string,
-  classification: string
+  classification: string,
 ): { escalate: boolean; nextStageId?: string } {
   for (const campaign of Object.values(CAMPAIGNS)) {
     const stage = campaign.stages.find((s) => s.id === stageId);
@@ -450,9 +452,9 @@ export const SCALE_TARGETS = {
 
   // Conversion funnel
   smsToResponse: 0.05, // 5% response rate
-  responseToMeeting: 0.20, // 20% of responses book
-  meetingToQualified: 0.50, // 50% qualify
-  qualifiedToDeal: 0.20, // 20% close
+  responseToMeeting: 0.2, // 20% of responses book
+  meetingToQualified: 0.5, // 50% qualify
+  qualifiedToDeal: 0.2, // 20% close
 
   // Formula: 2000 SMS → 100 responses → 20 meetings → 10 qualified → 2 deals/day
 } as const;

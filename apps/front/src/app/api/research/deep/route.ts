@@ -75,13 +75,14 @@ export async function POST(request: NextRequest) {
     if (!companyName && !inviteeEmail) {
       return NextResponse.json(
         { error: "companyName or inviteeEmail required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Extract company from email domain if no company name
     const emailDomain = inviteeEmail?.split("@")[1];
-    const researchTarget = companyName || emailDomain?.replace(/\.(com|io|net|org|co)$/, "");
+    const researchTarget =
+      companyName || emailDomain?.replace(/\.(com|io|net|org|co)$/, "");
 
     log.info(`[DeepResearch] Starting research for: ${researchTarget}`);
 
@@ -92,12 +93,15 @@ export async function POST(request: NextRequest) {
       researchResult = await runPerplexityResearch(
         researchTarget || "",
         inviteeName,
-        questions
+        questions,
       );
     } else {
       // Fallback to basic research structure
       log.warn("[DeepResearch] No Perplexity API key - using fallback");
-      researchResult = createFallbackResearch(researchTarget || "", inviteeName);
+      researchResult = createFallbackResearch(
+        researchTarget || "",
+        inviteeName,
+      );
     }
 
     // Save research to lead if leadId provided
@@ -133,7 +137,8 @@ export async function POST(request: NextRequest) {
         opener: `Hey ${inviteeName?.split(" ")[0] || "there"}, thanks for taking the time. I did some research on ${researchTarget} - looks like you're doing some interesting work in ${researchResult.industry || "your space"}.`,
         hooks: researchResult.personalizationHooks.slice(0, 3),
         painPointQuestions: researchResult.painPoints.map(
-          (p) => `I noticed ${p} - is that something you're currently dealing with?`
+          (p) =>
+            `I noticed ${p} - is that something you're currently dealing with?`,
         ),
       },
     });
@@ -141,7 +146,7 @@ export async function POST(request: NextRequest) {
     log.error("[DeepResearch] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Research failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -153,7 +158,7 @@ export async function POST(request: NextRequest) {
 async function runPerplexityResearch(
   companyName: string,
   personName?: string,
-  customQuestions?: string[]
+  customQuestions?: string[],
 ): Promise<ResearchResult> {
   const defaultQuestions = [
     `What does ${companyName} do? Describe their main products, services, and value proposition.`,
@@ -166,7 +171,7 @@ async function runPerplexityResearch(
 
   if (personName) {
     defaultQuestions.push(
-      `What can you tell me about ${personName} at ${companyName}? Their role, background, LinkedIn activity?`
+      `What can you tell me about ${personName} at ${companyName}? Their role, background, LinkedIn activity?`,
     );
   }
 
@@ -213,17 +218,34 @@ async function runPerplexityResearch(
   }
 }
 
-function parsePerplexityResponse(content: string, companyName: string): ResearchResult {
+function parsePerplexityResponse(
+  content: string,
+  companyName: string,
+): ResearchResult {
   // Extract structured data from Perplexity response
   const lines = content.split("\n").filter((l) => l.trim());
 
   // Basic parsing - in production, use more sophisticated NLP
-  const painPointKeywords = ["challenge", "struggle", "problem", "issue", "pain", "difficult"];
+  const painPointKeywords = [
+    "challenge",
+    "struggle",
+    "problem",
+    "issue",
+    "pain",
+    "difficult",
+  ];
   const painPoints = lines
     .filter((l) => painPointKeywords.some((k) => l.toLowerCase().includes(k)))
     .slice(0, 5);
 
-  const newsKeywords = ["announced", "launched", "raised", "acquired", "partnership", "release"];
+  const newsKeywords = [
+    "announced",
+    "launched",
+    "raised",
+    "acquired",
+    "partnership",
+    "release",
+  ];
   const recentActivity = lines
     .filter((l) => newsKeywords.some((k) => l.toLowerCase().includes(k)))
     .slice(0, 5);
@@ -241,8 +263,10 @@ function parsePerplexityResponse(content: string, companyName: string): Research
       title: undefined,
       background: undefined,
     },
-    recentActivity: recentActivity.length > 0 ? recentActivity : ["No recent activity found"],
-    painPoints: painPoints.length > 0 ? painPoints : ["General sales automation needs"],
+    recentActivity:
+      recentActivity.length > 0 ? recentActivity : ["No recent activity found"],
+    painPoints:
+      painPoints.length > 0 ? painPoints : ["General sales automation needs"],
     personalizationHooks:
       personalizationHooks.length > 0
         ? personalizationHooks
@@ -255,7 +279,10 @@ function parsePerplexityResponse(content: string, companyName: string): Research
   };
 }
 
-function createFallbackResearch(companyName: string, personName?: string): ResearchResult {
+function createFallbackResearch(
+  companyName: string,
+  personName?: string,
+): ResearchResult {
   return {
     companyOverview: `${companyName} - Research pending. Use this call to learn more about their business.`,
     decisionMaker: {
@@ -299,7 +326,8 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (lead[0]) {
-      const customFields = (lead[0].customFields as Record<string, unknown>) || {};
+      const customFields =
+        (lead[0].customFields as Record<string, unknown>) || {};
       return NextResponse.json({
         success: true,
         leadId,

@@ -4,17 +4,16 @@ import { IntegrationOauthController } from "./controllers/integration-oauth.cont
 import { IntegrationService } from "./services/integration.service";
 import { TeamModule } from "../team/team.module";
 import { IntegrationResolver } from "./resolvers/integration.resolver";
-import { IntegrationSchedule } from "./schedules/integration.schedule";
-import { ZohoService } from "./services/zoho.service";
-import { ModuleMetadataResolver } from "./resolvers/module-metadata.resolver";
 import { CacheModule } from "../../lib/cache/cache.module";
 import { IntegrationFieldService } from "./services/integration-field.service";
 import { IntegrationFieldResolver } from "./resolvers/integration-field.resolver";
 import { BullModule } from "@nestjs/bullmq";
 import { INTEGRATION_TASK_QUEUE } from "./constants/integration-task.constants";
-import { IntegrationTaskConsumer } from "./consumers/integration-task.consumer";
 import { IntegrationTaskService } from "./services/integration-task.service";
 import { IntegrationTaskResolver } from "./resolvers/integration-task.resolver";
+import { ModuleMetadataResolver } from "./resolvers/module-metadata.resolver";
+import { IntegrationSchedule } from "./schedules/integration.schedule";
+import { IntegrationTaskConsumer } from "./consumers/integration-task.consumer";
 
 @CustomModule({
   imports: [
@@ -29,17 +28,12 @@ import { IntegrationTaskResolver } from "./resolvers/integration-task.resolver";
     }),
   ],
   controllers: [IntegrationOauthController],
-  providers: [
-    IntegrationService,
-    ZohoService,
-    IntegrationFieldService,
-    IntegrationTaskService,
-  ],
+  providers: [IntegrationService, IntegrationFieldService, IntegrationTaskService],
   resolvers: [
     IntegrationResolver,
-    ModuleMetadataResolver,
     IntegrationFieldResolver,
     IntegrationTaskResolver,
+    ModuleMetadataResolver,
   ],
   schedules: [IntegrationSchedule],
   consumers: [IntegrationTaskConsumer],

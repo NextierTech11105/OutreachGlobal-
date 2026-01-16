@@ -28,8 +28,8 @@ const log = new Logger("CalendlyWebhook");
 
 // Calendly webhook event types
 type CalendlyEvent =
-  | "invitee.created"      // Meeting scheduled
-  | "invitee.canceled"     // Meeting canceled
+  | "invitee.created" // Meeting scheduled
+  | "invitee.canceled" // Meeting canceled
   | "invitee.rescheduled"; // Meeting rescheduled
 
 interface CalendlyPayload {
@@ -91,13 +91,13 @@ export async function POST(request: NextRequest) {
         .where(
           or(
             ilike(leads.email, invitee.email),
-            sql`custom_fields->>'email' ILIKE ${invitee.email}`
-          )
+            sql`custom_fields->>'email' ILIKE ${invitee.email}`,
+          ),
         )
         .limit(1);
 
       let leadId: string | null = null;
-      let leadData: typeof matchedLeads[0] | null = null;
+      let leadData: (typeof matchedLeads)[0] | null = null;
 
       if (matchedLeads.length > 0) {
         leadData = matchedLeads[0];
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         await db
           .update(leads)
           .set({
-            stage: "appointment_set",
+            status: "appointment_set",
             customFields: sql`
               jsonb_set(
                 jsonb_set(
@@ -143,11 +143,14 @@ export async function POST(request: NextRequest) {
         await db.insert(leads).values({
           id: newLeadId,
           firstName: invitee.first_name || invitee.name.split(" ")[0] || "",
-          lastName: invitee.last_name || invitee.name.split(" ").slice(1).join(" ") || "",
+          lastName:
+            invitee.last_name ||
+            invitee.name.split(" ").slice(1).join(" ") ||
+            "",
           email: invitee.email,
           phone: "",
           source: "calendly",
-          stage: "appointment_set",
+          status: "appointment_set",
           customFields: {
             meetingId: meetingEvent.uuid,
             meetingTime: meetingEvent.start_time,
@@ -169,8 +172,11 @@ export async function POST(request: NextRequest) {
       // ═══════════════════════════════════════════════════════════════════════
       // TRIGGER PERPLEXITY DEEP RESEARCH
       // ═══════════════════════════════════════════════════════════════════════
-      const companyName = leadData?.company ||
-        (invitee.questions_and_answers?.find((q) => q.question.toLowerCase().includes("company"))?.answer);
+      const companyName =
+        leadData?.company ||
+        invitee.questions_and_answers?.find((q) =>
+          q.question.toLowerCase().includes("company"),
+        )?.answer;
 
       if (companyName || invitee.email) {
         try {
@@ -178,7 +184,9 @@ export async function POST(request: NextRequest) {
           const emailDomain = invitee.email.split("@")[1];
           const researchTarget = companyName || emailDomain;
 
-          log.info(`[Calendly] Triggering Perplexity research for: ${researchTarget}`);
+          log.info(
+            `[Calendly] Triggering Perplexity research for: ${researchTarget}`,
+          );
 
           // Call Perplexity scanner asynchronously
           fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/research/deep`, {
@@ -199,8 +207,9 @@ export async function POST(request: NextRequest) {
                 `Company size and industry for ${researchTarget}?`,
               ],
             }),
-          }).catch((err) => log.error("[Calendly] Research trigger failed:", err));
-
+          }).catch((err) =>
+            log.error("[Calendly] Research trigger failed:", err),
+          );
         } catch (error) {
           log.error("[Calendly] Research error:", error);
         }
@@ -227,7 +236,7 @@ export async function POST(request: NextRequest) {
       const result = await db
         .update(leads)
         .set({
-          stage: "engaged", // Demote from appointment_set
+          status: "engaged", // Demote from appointment_set
           customFields: sql`
             jsonb_set(
               jsonb_set(
@@ -296,7 +305,7 @@ export async function POST(request: NextRequest) {
     log.error("[Calendly] Webhook error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Webhook failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -315,14 +324,8 @@ export async function GET() {
         "Trigger Perplexity deep research",
         "Prep personalized call notes",
       ],
-      "invitee.canceled": [
-        "Demote lead to WARM",
-        "Re-enter nurture sequence",
-      ],
-      "invitee.rescheduled": [
-        "Update meeting time",
-        "Keep HOT status",
-      ],
+      "invitee.canceled": ["Demote lead to WARM", "Re-enter nurture sequence"],
+      "invitee.rescheduled": ["Update meeting time", "Keep HOT status"],
     },
   });
 }

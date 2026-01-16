@@ -344,8 +344,7 @@ async function callOpenAI(
 
       // Check if we should retry
       if (attempt < CONFIG.MAX_RETRIES - 1 && isRetryableError(error)) {
-        const delayMs =
-          CONFIG.INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+        const delayMs = CONFIG.INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
         Logger.warn("AI", "OpenAI call failed, retrying", {
           operation,
           attempt: attempt + 1,
@@ -430,11 +429,24 @@ export async function classifyMessage(
     return {
       classification: parsed.classification || "UNCLEAR",
       priority: parsed.priority || "COLD",
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
-      intent: typeof parsed.intent === "string" ? parsed.intent : "Unable to determine intent",
-      suggestedAction: typeof parsed.suggestedAction === "string" ? parsed.suggestedAction : "Review manually",
-      shouldAutoRespond: typeof parsed.shouldAutoRespond === "boolean" ? parsed.shouldAutoRespond : false,
-      shouldRouteToCall: typeof parsed.shouldRouteToCall === "boolean" ? parsed.shouldRouteToCall : false,
+      confidence:
+        typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
+      intent:
+        typeof parsed.intent === "string"
+          ? parsed.intent
+          : "Unable to determine intent",
+      suggestedAction:
+        typeof parsed.suggestedAction === "string"
+          ? parsed.suggestedAction
+          : "Review manually",
+      shouldAutoRespond:
+        typeof parsed.shouldAutoRespond === "boolean"
+          ? parsed.shouldAutoRespond
+          : false,
+      shouldRouteToCall:
+        typeof parsed.shouldRouteToCall === "boolean"
+          ? parsed.shouldRouteToCall
+          : false,
     };
   } catch (parseError) {
     Logger.error("AI", "Failed to parse classification result", {
@@ -522,7 +534,9 @@ INTENT: ${sanitizeInput(classification.intent)}
     const message = typeof parsed.message === "string" ? parsed.message : "";
     return {
       message,
-      tone: ["professional", "friendly", "direct", "empathetic"].includes(parsed.tone)
+      tone: ["professional", "friendly", "direct", "empathetic"].includes(
+        parsed.tone,
+      )
         ? parsed.tone
         : "friendly",
       charCount: message.length,

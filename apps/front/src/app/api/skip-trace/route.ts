@@ -13,7 +13,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
-import { getSkipTraceService, SkipTraceResult } from "@/lib/services/skip-trace-service";
+import {
+  getSkipTraceService,
+  SkipTraceResult,
+} from "@/lib/services/skip-trace-service";
 import {
   DAILY_SKIP_TRACE_LIMIT,
   BATCH_SIZE,
@@ -22,7 +25,8 @@ import {
 
 // Provider check - Tracerfy is primary, RealEstateAPI is fallback
 const TRACERFY_TOKEN = process.env.TRACERFY_API_TOKEN || "";
-const REALESTATE_API_KEY = process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
+const REALESTATE_API_KEY =
+  process.env.REAL_ESTATE_API_KEY || process.env.REALESTATE_API_KEY || "";
 const PROPERTY_DETAIL_URL = "https://api.realestateapi.com/v2/PropertyDetail";
 
 // Use Tracerfy if token is configured, otherwise fall back to RealEstateAPI
@@ -38,11 +42,18 @@ const SKIP_TRACE_BATCH_AWAIT_URL =
   "https://api.realestateapi.com/v1/SkipTraceBatchAwait";
 
 // Apollo.io for B2B enrichment
-const APOLLO_API_KEY = process.env.APOLLO_IO_API_KEY || process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY || "";
+const APOLLO_API_KEY =
+  process.env.APOLLO_IO_API_KEY ||
+  process.env.NEXT_PUBLIC_APOLLO_IO_API_KEY ||
+  "";
 
 // Log provider status on load
-console.log(`[Skip Trace] Property Provider: ${USE_TRACERFY ? "Tracerfy ($0.02/lead)" : "RealEstateAPI (fallback)"}`);
-console.log(`[Skip Trace] B2B Provider: ${APOLLO_API_KEY ? "Apollo.io" : "Not configured"}`);
+console.log(
+  `[Skip Trace] Property Provider: ${USE_TRACERFY ? "Tracerfy ($0.02/lead)" : "RealEstateAPI (fallback)"}`,
+);
+console.log(
+  `[Skip Trace] B2B Provider: ${APOLLO_API_KEY ? "Apollo.io" : "Not configured"}`,
+);
 if (!USE_TRACERFY && !REALESTATE_API_KEY) {
   console.warn("[Skip Trace] WARNING: No skip trace provider configured!");
 }
@@ -884,10 +895,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Skip Trace not configured",
-          message: "No skip trace provider configured. Add TRACERFY_API_TOKEN (preferred, $0.02/lead) or REAL_ESTATE_API_KEY (fallback) to your environment variables.",
+          message:
+            "No skip trace provider configured. Add TRACERFY_API_TOKEN (preferred, $0.02/lead) or REAL_ESTATE_API_KEY (fallback) to your environment variables.",
           providers: {
-            tracerfy: { url: "https://tracerfy.com", cost: "$0.02/lead", status: "NOT_CONFIGURED" },
-            realestateapi: { url: "https://realestateapi.com", cost: "$0.10-0.25/lead", status: "NOT_CONFIGURED" },
+            tracerfy: {
+              url: "https://tracerfy.com",
+              cost: "$0.02/lead",
+              status: "NOT_CONFIGURED",
+            },
+            realestateapi: {
+              url: "https://realestateapi.com",
+              cost: "$0.10-0.25/lead",
+              status: "NOT_CONFIGURED",
+            },
           },
           success: false,
         },

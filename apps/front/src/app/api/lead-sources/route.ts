@@ -41,7 +41,10 @@ export async function GET(request: NextRequest) {
     if (action === "folder" && folderId) {
       const folder = getFolderById(folderId);
       if (!folder) {
-        return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Folder not found" },
+          { status: 404 },
+        );
       }
 
       const children = getFoldersByParent(folderId);
@@ -90,8 +93,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error("GET error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get folders" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to get folders",
+      },
+      { status: 500 },
     );
   }
 }
@@ -114,13 +119,16 @@ export async function POST(request: NextRequest) {
       if (!file || !folderId) {
         return NextResponse.json(
           { error: "file and folderId required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       const folder = getFolderById(folderId);
       if (!folder) {
-        return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Folder not found" },
+          { status: 404 },
+        );
       }
 
       // Parse CSV to count records
@@ -194,7 +202,7 @@ export async function POST(request: NextRequest) {
         if (!batchId) {
           return NextResponse.json(
             { error: "batchId required for process" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -209,11 +217,31 @@ export async function POST(request: NextRequest) {
           message: "Batch processing initiated",
           batchId,
           pipeline: [
-            { stage: "SPLIT", status: "pending", description: "Split into 1K blocks" },
-            { stage: "TRACE", status: "pending", description: "Tracerfy skip trace ($0.02/lead)" },
-            { stage: "FILTER", status: "pending", description: "Filter by mobile contactability" },
-            { stage: "TEMPLATE", status: "pending", description: "Match to SMS template group" },
-            { stage: "DEPLOY", status: "pending", description: "Queue for SMS deployment" },
+            {
+              stage: "SPLIT",
+              status: "pending",
+              description: "Split into 1K blocks",
+            },
+            {
+              stage: "TRACE",
+              status: "pending",
+              description: "Tracerfy skip trace ($0.02/lead)",
+            },
+            {
+              stage: "FILTER",
+              status: "pending",
+              description: "Filter by mobile contactability",
+            },
+            {
+              stage: "TEMPLATE",
+              status: "pending",
+              description: "Match to SMS template group",
+            },
+            {
+              stage: "DEPLOY",
+              status: "pending",
+              description: "Queue for SMS deployment",
+            },
           ],
           worker: "LUCI → GIANNA",
           note: "Track progress at GET /api/lead-sources?action=batch&batchId=xxx",
@@ -224,7 +252,7 @@ export async function POST(request: NextRequest) {
         if (!batchId) {
           return NextResponse.json(
             { error: "batchId required for preview" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -258,14 +286,14 @@ export async function POST(request: NextRequest) {
             error: `Unknown action: ${action}`,
             validActions: ["createFolder", "process", "preview"],
           },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     log.error("POST error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Operation failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

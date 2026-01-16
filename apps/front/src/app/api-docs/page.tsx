@@ -36,7 +36,8 @@ const apiEndpoints = {
       {
         method: "GET",
         path: "/api/billing/my-subscription",
-        description: "Get current user's subscription, usage, invoices, and payment method",
+        description:
+          "Get current user's subscription, usage, invoices, and payment method",
         auth: "Required",
         response: `{
   "subscription": {
@@ -325,7 +326,9 @@ function EndpointCard({
 
           <div className="flex items-center gap-2 text-sm">
             <span className="font-medium">Authentication:</span>
-            <Badge variant={endpoint.auth === "Public" ? "secondary" : "default"}>
+            <Badge
+              variant={endpoint.auth === "Public" ? "secondary" : "default"}
+            >
               {endpoint.auth}
             </Badge>
           </div>
@@ -414,7 +417,11 @@ export default function ApiDocsPage() {
           {Object.entries(apiEndpoints).map(([key, section]) => {
             const Icon = section.icon;
             return (
-              <TabsTrigger key={key} value={key} className="flex items-center gap-2">
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="flex items-center gap-2"
+              >
                 <Icon className="h-4 w-4" />
                 <span className="capitalize">{key}</span>
               </TabsTrigger>

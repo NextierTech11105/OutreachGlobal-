@@ -244,7 +244,9 @@ async function handleInvoicePaid(stripeInvoice: any, stripe: any) {
     amountDue: 0,
     periodStart: new Date(stripeInvoice.period_start * 1000),
     periodEnd: new Date(stripeInvoice.period_end * 1000),
-    dueDate: new Date(stripeInvoice.due_date ? stripeInvoice.due_date * 1000 : Date.now()),
+    dueDate: new Date(
+      stripeInvoice.due_date ? stripeInvoice.due_date * 1000 : Date.now(),
+    ),
     paidAt: new Date(),
     invoicePdf: stripeInvoice.invoice_pdf,
   });
@@ -322,7 +324,9 @@ async function handlePaymentFailed(stripeInvoice: any, stripe: any) {
     amountDue: stripeInvoice.amount_due,
     periodStart: new Date(stripeInvoice.period_start * 1000),
     periodEnd: new Date(stripeInvoice.period_end * 1000),
-    dueDate: new Date(stripeInvoice.due_date ? stripeInvoice.due_date * 1000 : Date.now()),
+    dueDate: new Date(
+      stripeInvoice.due_date ? stripeInvoice.due_date * 1000 : Date.now(),
+    ),
     invoicePdf: stripeInvoice.invoice_pdf,
   });
 
@@ -374,7 +378,9 @@ async function handlePaymentSucceeded(paymentIntent: any) {
   const userId = paymentIntent.metadata?.userId;
 
   if (!subscriptionId || !userId) {
-    console.log("[Billing Webhook] Payment intent missing subscriptionId or userId metadata");
+    console.log(
+      "[Billing Webhook] Payment intent missing subscriptionId or userId metadata",
+    );
     return;
   }
 

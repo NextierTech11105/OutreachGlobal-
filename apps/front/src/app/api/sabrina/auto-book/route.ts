@@ -37,23 +37,33 @@ const BUSINESS_HOURS = {
 //
 const BOOKING_CONFIG = {
   // 15-min strategy calls (30-min available for qualified)
-  CALENDLY_15MIN: process.env.CALENDLY_15MIN_LINK || "https://calendly.com/tb-outreachglobal/15min",
-  CALENDLY_30MIN: process.env.CALENDLY_LINK || "https://calendly.com/tb-outreachglobal/30min",
+  CALENDLY_15MIN:
+    process.env.CALENDLY_15MIN_LINK ||
+    "https://calendly.com/tb-outreachglobal/15min",
+  CALENDLY_30MIN:
+    process.env.CALENDLY_LINK || "https://calendly.com/tb-outreachglobal/30min",
 
   // Stripe Payment Links - $500 One-Time Special (with feedback deal)
   PAYMENT_LINKS: {
     // $500 One-Time Special - Entry point, includes feedback session
-    SPECIAL: process.env.STRIPE_SPECIAL_LINK || "https://buy.stripe.com/special",
+    SPECIAL:
+      process.env.STRIPE_SPECIAL_LINK || "https://buy.stripe.com/special",
     // $2,500 Weekly - For committed clients
     WEEKLY: process.env.STRIPE_WEEKLY_LINK || "https://buy.stripe.com/weekly",
     // $8,000 Monthly - Full retainer
-    MONTHLY: process.env.STRIPE_MONTHLY_LINK || "https://buy.stripe.com/monthly",
+    MONTHLY:
+      process.env.STRIPE_MONTHLY_LINK || "https://buy.stripe.com/monthly",
   },
 
   // Feedback deal structure
   FEEDBACK_DEAL: {
     price: 500,
-    includes: ["15-min strategy call", "Custom workflow audit", "Feedback session", "Implementation roadmap"],
+    includes: [
+      "15-min strategy call",
+      "Custom workflow audit",
+      "Feedback session",
+      "Implementation roadmap",
+    ],
     upsell: "Weekly retainer after proving value",
   },
 

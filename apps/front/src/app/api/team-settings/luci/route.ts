@@ -39,10 +39,7 @@ export async function GET() {
     const { userId, teamId } = await apiAuth();
 
     if (!userId || !teamId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!db) {
@@ -56,8 +53,8 @@ export async function GET() {
       .where(
         and(
           eq(teamSettings.teamId, teamId),
-          eq(teamSettings.name, SETTING_NAME)
-        )
+          eq(teamSettings.name, SETTING_NAME),
+        ),
       )
       .limit(1);
 
@@ -91,10 +88,7 @@ export async function POST(request: NextRequest) {
     const { userId, teamId } = await apiAuth();
 
     if (!userId || !teamId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -102,9 +96,10 @@ export async function POST(request: NextRequest) {
     // Validate input
     const config: LuciConfig = {
       active: typeof body.active === "boolean" ? body.active : false,
-      dailyLimit: typeof body.dailyLimit === "number"
-        ? Math.max(0, Math.min(500, body.dailyLimit)) // Clamp 0-500
-        : 50,
+      dailyLimit:
+        typeof body.dailyLimit === "number"
+          ? Math.max(0, Math.min(500, body.dailyLimit)) // Clamp 0-500
+          : 50,
       schedule: body.schedule || DEFAULT_CONFIG.schedule,
     };
 
@@ -119,8 +114,8 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(teamSettings.teamId, teamId),
-          eq(teamSettings.name, SETTING_NAME)
-        )
+          eq(teamSettings.name, SETTING_NAME),
+        ),
       )
       .limit(1);
 
@@ -152,7 +147,7 @@ export async function POST(request: NextRequest) {
     console.error("[LUCI Settings] POST Error:", error);
     return NextResponse.json(
       { error: "Failed to save LUCI settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

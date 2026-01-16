@@ -74,7 +74,13 @@ const TRIAL_DAYS = 14;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, planSlug, billingCycle, paymentMethodId, withTrial = true } = body;
+    const {
+      userId,
+      planSlug,
+      billingCycle,
+      paymentMethodId,
+      withTrial = true,
+    } = body;
 
     if (!userId || !planSlug) {
       return NextResponse.json(

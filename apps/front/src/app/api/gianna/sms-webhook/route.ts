@@ -20,7 +20,13 @@ interface HotLeadRouting {
   addToCallQueue: boolean;
   priority: number; // 1-10
   persona: "gianna" | "cathy" | "sabrina";
-  campaignLane: "initial" | "retarget" | "follow_up" | "book_appointment" | "nurture" | "nudger";
+  campaignLane:
+    | "initial"
+    | "retarget"
+    | "follow_up"
+    | "book_appointment"
+    | "nurture"
+    | "nudger";
   tags: string[];
   reason: string;
 }
@@ -30,7 +36,9 @@ interface HotLeadRouting {
  * HIGH PRIORITY classifications → SABRINA call queue
  * MEDIUM PRIORITY → GIANNA follow-up
  */
-function getHotLeadRouting(classification: ClassificationResult | null): HotLeadRouting | null {
+function getHotLeadRouting(
+  classification: ClassificationResult | null,
+): HotLeadRouting | null {
   if (!classification) return null;
 
   const classId = classification.classificationId;
@@ -43,7 +51,7 @@ function getHotLeadRouting(classification: ClassificationResult | null): HotLead
       persona: "sabrina",
       campaignLane: "book_appointment",
       tags: ["responded", "green", "email_captured", "hot_lead"],
-      reason: "Email captured - ready to book appointment"
+      reason: "Email captured - ready to book appointment",
     };
   }
 
@@ -55,7 +63,7 @@ function getHotLeadRouting(classification: ClassificationResult | null): HotLead
       persona: "sabrina",
       campaignLane: "book_appointment",
       tags: ["responded", "green", "called_back", "hot_lead"],
-      reason: "Inbound call - extreme high intent"
+      reason: "Inbound call - extreme high intent",
     };
   }
 
@@ -67,7 +75,7 @@ function getHotLeadRouting(classification: ClassificationResult | null): HotLead
       persona: "gianna",
       campaignLane: "follow_up",
       tags: ["responded", "green", "question"],
-      reason: "Asked question - needs qualification"
+      reason: "Asked question - needs qualification",
     };
   }
 
@@ -79,7 +87,7 @@ function getHotLeadRouting(classification: ClassificationResult | null): HotLead
       persona: "gianna",
       campaignLane: "follow_up",
       tags: ["responded", "green", "assistance"],
-      reason: "Requested help - needs follow-up"
+      reason: "Requested help - needs follow-up",
     };
   }
 
@@ -91,7 +99,7 @@ function getHotLeadRouting(classification: ClassificationResult | null): HotLead
       persona: "sabrina",
       campaignLane: "book_appointment",
       tags: ["responded", "green", "interested", "hot_lead"],
-      reason: "Expressed interest - book appointment"
+      reason: "Expressed interest - book appointment",
     };
   }
 
@@ -103,7 +111,7 @@ function getHotLeadRouting(classification: ClassificationResult | null): HotLead
       persona: "gianna",
       campaignLane: "nurture",
       tags: ["responded", "acknowledged"],
-      reason: "Acknowledged - continue nurture"
+      reason: "Acknowledged - continue nurture",
     };
   }
 
@@ -115,7 +123,7 @@ function getHotLeadRouting(classification: ClassificationResult | null): HotLead
       persona: "gianna",
       campaignLane: "follow_up",
       tags: ["responded", "needs_review"],
-      reason: "Unclassified response - needs manual review"
+      reason: "Unclassified response - needs manual review",
     };
   }
 
@@ -136,7 +144,7 @@ async function addToCallQueue(
     company?: string;
     address?: string;
     teamId?: string;
-  }
+  },
 ): Promise<boolean> {
   try {
     const teamId = context.teamId || "default";
@@ -151,7 +159,9 @@ async function addToCallQueue(
         action: "add_single",
         teamId,
         leadId,
-        leadName: [context.firstName, context.lastName].filter(Boolean).join(" ") || undefined,
+        leadName:
+          [context.firstName, context.lastName].filter(Boolean).join(" ") ||
+          undefined,
         phone,
         email: context.email,
         company: context.company,
@@ -167,11 +177,16 @@ async function addToCallQueue(
     });
 
     if (!response.ok) {
-      console.error("[Gianna SMS] Failed to add to call queue:", await response.text());
+      console.error(
+        "[Gianna SMS] Failed to add to call queue:",
+        await response.text(),
+      );
       return false;
     }
 
-    console.log(`[Gianna SMS] ✅ HOT LEAD ROUTED: ${phone} → ${routing.persona.toUpperCase()} (${routing.campaignLane}) priority=${routing.priority}`);
+    console.log(
+      `[Gianna SMS] ✅ HOT LEAD ROUTED: ${phone} → ${routing.persona.toUpperCase()} (${routing.campaignLane}) priority=${routing.priority}`,
+    );
     console.log(`[Gianna SMS]    Reason: ${routing.reason}`);
     console.log(`[Gianna SMS]    Tags: ${routing.tags.join(", ")}`);
 
@@ -354,8 +369,12 @@ export async function POST(request: NextRequest) {
 
     if (routing?.addToCallQueue) {
       console.log(`[Gianna SMS] 🔥 HOT LEAD DETECTED: ${from}`);
-      console.log(`[Gianna SMS]    Classification: ${classification?.classificationId}`);
-      console.log(`[Gianna SMS]    Routing to: ${routing.persona.toUpperCase()} (${routing.campaignLane})`);
+      console.log(
+        `[Gianna SMS]    Classification: ${classification?.classificationId}`,
+      );
+      console.log(
+        `[Gianna SMS]    Routing to: ${routing.persona.toUpperCase()} (${routing.campaignLane})`,
+      );
 
       // Extract email if present in message
       const capturedEmail = body.match(EMAIL_REGEX)?.[0]?.toLowerCase();

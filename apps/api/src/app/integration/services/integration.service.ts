@@ -5,12 +5,9 @@ import { DrizzleClient } from "@/database/types";
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AnyObject } from "@nextier/common";
-import { AxiosError } from "axios";
-import { addSeconds } from "date-fns";
 import { and, eq, or, sql } from "drizzle-orm";
 import { FindOneIntegrationArgs } from "../args/integration.args";
 import { orFail } from "@/database/exceptions";
-import { ZohoService } from "./zoho.service";
 
 @Injectable()
 export class IntegrationService {
@@ -20,7 +17,6 @@ export class IntegrationService {
     private configService: ConfigService,
     @InjectDB() private db: DrizzleClient,
     private teamService: TeamService,
-    private zohoService: ZohoService,
   ) {}
 
   async findOneOrFail(options: FindOneIntegrationArgs) {
@@ -36,45 +32,44 @@ export class IntegrationService {
     return integration;
   }
 
-  connect(teamId: string) {
-    return this.zohoService.connect(teamId);
+  async findByTeam(teamId: string) {
+    return this.db.query.integrations.findMany({
+      where: (t) => eq(t.teamId, teamId),
+    });
   }
 
-  async authorize(teamId: string, options: AnyObject) {
+  // Generic connect - returns OAuth URL for the provider
+  connect(teamId: string, provider: string) {
+    this.logger.log(`Connect request for provider: ${provider}, team: ${teamId}`);
+    // TODO: Add provider-specific OAuth flows here
+    throw new Error(`Provider ${provider} not yet implemented`);
+  }
+
+  // Generic authorize - handles OAuth callback
+  async authorize(teamId: string, provider: string, options: AnyObject) {
     const team = await this.teamService.findById(teamId);
+    this.logger.log(`Authorize request for provider: ${provider}, team: ${team.id}`);
+    // TODO: Add provider-specific token exchange here
+    throw new Error(`Provider ${provider} not yet implemented`);
+  }
 
-    try {
-      const data = await this.zohoService.generateToken(options);
-
-      await this.db
-        .insert(integrationsTable)
-        .values({
-          teamId: team.id,
-          name: "zoho",
-          enabled: true,
-          authData: data,
-          tokenExpiresAt: addSeconds(new Date(), data.expires_in),
-        })
-        .onConflictDoUpdate({
-          target: [integrationsTable.name, integrationsTable.teamId],
-          set: {
-            authData: sql`excluded.auth_data`,
-            tokenExpiresAt: sql`excluded.token_expires_at`,
-          },
-        });
-
-      return {
-        uri:
-          this.configService.get("FRONTEND_URL") +
-          `/t/${team.slug}/integrations/crm`,
-      };
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        this.logger.error(
-          `Zoho authorization error: ${JSON.stringify(error.response?.data)}`,
-        );
-      }
-      throw error;
-    }
+  // Upsert integration record
+  async upsertIntegration(teamId: string, name: string, authData: AnyObject, expiresIn?: number) {
+    await this.db
+      .insert(integrationsTable)
+      .values({
+        teamId,
+        name,
+        enabled: true,
+        authData,
+        tokenExpiresAt: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null,
+      })
+      .onConflictDoUpdate({
+        target: [integrationsTable.name, integrationsTable.teamId],
+        set: {
+          authData: sql`excluded.auth_data`,
+          tokenExpiresAt: sql`excluded.token_expires_at`,
+        },
+      });
   }
 }

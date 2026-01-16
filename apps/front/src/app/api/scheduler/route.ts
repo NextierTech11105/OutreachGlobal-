@@ -19,7 +19,10 @@ import { THE_LOOP } from "@/config/constants";
  */
 
 // Phone numbers
-const GIANNA_NUMBER = process.env.GIANNA_PHONE_NUMBER || process.env.SIGNALHOUSE_FROM_NUMBER || "+15164079249";
+const GIANNA_NUMBER =
+  process.env.GIANNA_PHONE_NUMBER ||
+  process.env.SIGNALHOUSE_FROM_NUMBER ||
+  "+15164079249";
 const TWILIO_NUMBER = process.env.TWILIO_PHONE_NUMBER || "+16312123195";
 
 // Twilio config
@@ -60,12 +63,17 @@ export async function POST(request: NextRequest) {
     const { type, leadId, to, message, scheduledAt, worker, context } = body;
 
     if (!to) {
-      return NextResponse.json({ error: "to (phone number) is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "to (phone number) is required" },
+        { status: 400 },
+      );
     }
 
     // Clean phone number
     const cleanPhone = to.replace(/\D/g, "");
-    const formattedPhone = cleanPhone.startsWith("1") ? `+${cleanPhone}` : `+1${cleanPhone}`;
+    const formattedPhone = cleanPhone.startsWith("1")
+      ? `+${cleanPhone}`
+      : `+1${cleanPhone}`;
 
     const scheduleTime = scheduledAt ? new Date(scheduledAt) : new Date();
     const isImmediate = !scheduledAt || new Date(scheduledAt) <= new Date();
@@ -74,7 +82,9 @@ export async function POST(request: NextRequest) {
       // ═══════════════════════════════════════════════════════════════════════
       // SCHEDULE SMS via SignalHouse
       // ═══════════════════════════════════════════════════════════════════════
-      const smsMessage = message || `Hi ${context?.firstName || "there"}, this is Emily. Quick question - do you have a few minutes to chat? -Emily`;
+      const smsMessage =
+        message ||
+        `Hi ${context?.firstName || "there"}, this is Emily. Quick question - do you have a few minutes to chat? -Emily`;
 
       if (isImmediate) {
         // Send immediately
@@ -229,7 +239,10 @@ export async function POST(request: NextRequest) {
         });
       }
     } else {
-      return NextResponse.json({ error: "Invalid type. Use 'sms' or 'call'" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid type. Use 'sms' or 'call'" },
+        { status: 400 },
+      );
     }
   } catch (error) {
     console.error("[Scheduler] Error:", error);
@@ -256,7 +269,10 @@ export async function GET(request: NextRequest) {
   }
 
   // Sort by scheduled time
-  filtered.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  filtered.sort(
+    (a, b) =>
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+  );
 
   return NextResponse.json({
     success: true,
@@ -280,12 +296,18 @@ export async function DELETE(request: NextRequest) {
 
   const index = scheduledQueue.findIndex((item) => item.id === id);
   if (index === -1) {
-    return NextResponse.json({ error: "Scheduled item not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Scheduled item not found" },
+      { status: 404 },
+    );
   }
 
   const item = scheduledQueue[index];
   if (item.status !== "scheduled") {
-    return NextResponse.json({ error: "Can only cancel scheduled items" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Can only cancel scheduled items" },
+      { status: 400 },
+    );
   }
 
   scheduledQueue[index].status = "cancelled";

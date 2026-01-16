@@ -36,8 +36,16 @@ const tracerfy = new TracerfyClient();
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const ENTITY_PATTERNS = [
-  /\bllc\b/i, /\binc\b/i, /\bcorp\b/i, /\bltd\b/i, /\btrust\b/i,
-  /\btrustee\b/i, /\bestate\b/i, /\bbank\b/i, /\bhoa\b/i, /\bassociation\b/i,
+  /\bllc\b/i,
+  /\binc\b/i,
+  /\bcorp\b/i,
+  /\bltd\b/i,
+  /\btrust\b/i,
+  /\btrustee\b/i,
+  /\bestate\b/i,
+  /\bbank\b/i,
+  /\bhoa\b/i,
+  /\bassociation\b/i,
 ];
 
 function isEntity(name: string): boolean {
@@ -150,7 +158,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Provide leads array or single lead with firstName, lastName, address, city, state",
+          error:
+            "Provide leads array or single lead with firstName, lastName, address, city, state",
           example: {
             firstName: "John",
             lastName: "Smith",
@@ -159,7 +168,7 @@ export async function POST(request: NextRequest) {
             state: "FL",
           },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -172,7 +181,7 @@ export async function POST(request: NextRequest) {
           error: `Daily limit reached. Remaining: ${usageStats.remaining}`,
           usage: usageStats,
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -183,7 +192,9 @@ export async function POST(request: NextRequest) {
 
     for (let i = 0; i < leads.length && i < BATCH_SIZE; i++) {
       const lead = leads[i];
-      const fullName = [lead.firstName, lead.lastName].filter(Boolean).join(" ");
+      const fullName = [lead.firstName, lead.lastName]
+        .filter(Boolean)
+        .join(" ");
 
       // Skip entities (LLCs, Trusts, etc.)
       if (isEntity(fullName)) {
@@ -201,7 +212,11 @@ export async function POST(request: NextRequest) {
         continue;
       }
       if (!lead.address || !lead.city || !lead.state) {
-        skipped.push({ id: lead.id, name: fullName, reason: "Missing address" });
+        skipped.push({
+          id: lead.id,
+          name: fullName,
+          reason: "Missing address",
+        });
         continue;
       }
 
@@ -243,14 +258,19 @@ export async function POST(request: NextRequest) {
           needed: creditsNeeded,
           leads: traceInputs.length,
         },
-        { status: 402 }
+        { status: 402 },
       );
     }
 
     // Start trace job
-    const job = await tracerfy.beginTrace(traceInputs, enhanced ? "enhanced" : "normal");
+    const job = await tracerfy.beginTrace(
+      traceInputs,
+      enhanced ? "enhanced" : "normal",
+    );
 
-    console.log(`[Enrich] Started trace: queue=${job.queue_id}, leads=${traceInputs.length}`);
+    console.log(
+      `[Enrich] Started trace: queue=${job.queue_id}, leads=${traceInputs.length}`,
+    );
 
     // Wait for results (with timeout)
     const queue = await tracerfy.waitForQueue(job.queue_id, 3000, 120000);
@@ -264,17 +284,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Get results
-    const traceResults = (await tracerfy.getQueueResults(queue.id)) as TracerfyNormalResult[];
+    const traceResults = (await tracerfy.getQueueResults(
+      queue.id,
+    )) as TracerfyNormalResult[];
 
     // Process results
     const results: EnrichResult[] = traceResults.map((result, idx) => {
       const phones = extractPhones(result);
       const emails = extractEmails(result);
-      const mobiles = phones.filter((p) => p.type === "Mobile").map((p) => p.number);
+      const mobiles = phones
+        .filter((p) => p.type === "Mobile")
+        .map((p) => p.number);
 
       return {
         id: idMap.get(idx),
-        ownerName: [result.first_name, result.last_name].filter(Boolean).join(" "),
+        ownerName: [result.first_name, result.last_name]
+          .filter(Boolean)
+          .join(" "),
         mobile: mobiles[0],
         mobiles,
         emails,
@@ -289,7 +315,9 @@ export async function POST(request: NextRequest) {
     // Stats
     const withMobile = results.filter((r) => r.mobile).length;
     const withEmail = results.filter((r) => r.primaryEmail).length;
-    const costPerLead = enhanced ? TRACERFY_ENHANCED_COST_PER_LEAD : TRACERFY_COST_PER_LEAD;
+    const costPerLead = enhanced
+      ? TRACERFY_ENHANCED_COST_PER_LEAD
+      : TRACERFY_COST_PER_LEAD;
 
     return NextResponse.json({
       success: true,
@@ -312,7 +340,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Enrichment failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

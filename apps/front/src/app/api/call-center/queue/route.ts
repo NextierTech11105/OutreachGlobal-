@@ -110,8 +110,8 @@ export interface CallQueueItem {
 
   // SignalHouse Campaign Mapping
   signalhouseCampaignId?: string; // 10DLC campaign ID (e.g., CW7I6X5, CJRCU60)
-  signalhouseBrandId?: string;    // 10DLC brand ID (e.g., BZOYPIH)
-  campaignBlockId?: string;       // Internal block tag (e.g., "day1_block", "campaign:ABC123")
+  signalhouseBrandId?: string; // 10DLC brand ID (e.g., BZOYPIH)
+  campaignBlockId?: string; // Internal block tag (e.g., "day1_block", "campaign:ABC123")
 
   // Queue details
   queueType: CallQueueType;

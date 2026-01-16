@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
       message ||
       `Hey! This is Emily from Homeowner Advisors - quick test. Reply with your email if you'd like more info, or just say YES/NO. Thanks!`;
 
-    console.log(`[GIANNA Test] Sending to ${formattedPhone} from ${GIANNA_NUMBER}`);
+    console.log(
+      `[GIANNA Test] Sending to ${formattedPhone} from ${GIANNA_NUMBER}`,
+    );
 
     const result = await sendSMS({
       from: GIANNA_NUMBER,
@@ -89,7 +91,8 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check configuration
 export async function GET() {
-  const configured = !!process.env.SIGNALHOUSE_API_KEY || !!process.env.SIGNALHOUSE_AUTH_TOKEN;
+  const configured =
+    !!process.env.SIGNALHOUSE_API_KEY || !!process.env.SIGNALHOUSE_AUTH_TOKEN;
   const fromNumber = process.env.SIGNALHOUSE_FROM_NUMBER || "+15164079249";
 
   return NextResponse.json({

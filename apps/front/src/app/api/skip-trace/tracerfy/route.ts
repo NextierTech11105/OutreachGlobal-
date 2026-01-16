@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { success: false, error: "Invalid action" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("[Tracerfy API] GET error:", error);
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Failed to fetch data",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     if (!records || !Array.isArray(records) || records.length === 0) {
       return NextResponse.json(
         { success: false, error: "records array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           creditsNeeded,
           recordCount: records.length,
         },
-        { status: 402 }
+        { status: 402 },
       );
     }
 
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Failed to start trace",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

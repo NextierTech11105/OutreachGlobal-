@@ -89,7 +89,7 @@ export * from "./sic-categories.schema";
 export * from "./billing.schema";
 
 // ===== BATCH JOBS (Durable Processing) =====
-export * from "./batch-jobs.schema";
+// NOTE: batch-jobs.schema removed - was for Homeowner Advisor only
 
 // ===== TENANT CONFIG (Multi-Tenant White-Label) =====
 export * from "./tenant-config.schema";
@@ -101,7 +101,7 @@ export * from "./team-shares.schema";
 export * from "./signalhouse-tracking.schema";
 
 // ===== SMS SEND BATCHES (Outbound Campaign Tracking) =====
-export * from "./sms-send-batches.schema";
+// NOTE: sms-send-batches.schema removed - was for Homeowner Advisor only
 
 // ===== GROWTH OS: MEETINGS ENGINE =====
 export * from "./meetings.schema";

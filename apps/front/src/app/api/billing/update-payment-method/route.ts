@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { Logger } from "@/lib/logger";
-import { getSubscriptionWithFallback, getAuthenticatedSubscription } from "@/lib/billing-auth";
+import {
+  getSubscriptionWithFallback,
+  getAuthenticatedSubscription,
+} from "@/lib/billing-auth";
 
 /**
  * UPDATE PAYMENT METHOD API
@@ -43,9 +46,14 @@ export async function GET(request: NextRequest) {
     if (authResult.success) {
       // User is authenticated - use their customer ID
       stripeCustomerId = authResult.subscription.stripeCustomerId;
-    } else if (providedCustomerId && process.env.ALLOW_LEGACY_BILLING === "true") {
+    } else if (
+      providedCustomerId &&
+      process.env.ALLOW_LEGACY_BILLING === "true"
+    ) {
       // Legacy fallback for existing integrations
-      Logger.warn("Billing", "Using legacy customer ID access", { providedCustomerId });
+      Logger.warn("Billing", "Using legacy customer ID access", {
+        providedCustomerId,
+      });
       stripeCustomerId = providedCustomerId;
     } else if (!authResult.success) {
       return NextResponse.json(
@@ -115,7 +123,11 @@ export async function POST(request: NextRequest) {
       stripeCustomerId = authResult.subscription.stripeCustomerId;
     } else if (customerId && process.env.ALLOW_LEGACY_BILLING === "true") {
       // Legacy fallback for existing integrations
-      Logger.warn("Billing", "Using legacy customer ID access for payment update", { customerId });
+      Logger.warn(
+        "Billing",
+        "Using legacy customer ID access for payment update",
+        { customerId },
+      );
       stripeCustomerId = customerId;
     } else if (!authResult.success) {
       return NextResponse.json(

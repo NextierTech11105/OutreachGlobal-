@@ -7,9 +7,17 @@ import { FastifyReply } from "fastify";
 export class IntegrationOauthController {
   constructor(private service: IntegrationService) {}
 
-  @Get("zoho/callback")
-  async zohoCallback(@Query() query: AnyObject, @Res() res: FastifyReply) {
-    const { uri } = await this.service.authorize(query.state, query);
-    res.redirect(uri, 302);
+  @Get("callback")
+  async oauthCallback(@Query() query: AnyObject, @Res() res: FastifyReply) {
+    // Generic OAuth callback - provider is determined from state parameter
+    const provider = query.provider || "unknown";
+    try {
+      await this.service.authorize(query.state, provider, query);
+      // Redirect to success page
+      res.redirect(`${process.env.FRONTEND_URL}/settings/integrations?success=true`, 302);
+    } catch (error) {
+      // Redirect to error page
+      res.redirect(`${process.env.FRONTEND_URL}/settings/integrations?error=true`, 302);
+    }
   }
 }

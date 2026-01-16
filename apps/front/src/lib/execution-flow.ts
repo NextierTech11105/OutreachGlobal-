@@ -183,7 +183,13 @@ export interface EnrichedLead {
   labels: string[];
   // Campaign status
   templateGroupId?: string;
-  stage: "pending" | "enriched" | "filtered" | "prepped" | "deployed" | "engaged";
+  stage:
+    | "pending"
+    | "enriched"
+    | "filtered"
+    | "prepped"
+    | "deployed"
+    | "engaged";
   smsStatus?: "pending" | "sent" | "delivered" | "responded";
   classification?: string;
 }
@@ -202,7 +208,7 @@ export interface CaptureEvent {
 
 export function createBlocks(
   records: Record<string, string>[],
-  batchId: string
+  batchId: string,
 ): SkipTraceBlock[] {
   const blocks: SkipTraceBlock[] = [];
   const blockSize = BATCH_CONFIG.SKIP_TRACE_BLOCK_SIZE;
@@ -239,7 +245,7 @@ export function createBlocks(
 
 export async function skipTraceBlock(
   block: SkipTraceBlock,
-  records: Record<string, string>[]
+  records: Record<string, string>[],
 ): Promise<{
   block: SkipTraceBlock;
   leads: EnrichedLead[];
@@ -285,8 +291,12 @@ export async function skipTraceBlock(
   const leads: EnrichedLead[] = results.map((result, idx) => {
     const phones = extractPhones(result);
     const emails = extractEmails(result);
-    const mobiles = phones.filter((p) => p.type === "Mobile").map((p) => p.number);
-    const landlines = phones.filter((p) => p.type === "Landline").map((p) => p.number);
+    const mobiles = phones
+      .filter((p) => p.type === "Mobile")
+      .map((p) => p.number);
+    const landlines = phones
+      .filter((p) => p.type === "Landline")
+      .map((p) => p.number);
 
     // Determine contact type
     let contactType: EnrichedLead["contactType"] = "none";
@@ -304,7 +314,8 @@ export async function skipTraceBlock(
       blockNumber: block.blockNumber,
       firstName: result.first_name,
       lastName: result.last_name,
-      companyName: records[idx]?.companyName || records[idx]?.["Company Name"] || "",
+      companyName:
+        records[idx]?.companyName || records[idx]?.["Company Name"] || "",
       title: records[idx]?.title || records[idx]?.["Title"] || "",
       address: result.address,
       city: result.city,
@@ -355,7 +366,9 @@ export function filterContactable(leads: EnrichedLead[]): {
 } {
   const contactable = leads.filter((l) => l.contactType === "mobile");
   const emailOnly = leads.filter((l) => l.contactType === "email_only");
-  const noContact = leads.filter((l) => l.contactType === "none" || l.contactType === "landline");
+  const noContact = leads.filter(
+    (l) => l.contactType === "none" || l.contactType === "landline",
+  );
 
   log.info("Contactability filter", {
     total: leads.length,
@@ -375,7 +388,7 @@ export function filterContactable(leads: EnrichedLead[]): {
 export function matchTemplate(
   lead: EnrichedLead,
   sector: string,
-  stage: "opener" | "nudge" | "value" | "close" = "opener"
+  stage: "opener" | "nudge" | "value" | "close" = "opener",
 ): {
   templateGroupId: string;
   template: string;
@@ -383,7 +396,7 @@ export function matchTemplate(
 } | null {
   // Find template group for sector
   const group = Object.values(SMS_TEMPLATE_GROUPS).find(
-    (g) => g.sector === sector && g.active
+    (g) => g.sector === sector && g.active,
   );
 
   if (!group) {
@@ -407,7 +420,10 @@ export function matchTemplate(
   message = message.replace("{lastName}", lead.lastName);
   message = message.replace("{companyName}", lead.companyName);
   message = message.replace("{industry}", sector.replace(/-/g, " "));
-  message = message.replace("{link}", process.env.CALENDLY_LINK || "calendly.com/nextier/strategy");
+  message = message.replace(
+    "{link}",
+    process.env.CALENDLY_LINK || "calendly.com/nextier/strategy",
+  );
 
   return {
     templateGroupId: group.id,
@@ -437,7 +453,7 @@ export async function deployBatch(
     dryRun?: boolean;
     stageOverride?: "opener" | "nudge" | "value" | "close";
     limit?: number;
-  } = {}
+  } = {},
 ): Promise<{
   results: DeployResult[];
   stats: {
@@ -571,7 +587,9 @@ export interface ClassificationResult {
   autoTags: string[];
 }
 
-export function getClassificationAction(classification: Classification): ClassificationResult {
+export function getClassificationAction(
+  classification: Classification,
+): ClassificationResult {
   const actions: Record<Classification, ClassificationResult> = {
     POSITIVE: {
       classification: "POSITIVE",
@@ -694,7 +712,7 @@ export async function executePipeline(
     templateGroupId?: string;
     deployMode: DeployMode;
     dryRun?: boolean;
-  }
+  },
 ): Promise<{
   pipelineId: string;
   stages: PipelineStage[];
@@ -738,12 +756,17 @@ export async function executePipeline(
     startedAt: new Date(),
   });
 
-  const firstBlockRecords = records.slice(0, BATCH_CONFIG.SKIP_TRACE_BLOCK_SIZE);
+  const firstBlockRecords = records.slice(
+    0,
+    BATCH_CONFIG.SKIP_TRACE_BLOCK_SIZE,
+  );
   const traceResult = await skipTraceBlock(blocks[0], firstBlockRecords);
   stages[1].status = "completed";
   stages[1].completedAt = new Date();
   stages[1].stats.processed = traceResult.leads.length;
-  stages[1].stats.succeeded = traceResult.leads.filter((l) => l.contactable).length;
+  stages[1].stats.succeeded = traceResult.leads.filter(
+    (l) => l.contactable,
+  ).length;
 
   // Stage 3: Filter
   stages.push({
@@ -775,7 +798,7 @@ export async function executePipeline(
     filtered.contactable,
     config.sector,
     config.deployMode,
-    { dryRun: config.dryRun }
+    { dryRun: config.dryRun },
   );
   stages[3].status = "completed";
   stages[3].completedAt = new Date();
@@ -799,4 +822,6 @@ export async function executePipeline(
   };
 }
 
-console.log("[ExecutionFlow] Loaded - USBizData → Skip Trace → SMS → Inbound Engine");
+console.log(
+  "[ExecutionFlow] Loaded - USBizData → Skip Trace → SMS → Inbound Engine",
+);

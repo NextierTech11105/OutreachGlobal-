@@ -60,7 +60,7 @@ export const SIGNALHOUSE_10DLC = {
     subscriberOptOut: true,
     subscriberHelp: true,
     numberPooling: false,
-    embeddedLink: true,      // Links allowed!
+    embeddedLink: true, // Links allowed!
     embeddedPhone: false,
     ageGated: false,
   },
@@ -80,13 +80,16 @@ export const SIGNALHOUSE_10DLC = {
 
   // Links
   links: {
-    privacyPolicy: "https://nextier.signalhouse.io/intake/LDZH8OR/privacy-policy",
-    termsConditions: "https://nextier.signalhouse.io/intake/LDZH8OR/terms-service",
+    privacyPolicy:
+      "https://nextier.signalhouse.io/intake/LDZH8OR/privacy-policy",
+    termsConditions:
+      "https://nextier.signalhouse.io/intake/LDZH8OR/terms-service",
     website: "https://nextier.signalhouse.io/intake/LDZH8OR",
   },
 
   // Campaign description
-  description: "Send first-party Marketing messages offered directly by the messaging party. NEXTIER is a Consultant that provides products and services to customers in the Professional Services industry.",
+  description:
+    "Send first-party Marketing messages offered directly by the messaging party. NEXTIER is a Consultant that provides products and services to customers in the Professional Services industry.",
 
   // SignalHouse Tier 2 Aggregator Capabilities
   tier2: {
@@ -273,7 +276,13 @@ export const CAMPAIGN_MACROS = {
     targetPool: 20000,
     dailyOutbound: 2000,
     description: "Real estate professionals - Agents, Brokers, Investors",
-    audiences: ["agents", "brokers", "investors", "property_managers", "realtors"],
+    audiences: [
+      "agents",
+      "brokers",
+      "investors",
+      "property_managers",
+      "realtors",
+    ],
     signalhouseCampaignId: process.env.SIGNALHOUSE_RE_CAMPAIGN_ID || "CW7I6X5",
     loopConfig: THE_LOOP,
   },
@@ -388,7 +397,8 @@ export const API_ENDPOINTS = {
 export const GIANNA_CONFIG = {
   name: "GIANNA",
   role: "Opener",
-  description: "AI SMS Worker - Handles outbound campaigns and inbound response copilot",
+  description:
+    "AI SMS Worker - Handles outbound campaigns and inbound response copilot",
 
   // Phone assignment
   phone: SIGNALHOUSE_10DLC.phoneNumber,
@@ -452,7 +462,8 @@ export const GIANNA_CONFIG = {
 export const CATHY_CONFIG = {
   name: "CATHY",
   role: "Nurturer",
-  description: "AI Nurture Worker - Handles objection handling and value touches",
+  description:
+    "AI Nurture Worker - Handles objection handling and value touches",
 
   loop: {
     days: [10, 14, 21], // Day 7-21 nurture phase
@@ -485,7 +496,8 @@ export const SABRINA_CONFIG = {
   handleClassifications: ["POSITIVE", "BOOKING_REQUEST"],
 
   // Booking link
-  calendlyLink: process.env.CALENDLY_LINK || "https://calendly.com/nextier/strategy",
+  calendlyLink:
+    process.env.CALENDLY_LINK || "https://calendly.com/nextier/strategy",
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════════

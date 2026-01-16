@@ -7,7 +7,6 @@ import { TeamPolicy } from "@/app/team/policies/team.policy";
 import { User } from "@/app/user/models/user.model";
 import { FindOneModuleMetadataArgs } from "../args/module-metadata.args";
 import { IntegrationService } from "../services/integration.service";
-import { ZohoService } from "../services/zoho.service";
 
 @Resolver(() => ModuleMetadata)
 @UseAuthGuard()
@@ -16,7 +15,6 @@ export class ModuleMetadataResolver extends BaseResolver(ModuleMetadata) {
     private teamService: TeamService,
     private teamPolicy: TeamPolicy,
     private integrationService: IntegrationService,
-    private zohoService: ZohoService,
   ) {
     super();
   }
@@ -33,14 +31,11 @@ export class ModuleMetadataResolver extends BaseResolver(ModuleMetadata) {
       teamId: team.id,
     });
 
-    const fields = await this.zohoService.fields(
-      integration.authData as any,
-      args.name,
-    );
-
+    // TODO: Add provider-specific field fetching here
+    // For now, return empty fields - will be populated when providers are added
     return {
       name: args.name,
-      fields,
+      fields: [],
     };
   }
 }

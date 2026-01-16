@@ -262,7 +262,7 @@ export async function POST(
             lastName: keys.lastName || "",
             email: email || "",
             phone: phone ? normalizePhone(phone) : "",
-            mobilePhone: phone ? normalizePhone(phone) : "", // Also set mobile
+            // mobilePhone: phone ? normalizePhone(phone) : "", // Also set mobile
             title: keys.title || "",
             company: keys.companyName || "",
             address: keys.address || "",
@@ -336,7 +336,7 @@ export async function POST(
             lastName: prop.owner1LastName || "",
             email: prop.email || "",
             phone: prop.phone ? normalizePhone(prop.phone) : "",
-            mobilePhone: prop.phone ? normalizePhone(prop.phone) : "", // Also set mobile
+            // mobilePhone: prop.phone ? normalizePhone(prop.phone) : "", // Also set mobile
             address: addr.address || "",
             city: addr.city || "",
             state: addr.state || "",
@@ -400,7 +400,7 @@ export async function POST(
             lastName: lead.lastName || "",
             email: lead.email || "",
             phone: lead.phone ? normalizePhone(lead.phone) : "",
-            mobilePhone: lead.phone ? normalizePhone(lead.phone) : "", // Also set mobile
+            // mobilePhone: lead.phone ? normalizePhone(lead.phone) : "", // Also set mobile
             title: lead.title || "",
             company: lead.company || "",
             address: lead.address || "",

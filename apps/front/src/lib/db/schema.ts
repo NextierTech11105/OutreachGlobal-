@@ -2610,7 +2610,10 @@ export const aiDecisionLogs = pgTable(
     promptTokens: integer("prompt_tokens"),
     completionTokens: integer("completion_tokens"),
     totalTokens: integer("total_tokens"),
-    estimatedCostUsd: decimal("estimated_cost_usd", { precision: 10, scale: 6 }),
+    estimatedCostUsd: decimal("estimated_cost_usd", {
+      precision: 10,
+      scale: 6,
+    }),
     latencyMs: integer("latency_ms"),
     // Retry Info
     attemptNumber: integer("attempt_number").default(1),

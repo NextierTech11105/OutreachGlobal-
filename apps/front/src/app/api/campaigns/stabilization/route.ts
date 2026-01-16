@@ -31,21 +31,21 @@ interface MacroProgress {
   target: number;
 
   // Pipeline stages
-  raw: number;           // Total leads in system
-  enriched: number;      // Have phone number
-  contacted: number;     // GIANNA sent
-  responded: number;     // Got a response (GREEN tag)
-  converted: number;     // In call queue or booked
+  raw: number; // Total leads in system
+  enriched: number; // Have phone number
+  contacted: number; // GIANNA sent
+  responded: number; // Got a response (GREEN tag)
+  converted: number; // In call queue or booked
 
   // Progress metrics
-  enrichmentRate: number;    // enriched / raw
-  contactRate: number;       // contacted / enriched
-  responseRate: number;      // responded / contacted
-  conversionRate: number;    // converted / responded
+  enrichmentRate: number; // enriched / raw
+  contactRate: number; // contacted / enriched
+  responseRate: number; // responded / contacted
+  conversionRate: number; // converted / responded
 
   // Stabilization
-  progress: number;      // % toward 20K
-  stabilized: boolean;   // Hit 20K?
+  progress: number; // % toward 20K
+  stabilized: boolean; // Hit 20K?
   daysToStabilize: number; // Estimated days left
 }
 
@@ -86,8 +86,8 @@ export async function GET(request: NextRequest) {
             and(
               eq(leads.teamId, teamId),
               isNotNull(leads.phone),
-              notInArray(leads.status, EXCLUDED_STATUSES)
-            )
+              notInArray(leads.status, EXCLUDED_STATUSES),
+            ),
           );
 
         // Contacted (GIANNA sent)
@@ -97,20 +97,15 @@ export async function GET(request: NextRequest) {
           .where(
             and(
               eq(leads.teamId, teamId),
-              sql`custom_fields->>'giannaStatus' = 'sent'`
-            )
+              sql`custom_fields->>'giannaStatus' = 'sent'`,
+            ),
           );
 
         // Responded (has 'responded' tag)
         const respondedResult = await db
           .select({ count: sql<number>`count(*)` })
           .from(leads)
-          .where(
-            and(
-              eq(leads.teamId, teamId),
-              sql`'responded' = ANY(tags)`
-            )
-          );
+          .where(and(eq(leads.teamId, teamId), sql`'responded' = ANY(tags)`));
 
         // Converted (in call queue or booked)
         const convertedResult = await db
@@ -119,8 +114,8 @@ export async function GET(request: NextRequest) {
           .where(
             and(
               eq(leads.teamId, teamId),
-              sql`lead_state IN ('in_call_queue', 'booked', 'appointment_set')`
-            )
+              sql`lead_state IN ('in_call_queue', 'booked', 'appointment_set')`,
+            ),
           );
 
         const raw = Number(rawResult[0]?.count || 0);
@@ -129,7 +124,9 @@ export async function GET(request: NextRequest) {
         const responded = Number(respondedResult[0]?.count || 0);
         const converted = Number(convertedResult[0]?.count || 0);
 
-        const progress = Math.round((contacted / MACRO_STABILIZATION_TARGET) * 100);
+        const progress = Math.round(
+          (contacted / MACRO_STABILIZATION_TARGET) * 100,
+        );
         const remaining = Math.max(0, MACRO_STABILIZATION_TARGET - contacted);
         const daysToStabilize = Math.ceil(remaining / DAILY_SKIP_TRACE_LIMIT);
 
@@ -143,14 +140,17 @@ export async function GET(request: NextRequest) {
           responded,
           converted,
           enrichmentRate: raw > 0 ? Math.round((enriched / raw) * 100) : 0,
-          contactRate: enriched > 0 ? Math.round((contacted / enriched) * 100) : 0,
-          responseRate: contacted > 0 ? Math.round((responded / contacted) * 100) : 0,
-          conversionRate: responded > 0 ? Math.round((converted / responded) * 100) : 0,
+          contactRate:
+            enriched > 0 ? Math.round((contacted / enriched) * 100) : 0,
+          responseRate:
+            contacted > 0 ? Math.round((responded / contacted) * 100) : 0,
+          conversionRate:
+            responded > 0 ? Math.round((converted / responded) * 100) : 0,
           progress: Math.min(progress, 100),
           stabilized: contacted >= MACRO_STABILIZATION_TARGET,
           daysToStabilize,
         };
-      })
+      }),
     );
 
     // Today's activity
@@ -161,8 +161,8 @@ export async function GET(request: NextRequest) {
         and(
           eq(leads.teamId, teamId),
           isNotNull(leads.phone),
-          gte(leads.updatedAt, today)
-        )
+          gte(leads.updatedAt, today),
+        ),
       );
 
     const todayContacted = await db
@@ -171,8 +171,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(leads.teamId, teamId),
-          sql`custom_fields->>'giannaLastSentAt' >= ${today.toISOString()}`
-        )
+          sql`custom_fields->>'giannaLastSentAt' >= ${today.toISOString()}`,
+        ),
       );
 
     const todayResponded = await db
@@ -182,8 +182,8 @@ export async function GET(request: NextRequest) {
         and(
           eq(leads.teamId, teamId),
           sql`'responded' = ANY(tags)`,
-          gte(leads.updatedAt, today)
-        )
+          gte(leads.updatedAt, today),
+        ),
       );
 
     // Calculate overall progress
@@ -230,11 +230,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getNextActions(macros: MacroProgress[], stage1Complete: boolean): string[] {
+function getNextActions(
+  macros: MacroProgress[],
+  stage1Complete: boolean,
+): string[] {
   const actions: string[] = [];
 
   if (stage1Complete) {
-    actions.push("🎉 Stage 1 Complete! Focus on response handling and optimization.");
+    actions.push(
+      "🎉 Stage 1 Complete! Focus on response handling and optimization.",
+    );
     actions.push("📊 Analyze response rates and optimize openers.");
     actions.push("📞 Clear the call queue - book those meetings!");
     return actions;
@@ -242,26 +247,28 @@ function getNextActions(macros: MacroProgress[], stage1Complete: boolean): strin
 
   // Find the macro with lowest progress
   const lowestMacro = macros.reduce((low, m) =>
-    m.progress < low.progress ? m : low
+    m.progress < low.progress ? m : low,
   );
 
   // Check if we need to enrich more
-  const needsEnrichment = macros.some(m => m.enriched < m.contacted + 1000);
+  const needsEnrichment = macros.some((m) => m.enriched < m.contacted + 1000);
   if (needsEnrichment) {
     actions.push("⚡ ENRICH: Upload more leads or run skip trace batch");
   }
 
   // Check if we have leads ready to contact
-  const readyToContact = macros.some(m => m.enriched > m.contacted);
+  const readyToContact = macros.some((m) => m.enriched > m.contacted);
   if (readyToContact) {
     actions.push("🚀 EXECUTE: Run instant execute to push leads to GIANNA");
   }
 
   // Progress message
-  actions.push(`📈 ${lowestMacro.name}: ${lowestMacro.contacted.toLocaleString()} / 20K (${lowestMacro.daysToStabilize} days to go)`);
+  actions.push(
+    `📈 ${lowestMacro.name}: ${lowestMacro.contacted.toLocaleString()} / 20K (${lowestMacro.daysToStabilize} days to go)`,
+  );
 
   // Response handling
-  const hasResponses = macros.some(m => m.responded > 0);
+  const hasResponses = macros.some((m) => m.responded > 0);
   if (hasResponses) {
     actions.push("📞 Handle responses in call queue - book meetings!");
   }

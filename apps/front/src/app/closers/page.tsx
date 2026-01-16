@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Calendar, ArrowRight, Check, Phone, MessageSquare, Target, Zap } from "lucide-react";
+import {
+  Calendar,
+  ArrowRight,
+  Check,
+  Phone,
+  MessageSquare,
+  Target,
+  Zap,
+} from "lucide-react";
 
 // Your Calendly link - update this
 const CALENDLY_LINK = "https://calendly.com/nextier/discovery";
@@ -13,7 +21,10 @@ const audiences = [
     icon: "💼",
     roles: [
       { title: "VP of Sales", pain: "Pipeline isn't predictable" },
-      { title: "Sales Directors", pain: "Reps spending too much time prospecting" },
+      {
+        title: "Sales Directors",
+        pain: "Reps spending too much time prospecting",
+      },
       { title: "CROs", pain: "Need more at-bats for closers" },
       { title: "BDR/SDR Managers", pain: "Team can't scale fast enough" },
     ],
@@ -22,9 +33,15 @@ const audiences = [
     category: "Agency Owners",
     icon: "🎯",
     roles: [
-      { title: "Marketing Agency Owners", pain: "Client acquisition is feast or famine" },
+      {
+        title: "Marketing Agency Owners",
+        pain: "Client acquisition is feast or famine",
+      },
       { title: "Digital Agency Founders", pain: "CAC keeps climbing" },
-      { title: "Creative Directors", pain: "No time for new business development" },
+      {
+        title: "Creative Directors",
+        pain: "No time for new business development",
+      },
     ],
   },
   {
@@ -41,7 +58,10 @@ const audiences = [
     icon: "🏠",
     roles: [
       { title: "Real Estate Agents", pain: "Listings are hard to come by" },
-      { title: "Real Estate Investors", pain: "Off-market deals are competitive" },
+      {
+        title: "Real Estate Investors",
+        pain: "Off-market deals are competitive",
+      },
       { title: "Property Managers", pain: "Owner acquisition is slow" },
       { title: "Brokers", pain: "Agents need more opportunities" },
     ],
@@ -53,7 +73,10 @@ const audiences = [
       { title: "Roofing Contractors", pain: "Storm chasing is exhausting" },
       { title: "HVAC Company Owners", pain: "Seasonality kills cash flow" },
       { title: "Solar Installers", pain: "Lead quality is trash" },
-      { title: "Kitchen Remodelers", pain: "High-ticket sales cycle is brutal" },
+      {
+        title: "Kitchen Remodelers",
+        pain: "High-ticket sales cycle is brutal",
+      },
       { title: "Plumbers", pain: "Emergency calls aren't consistent" },
       { title: "Window Replacement", pain: "Tire kickers waste your time" },
       { title: "Bathroom Remodelers", pain: "Leads ghost after the quote" },
@@ -63,7 +86,10 @@ const audiences = [
       { title: "Deck Builders", pain: "Permits slow everything down" },
       { title: "Pest Control", pain: "One-time jobs don't build wealth" },
       { title: "Garage Door Companies", pain: "Lead gen is expensive" },
-      { title: "Fence Installers", pain: "Neighbors don't refer like they used to" },
+      {
+        title: "Fence Installers",
+        pain: "Neighbors don't refer like they used to",
+      },
     ],
   },
   {
@@ -107,7 +133,8 @@ export default function ClosersLandingPage() {
             <p className="text-xl md:text-2xl text-zinc-400 max-w-3xl mx-auto">
               For closers who have the{" "}
               <span className="text-white font-semibold">confidence</span> and{" "}
-              <span className="text-white font-semibold">competence</span> to convert into deals.
+              <span className="text-white font-semibold">competence</span> to
+              convert into deals.
             </p>
 
             {/* Value Props */}
@@ -161,7 +188,9 @@ export default function ClosersLandingPage() {
                 Book Your Discovery Call
                 <ArrowRight className="w-5 h-5" />
               </a>
-              <p className="text-zinc-500 text-sm mt-4">15 minutes. No pitch. Just clarity.</p>
+              <p className="text-zinc-500 text-sm mt-4">
+                15 minutes. No pitch. Just clarity.
+              </p>
             </div>
           </div>
         </div>
@@ -181,7 +210,8 @@ export default function ClosersLandingPage() {
               </div>
               <h3 className="text-xl font-bold">1. We Find Them</h3>
               <p className="text-zinc-400">
-                Millions of verified contacts. Skip-traced. Enriched. Ready for outreach.
+                Millions of verified contacts. Skip-traced. Enriched. Ready for
+                outreach.
               </p>
             </div>
 
@@ -191,7 +221,8 @@ export default function ClosersLandingPage() {
               </div>
               <h3 className="text-xl font-bold">2. We Engage Them</h3>
               <p className="text-zinc-400">
-                AI-powered SMS sequences. 5 touches. Until they respond or say stop.
+                AI-powered SMS sequences. 5 touches. Until they respond or say
+                stop.
               </p>
             </div>
 
@@ -201,7 +232,8 @@ export default function ClosersLandingPage() {
               </div>
               <h3 className="text-xl font-bold">3. You Close Them</h3>
               <p className="text-zinc-400">
-                Warm responses hit your queue. You pick up the phone. You do what you do best.
+                Warm responses hit your queue. You pick up the phone. You do
+                what you do best.
               </p>
             </div>
           </div>
@@ -231,14 +263,18 @@ export default function ClosersLandingPage() {
                   type="button"
                   onClick={() =>
                     setSelectedAudience(
-                      selectedAudience === audience.category ? null : audience.category
+                      selectedAudience === audience.category
+                        ? null
+                        : audience.category,
                     )
                   }
                   className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-700/30 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-3xl">{audience.icon}</span>
-                    <span className="text-xl font-bold">{audience.category}</span>
+                    <span className="text-xl font-bold">
+                      {audience.category}
+                    </span>
                     <span className="text-zinc-500 text-sm">
                       ({audience.roles.length} roles)
                     </span>
@@ -258,8 +294,12 @@ export default function ClosersLandingPage() {
                         key={role.title}
                         className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-700/30"
                       >
-                        <h4 className="font-semibold text-white mb-1">{role.title}</h4>
-                        <p className="text-sm text-zinc-500">&quot;{role.pain}&quot;</p>
+                        <h4 className="font-semibold text-white mb-1">
+                          {role.title}
+                        </h4>
+                        <p className="text-sm text-zinc-500">
+                          &quot;{role.pain}&quot;
+                        </p>
                       </div>
                     ))}
 
@@ -288,15 +328,16 @@ export default function ClosersLandingPage() {
             Here&apos;s The Truth
           </h2>
           <div className="space-y-6 text-lg text-zinc-400">
+            <p>You&apos;re good at closing. Really good.</p>
             <p>
-              You&apos;re good at closing. Really good.
-            </p>
-            <p>
-              But you&apos;re spending half your time chasing people who won&apos;t pick up.
+              But you&apos;re spending half your time chasing people who
+              won&apos;t pick up.
             </p>
             <p>
               What if you only talked to people who{" "}
-              <span className="text-white font-semibold">already raised their hand?</span>
+              <span className="text-white font-semibold">
+                already raised their hand?
+              </span>
             </p>
             <p className="text-white text-xl font-semibold pt-4">
               That&apos;s what we build for you.
@@ -312,7 +353,8 @@ export default function ClosersLandingPage() {
             Ready to Stop Chasing?
           </h2>
           <p className="text-xl text-zinc-400">
-            15 minutes. We&apos;ll show you exactly how the machine works for your industry.
+            15 minutes. We&apos;ll show you exactly how the machine works for
+            your industry.
           </p>
           <a
             href={CALENDLY_LINK}
@@ -334,10 +376,14 @@ export default function ClosersLandingPage() {
       <footer className="py-8 border-t border-zinc-800">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-zinc-500 text-sm">
-            &copy; {new Date().getFullYear()} Nextier. Manufacturing responses for closers.
+            &copy; {new Date().getFullYear()} Nextier. Manufacturing responses
+            for closers.
           </div>
           <div className="flex items-center gap-6 text-zinc-500 text-sm">
-            <Link href="/privacy" className="hover:text-white transition-colors">
+            <Link
+              href="/privacy"
+              className="hover:text-white transition-colors"
+            >
               Privacy
             </Link>
             <Link href="/terms" className="hover:text-white transition-colors">

@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   if (!isConfigured()) {
     return NextResponse.json(
       { error: "SignalHouse not configured", success: false },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (!phoneNumber) {
       return NextResponse.json(
         { error: "phoneNumber is required", success: false },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     if (!result.success) {
       return NextResponse.json(
         { error: result.error, success: false },
-        { status: result.status || 400 }
+        { status: result.status || 400 },
       );
     }
 
@@ -114,10 +114,11 @@ export async function POST(request: NextRequest) {
     console.error("[Providers/SignalHouse/Numbers] POST Error:", error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Failed to provision number",
+        error:
+          error instanceof Error ? error.message : "Failed to provision number",
         success: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -205,7 +205,10 @@ export class SkipTraceService {
         mailZip: data.mailAddress?.zip,
       };
     } catch (err) {
-      console.error(`[SkipTraceService] Failed to get property ${propertyId}:`, err);
+      console.error(
+        `[SkipTraceService] Failed to get property ${propertyId}:`,
+        err,
+      );
       return null;
     }
   }
@@ -246,7 +249,9 @@ export class SkipTraceService {
       if (owner.isEntity) {
         return {
           propertyId: input.propertyId,
-          ownerName: [owner.firstName, owner.lastName].filter(Boolean).join(" "),
+          ownerName: [owner.firstName, owner.lastName]
+            .filter(Boolean)
+            .join(" "),
           phones: [],
           emails: [],
           success: false,
@@ -286,7 +291,9 @@ export class SkipTraceService {
     if (!traceData.address || !traceData.city || !traceData.state) {
       return {
         propertyId: input.propertyId,
-        ownerName: [traceData.firstName, traceData.lastName].filter(Boolean).join(" "),
+        ownerName: [traceData.firstName, traceData.lastName]
+          .filter(Boolean)
+          .join(" "),
         phones: [],
         emails: [],
         success: false,
@@ -319,13 +326,15 @@ export class SkipTraceService {
       }
 
       const results = (await this.tracerfy.getQueueResults(
-        queue.id
+        queue.id,
       )) as TracerfyNormalResult[];
 
       if (results.length === 0) {
         return {
           propertyId: input.propertyId,
-          ownerName: [traceData.firstName, traceData.lastName].filter(Boolean).join(" "),
+          ownerName: [traceData.firstName, traceData.lastName]
+            .filter(Boolean)
+            .join(" "),
           phones: [],
           emails: [],
           success: false,
@@ -344,7 +353,10 @@ export class SkipTraceService {
 
       return {
         propertyId: input.propertyId,
-        ownerName: [result.first_name || traceData.firstName, result.last_name || traceData.lastName]
+        ownerName: [
+          result.first_name || traceData.firstName,
+          result.last_name || traceData.lastName,
+        ]
           .filter(Boolean)
           .join(" "),
         firstName: result.first_name || traceData.firstName,
@@ -364,7 +376,9 @@ export class SkipTraceService {
       console.error("[SkipTraceService] Tracerfy error:", err);
       return {
         propertyId: input.propertyId,
-        ownerName: [traceData.firstName, traceData.lastName].filter(Boolean).join(" "),
+        ownerName: [traceData.firstName, traceData.lastName]
+          .filter(Boolean)
+          .join(" "),
         phones: [],
         emails: [],
         success: false,
@@ -379,9 +393,7 @@ export class SkipTraceService {
    * Batch skip trace using Tracerfy (async with webhook)
    * Returns queue ID for webhook processing
    */
-  async skipTraceBatchAsync(
-    propertyIds: string[]
-  ): Promise<{
+  async skipTraceBatchAsync(propertyIds: string[]): Promise<{
     queueId: number;
     recordCount: number;
     estimatedCost: number;
@@ -426,7 +438,7 @@ export class SkipTraceService {
     const usage = getUsage();
     if (usage.remaining < traceInputs.length) {
       throw new Error(
-        `Daily limit would be exceeded. Remaining: ${usage.remaining}, Requested: ${traceInputs.length}`
+        `Daily limit would be exceeded. Remaining: ${usage.remaining}, Requested: ${traceInputs.length}`,
       );
     }
 
@@ -434,7 +446,7 @@ export class SkipTraceService {
     const job = await this.tracerfy.beginTrace(traceInputs, "normal");
 
     console.log(
-      `[SkipTraceService] Started batch trace: queue=${job.queue_id}, records=${traceInputs.length}, skipped=${skippedEntities}`
+      `[SkipTraceService] Started batch trace: queue=${job.queue_id}, records=${traceInputs.length}, skipped=${skippedEntities}`,
     );
 
     return {
@@ -457,7 +469,9 @@ export class SkipTraceService {
       const primaryMobile = phones.find((p) => p.type === "Mobile")?.number;
 
       processed.push({
-        ownerName: [result.first_name, result.last_name].filter(Boolean).join(" "),
+        ownerName: [result.first_name, result.last_name]
+          .filter(Boolean)
+          .join(" "),
         firstName: result.first_name,
         lastName: result.last_name,
         primaryMobile,

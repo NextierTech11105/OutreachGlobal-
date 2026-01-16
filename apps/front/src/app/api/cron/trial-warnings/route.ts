@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
         const trialEndDate = new Date(trialEnd * 1000);
         const daysUntilExpiry = Math.ceil(
-          (trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          (trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
         );
 
         // Check if we should send a warning
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
             customer.email,
             customerName,
             daysUntilExpiry,
-            "Pro" // Default plan name - could be from metadata
+            "Pro", // Default plan name - could be from metadata
           );
 
           stats.emailsSent++;
@@ -144,14 +144,12 @@ export async function GET(request: NextRequest) {
         if (!trialEnd) continue;
 
         const trialEndDate = new Date(trialEnd * 1000);
-        const hoursSinceExpiry = (now.getTime() - trialEndDate.getTime()) / (1000 * 60 * 60);
+        const hoursSinceExpiry =
+          (now.getTime() - trialEndDate.getTime()) / (1000 * 60 * 60);
 
         // Only send expired email if trial ended in last 24 hours
         if (hoursSinceExpiry > 0 && hoursSinceExpiry <= 24) {
-          await sendTrialExpiredEmail(
-            customer.email,
-            customer.name || "there"
-          );
+          await sendTrialExpiredEmail(customer.email, customer.name || "there");
 
           stats.expired++;
           stats.emailsSent++;

@@ -43,7 +43,7 @@ function calculateStatus(
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await apiAuth(request);
+    const auth = await apiAuth();
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -149,8 +149,8 @@ export async function GET(request: NextRequest) {
       const callsCompleted = await db
         .select({
           count: count(),
-          lastFired: sql<Date>`MAX(${callLogs.endedAt})`,
-          avgDuration: sql<number>`AVG(EXTRACT(EPOCH FROM (${callLogs.endedAt} - ${callLogs.startedAt})))`,
+          lastFired: sql<Date>`MAX(${callLogs.updatedAt})`,
+          avgDuration: sql<number>`AVG(COALESCE(${callLogs.duration}, 0))`,
         })
         .from(callLogs)
         .where(

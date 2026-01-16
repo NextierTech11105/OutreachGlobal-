@@ -328,7 +328,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_hs_discovery",
         name: "Trade Owner Opener",
         stage: "opener",
-        message: "Hi {firstName}, grow your {industry} biz without hiring sales? Our AI books jobs while you work. 15-min demo? Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, grow your {industry} biz without hiring sales? Our AI books jobs while you work. 15-min demo? Respond STOP to opt out from NEXTIER",
         charCount: 145,
         variables: ["firstName", "industry"],
         active: true,
@@ -338,7 +339,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_hs_discovery",
         name: "HVAC/Plumbing Specific",
         stage: "opener",
-        message: "Hi {firstName}, HVAC & plumbing owners are booking 20+ jobs/month with our AI. Quick call to show you? Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, HVAC & plumbing owners are booking 20+ jobs/month with our AI. Quick call to show you? Respond STOP to opt out from NEXTIER",
         charCount: 142,
         variables: ["firstName"],
         active: true,
@@ -348,7 +350,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_hs_discovery",
         name: "Trade Nudge",
         stage: "nudge",
-        message: "Hi {firstName}, still interested in automating lead follow-up? Can show you in 15 min. Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, still interested in automating lead follow-up? Can show you in 15 min. Respond STOP to opt out from NEXTIER",
         charCount: 125,
         variables: ["firstName"],
         active: true,
@@ -358,7 +361,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_hs_discovery",
         name: "Trade Close",
         stage: "close",
-        message: "{firstName}, got a slot open today. Book here: {link} Respond STOP to opt out from NEXTIER",
+        message:
+          "{firstName}, got a slot open today. Book here: {link} Respond STOP to opt out from NEXTIER",
         charCount: 85,
         variables: ["firstName", "link"],
         active: true,
@@ -401,7 +405,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_b2b_discovery",
         name: "CEO Opener",
         stage: "opener",
-        message: "Hi {firstName}, save 20+ hrs/week on outbound with AI. Quick call to show you? Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, save 20+ hrs/week on outbound with AI. Quick call to show you? Respond STOP to opt out from NEXTIER",
         charCount: 113,
         variables: ["firstName"],
         active: true,
@@ -411,7 +416,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_b2b_discovery",
         name: "CRM Partner Opener",
         stage: "opener",
-        message: "Hi {firstName}, offer your clients 10X CRM performance without changing systems. Partnership call? Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, offer your clients 10X CRM performance without changing systems. Partnership call? Respond STOP to opt out from NEXTIER",
         charCount: 138,
         variables: ["firstName"],
         active: true,
@@ -421,7 +427,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_b2b_discovery",
         name: "B2B Nudge",
         stage: "nudge",
-        message: "{firstName}, following up on AI outbound. CEOs saving 20 hrs/week. Worth 15 min? Respond STOP to opt out from NEXTIER",
+        message:
+          "{firstName}, following up on AI outbound. CEOs saving 20 hrs/week. Worth 15 min? Respond STOP to opt out from NEXTIER",
         charCount: 117,
         variables: ["firstName"],
         active: true,
@@ -431,7 +438,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_b2b_discovery",
         name: "B2B Close",
         stage: "close",
-        message: "{firstName}, final reach out. Book 15 min here: {link} Respond STOP to opt out from NEXTIER",
+        message:
+          "{firstName}, final reach out. Book 15 min here: {link} Respond STOP to opt out from NEXTIER",
         charCount: 90,
         variables: ["firstName", "link"],
         active: true,
@@ -474,7 +482,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_re_discovery",
         name: "Agent Opener",
         stage: "opener",
-        message: "Hi {firstName}, agents using AI are closing 3x more deals. 15-min demo to show you? Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, agents using AI are closing 3x more deals. 15-min demo to show you? Respond STOP to opt out from NEXTIER",
         charCount: 120,
         variables: ["firstName"],
         active: true,
@@ -484,7 +493,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_re_discovery",
         name: "Investor Opener",
         stage: "opener",
-        message: "Hi {firstName}, find off-market deals before anyone else with AI lead gen. Quick call? Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, find off-market deals before anyone else with AI lead gen. Quick call? Respond STOP to opt out from NEXTIER",
         charCount: 124,
         variables: ["firstName"],
         active: true,
@@ -494,7 +504,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_re_discovery",
         name: "RE Nudge",
         stage: "nudge",
-        message: "{firstName}, still interested in AI-powered lead gen? Can show you in 15 min. Respond STOP to opt out from NEXTIER",
+        message:
+          "{firstName}, still interested in AI-powered lead gen? Can show you in 15 min. Respond STOP to opt out from NEXTIER",
         charCount: 114,
         variables: ["firstName"],
         active: true,
@@ -529,7 +540,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_nurture",
         name: "Value Touch",
         stage: "value",
-        message: "Hi {firstName}, thought of you - businesses are saving 20 hrs/week with AI outbound. Let me know if helpful. Respond STOP to opt out from NEXTIER",
+        message:
+          "Hi {firstName}, thought of you - businesses are saving 20 hrs/week with AI outbound. Let me know if helpful. Respond STOP to opt out from NEXTIER",
         charCount: 146,
         variables: ["firstName"],
         active: true,
@@ -539,7 +551,8 @@ export const SMS_TEMPLATE_GROUPS: Record<string, SMSTemplateGroup> = {
         groupId: "sms_nurture",
         name: "Check-in",
         stage: "value",
-        message: "{firstName}, checking in. Any challenges with lead gen I can help with? Respond STOP to opt out from NEXTIER",
+        message:
+          "{firstName}, checking in. Any challenges with lead gen I can help with? Respond STOP to opt out from NEXTIER",
         charCount: 106,
         variables: ["firstName"],
         active: true,
@@ -582,8 +595,12 @@ export function getFolderById(id: string): LeadSourceFolder | undefined {
   return Object.values(LEAD_SOURCE_FOLDERS).find((f) => f.id === id);
 }
 
-export function getFoldersByParent(parentId: string | null): LeadSourceFolder[] {
-  return Object.values(LEAD_SOURCE_FOLDERS).filter((f) => f.parentId === parentId);
+export function getFoldersByParent(
+  parentId: string | null,
+): LeadSourceFolder[] {
+  return Object.values(LEAD_SOURCE_FOLDERS).filter(
+    (f) => f.parentId === parentId,
+  );
 }
 
 export function getFoldersBySector(sector: string): LeadSourceFolder[] {
@@ -598,7 +615,10 @@ export function getTemplateGroupsBySector(sector: string): SMSTemplateGroup[] {
   return Object.values(SMS_TEMPLATE_GROUPS).filter((g) => g.sector === sector);
 }
 
-export function getTemplatesByStage(groupId: string, stage: SMSTemplate["stage"]): SMSTemplate[] {
+export function getTemplatesByStage(
+  groupId: string,
+  stage: SMSTemplate["stage"],
+): SMSTemplate[] {
   const group = getTemplateGroupById(groupId);
   if (!group) return [];
   return group.templates.filter((t) => t.stage === stage && t.active);

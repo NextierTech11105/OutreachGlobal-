@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 Your goal is to respond to leads via SMS and move them toward a phone call or appointment.
 
 Lead Name: ${lead.firstName} ${lead.lastName}
-Property: ${lead.propertyAddress || "Unknown"}
+Property: ${(lead as any).propertyAddress || "Unknown"}
 Status: ${lead.status}
 
 Conversation History:
@@ -97,12 +97,12 @@ Guidelines:
         suggestedReply = data.choices[0].message.content.trim();
       } catch (error) {
         console.error("[AI Reply] OpenAI Error:", error);
-        suggestedReply = `Hi ${lead.firstName}, thanks for reaching out! I'd love to chat more about ${lead.propertyAddress || "your property"}. When is a good time for a quick 5-minute call?`;
+        suggestedReply = `Hi ${lead.firstName}, thanks for reaching out! I'd love to chat more about ${(lead as any).propertyAddress || "your property"}. When is a good time for a quick 5-minute call?`;
       }
     } else {
       // Simulation mode
       console.log("[AI Reply] No API key, simulating response...");
-      suggestedReply = `Hi ${lead.firstName}, I received your message about ${lead.propertyAddress || "the property"}. I'd love to discuss this further with you. Do you have a few minutes for a quick call today?`;
+      suggestedReply = `Hi ${lead.firstName}, I received your message about ${(lead as any).propertyAddress || "the property"}. I'd love to discuss this further with you. Do you have a few minutes for a quick call today?`;
     }
 
     return NextResponse.json({

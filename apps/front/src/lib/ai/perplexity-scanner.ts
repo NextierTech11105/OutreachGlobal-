@@ -293,7 +293,9 @@ async function queryPerplexity(
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
+        throw new Error(
+          `Perplexity API error: ${response.status} - ${errorText}`,
+        );
       }
 
       const data = await response.json();
@@ -721,4 +723,7 @@ export async function checkPerplexityHealth(): Promise<{
   }
 }
 
-Logger.info("Perplexity", "Perplexity Scanner loaded - Hardened business verification ready");
+Logger.info(
+  "Perplexity",
+  "Perplexity Scanner loaded - Hardened business verification ready",
+);

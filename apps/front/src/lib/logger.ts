@@ -34,7 +34,11 @@ export class Logger {
     return this.levelValue(level) >= this.levelValue(this.minLevel);
   }
 
-  private format(level: LogLevel, message: string, data?: Record<string, unknown>): LogEntry {
+  private format(
+    level: LogLevel,
+    message: string,
+    data?: Record<string, unknown>,
+  ): LogEntry {
     return {
       timestamp: new Date().toISOString(),
       level,
@@ -86,6 +90,46 @@ export class Logger {
     if (this.shouldLog("error")) {
       this.output(this.format("error", message, data));
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // STATIC METHODS (for convenience - use Logger.info("Tag", "message"))
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  static debug(
+    tag: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    const logger = new Logger(tag, "debug");
+    logger.debug(message, data);
+  }
+
+  static info(
+    tag: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    const logger = new Logger(tag);
+    logger.info(message, data);
+  }
+
+  static warn(
+    tag: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    const logger = new Logger(tag);
+    logger.warn(message, data);
+  }
+
+  static error(
+    tag: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    const logger = new Logger(tag);
+    logger.error(message, data);
   }
 }
 

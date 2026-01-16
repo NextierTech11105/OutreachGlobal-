@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       if (!data || !Array.isArray(data)) {
         return NextResponse.json(
           { error: "data array required for full chain execution" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
         if (!data || !Array.isArray(data)) {
           return NextResponse.json(
             { error: "data array required for import" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         if (!batchId) {
           return NextResponse.json(
             { error: "batchId required for enrich stage" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
         if (!batchId) {
           return NextResponse.json(
             { error: "batchId required for contactability stage" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -177,13 +177,15 @@ export async function POST(request: NextRequest) {
         if (!batchId) {
           return NextResponse.json(
             { error: "batchId required for campaign prep" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         const result = await executeCampaignPrep(batchId, {
           personaId: (config?.personaId as string) || "busy_ceo",
-          templateStage: (config?.templateStage as "opener" | "nudge" | "value" | "close") || "opener",
+          templateStage:
+            (config?.templateStage as "opener" | "nudge" | "value" | "close") ||
+            "opener",
           campaign: (config?.campaign as keyof typeof CAMPAIGN_MACROS) || "B2B",
         });
 
@@ -206,7 +208,7 @@ export async function POST(request: NextRequest) {
         if (!batchId) {
           return NextResponse.json(
             { error: "batchId required for preview" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -241,7 +243,7 @@ export async function POST(request: NextRequest) {
         if (!batchId) {
           return NextResponse.json(
             { error: "batchId required for deploy" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -272,12 +274,13 @@ export async function POST(request: NextRequest) {
       }
 
       case "CAPTURE": {
-        const { leadId, email, mobileConfirmed, permissionGranted } = config || {};
+        const { leadId, email, mobileConfirmed, permissionGranted } =
+          config || {};
 
         if (!leadId) {
           return NextResponse.json(
             { error: "leadId required for capture" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -299,14 +302,14 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: `Unknown stage: ${stage}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     log.error("[ExecutionChain] Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Execution failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -432,7 +435,7 @@ export async function GET(request: NextRequest) {
     log.error("[ExecutionChain] GET Error:", error);
     return NextResponse.json(
       { error: "Failed to get execution status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
