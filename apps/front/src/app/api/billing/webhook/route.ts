@@ -162,7 +162,10 @@ async function handleSubscriptionUpdate(stripeSubscription: any) {
 }
 
 // Handle subscription cancellation
-async function handleSubscriptionCanceled(stripeSubscription: any, stripe: any) {
+async function handleSubscriptionCanceled(
+  stripeSubscription: any,
+  stripe: any,
+) {
   const subscriptionId = stripeSubscription.id;
 
   const existingSubscription = await db.query.subscriptions.findFirst({
@@ -185,7 +188,9 @@ async function handleSubscriptionCanceled(stripeSubscription: any, stripe: any) 
 
     // Send cancellation email
     try {
-      const customer = await stripe.customers.retrieve(stripeSubscription.customer);
+      const customer = await stripe.customers.retrieve(
+        stripeSubscription.customer,
+      );
       if (customer && !customer.deleted && customer.email) {
         const endDate = new Date(stripeSubscription.current_period_end * 1000);
         await sendCancellationEmail(
@@ -197,10 +202,15 @@ async function handleSubscriptionCanceled(stripeSubscription: any, stripe: any) 
             year: "numeric",
           }),
         );
-        console.log(`[Billing Webhook] Cancellation email sent to ${customer.email}`);
+        console.log(
+          `[Billing Webhook] Cancellation email sent to ${customer.email}`,
+        );
       }
     } catch (emailError) {
-      console.error("[Billing Webhook] Failed to send cancellation email:", emailError);
+      console.error(
+        "[Billing Webhook] Failed to send cancellation email:",
+        emailError,
+      );
     }
   }
 }
@@ -224,13 +234,18 @@ async function handleInvoicePaid(stripeInvoice: any, stripe: any) {
   // Create invoice record
   await db.insert(invoices).values({
     subscriptionId: subscription.id,
+    userId: subscription.userId,
+    invoiceNumber: stripeInvoice.number || stripeInvoice.id,
     stripeInvoiceId: stripeInvoice.id,
-    amount: stripeInvoice.amount_paid,
     status: "paid",
+    subtotal: stripeInvoice.subtotal || stripeInvoice.amount_paid,
+    total: stripeInvoice.total || stripeInvoice.amount_paid,
+    amountPaid: stripeInvoice.amount_paid,
+    amountDue: 0,
     periodStart: new Date(stripeInvoice.period_start * 1000),
     periodEnd: new Date(stripeInvoice.period_end * 1000),
+    dueDate: new Date(stripeInvoice.due_date ? stripeInvoice.due_date * 1000 : Date.now()),
     paidAt: new Date(),
-    invoiceUrl: stripeInvoice.hosted_invoice_url,
     invoicePdf: stripeInvoice.invoice_pdf,
   });
 
@@ -270,10 +285,15 @@ async function handleInvoicePaid(stripeInvoice: any, stripe: any) {
           year: "numeric",
         }),
       });
-      console.log(`[Billing Webhook] Payment receipt sent to ${customer.email}`);
+      console.log(
+        `[Billing Webhook] Payment receipt sent to ${customer.email}`,
+      );
     }
   } catch (emailError) {
-    console.error("[Billing Webhook] Failed to send payment receipt:", emailError);
+    console.error(
+      "[Billing Webhook] Failed to send payment receipt:",
+      emailError,
+    );
   }
 }
 
@@ -292,12 +312,18 @@ async function handlePaymentFailed(stripeInvoice: any, stripe: any) {
   // Create failed invoice record
   await db.insert(invoices).values({
     subscriptionId: subscription.id,
+    userId: subscription.userId,
+    invoiceNumber: stripeInvoice.number || stripeInvoice.id,
     stripeInvoiceId: stripeInvoice.id,
-    amount: stripeInvoice.amount_due,
-    status: "failed",
+    status: "open",
+    subtotal: stripeInvoice.subtotal || stripeInvoice.amount_due,
+    total: stripeInvoice.total || stripeInvoice.amount_due,
+    amountPaid: 0,
+    amountDue: stripeInvoice.amount_due,
     periodStart: new Date(stripeInvoice.period_start * 1000),
     periodEnd: new Date(stripeInvoice.period_end * 1000),
-    invoiceUrl: stripeInvoice.hosted_invoice_url,
+    dueDate: new Date(stripeInvoice.due_date ? stripeInvoice.due_date * 1000 : Date.now()),
+    invoicePdf: stripeInvoice.invoice_pdf,
   });
 
   // Update subscription status
@@ -330,25 +356,33 @@ async function handlePaymentFailed(stripeInvoice: any, stripe: any) {
           year: "numeric",
         }),
       );
-      console.log(`[Billing Webhook] Payment failed email sent to ${customer.email}`);
+      console.log(
+        `[Billing Webhook] Payment failed email sent to ${customer.email}`,
+      );
     }
   } catch (emailError) {
-    console.error("[Billing Webhook] Failed to send payment failed email:", emailError);
+    console.error(
+      "[Billing Webhook] Failed to send payment failed email:",
+      emailError,
+    );
   }
 }
 
 // Handle successful payment intent
 async function handlePaymentSucceeded(paymentIntent: any) {
   const subscriptionId = paymentIntent.metadata?.subscriptionId;
+  const userId = paymentIntent.metadata?.userId;
 
-  if (!subscriptionId) {
+  if (!subscriptionId || !userId) {
+    console.log("[Billing Webhook] Payment intent missing subscriptionId or userId metadata");
     return;
   }
 
   // Record payment
   await db.insert(payments).values({
     subscriptionId,
-    stripePaymentIntentId: paymentIntent.id,
+    userId,
+    stripePaymentId: paymentIntent.id,
     amount: paymentIntent.amount,
     status: "succeeded",
     paymentMethod: paymentIntent.payment_method_types?.[0] || "card",

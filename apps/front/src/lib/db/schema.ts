@@ -891,6 +891,7 @@ export const subscriptions = pgTable(
     endDate: timestamp("end_date"), // null = ongoing
     trialEndsAt: timestamp("trial_ends_at"),
     canceledAt: timestamp("canceled_at"),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
     currentPeriodStart: timestamp("current_period_start")
       .notNull()
       .defaultNow(),

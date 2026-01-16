@@ -54,6 +54,7 @@ export async function trackUsage(
       // No subscription - track event but mark as billable
       await db.insert(usageEvents).values({
         userId,
+        subscriptionId: "no-subscription",
         eventType,
         quantity,
         unitCost: OVERAGE_COSTS[eventType],
@@ -84,20 +85,26 @@ export async function trackUsage(
         .insert(usage)
         .values({
           subscriptionId: subscription.id,
+          userId,
           periodStart: subscription.currentPeriodStart!,
           periodEnd: subscription.currentPeriodEnd!,
-          leadsUsed: 0,
-          leadsLimit: subscription.plan?.maxLeadsPerMonth || 1000,
-          propertySearchesUsed: 0,
-          propertySearchesLimit: subscription.plan?.maxPropertySearches || 500,
-          smsUsed: 0,
-          smsLimit: subscription.plan?.maxSmsPerMonth || 500,
-          skipTracesUsed: 0,
-          skipTracesLimit: subscription.plan?.maxSkipTraces || 50,
+          leadsCreated: 0,
+          propertySearches: 0,
+          smsSent: 0,
+          skipTraces: 0,
         })
         .returning();
       currentUsage = newUsage[0];
     }
+
+    // Get limits from plan
+    const plan = subscription.plan;
+    const limits = {
+      leads: plan?.maxLeadsPerMonth || 1000,
+      propertySearches: plan?.maxPropertySearches || 500,
+      sms: plan?.maxSmsPerMonth || 500,
+      skipTraces: plan?.maxSkipTraces || 50,
+    };
 
     // Determine which field to update
     let currentCount = 0;
@@ -106,24 +113,24 @@ export async function trackUsage(
 
     switch (eventType) {
       case "lead_created":
-        currentCount = currentUsage.leadsUsed + quantity;
-        limit = currentUsage.leadsLimit;
-        updateData.leadsUsed = currentCount;
+        currentCount = (currentUsage.leadsCreated || 0) + quantity;
+        limit = limits.leads;
+        updateData.leadsCreated = currentCount;
         break;
       case "property_search":
-        currentCount = currentUsage.propertySearchesUsed + quantity;
-        limit = currentUsage.propertySearchesLimit;
-        updateData.propertySearchesUsed = currentCount;
+        currentCount = (currentUsage.propertySearches || 0) + quantity;
+        limit = limits.propertySearches;
+        updateData.propertySearches = currentCount;
         break;
       case "sms_sent":
-        currentCount = currentUsage.smsUsed + quantity;
-        limit = currentUsage.smsLimit;
-        updateData.smsUsed = currentCount;
+        currentCount = (currentUsage.smsSent || 0) + quantity;
+        limit = limits.sms;
+        updateData.smsSent = currentCount;
         break;
       case "skip_trace":
-        currentCount = currentUsage.skipTracesUsed + quantity;
-        limit = currentUsage.skipTracesLimit;
-        updateData.skipTracesUsed = currentCount;
+        currentCount = (currentUsage.skipTraces || 0) + quantity;
+        limit = limits.skipTraces;
+        updateData.skipTraces = currentCount;
         break;
       default:
         currentCount = quantity;
@@ -215,23 +222,24 @@ export async function checkQuota(
 
     let used = 0;
     let limit = 0;
+    const plan = subscription.plan;
 
     switch (eventType) {
       case "lead_created":
-        used = currentUsage.leadsUsed;
-        limit = currentUsage.leadsLimit;
+        used = currentUsage.leadsCreated || 0;
+        limit = plan?.maxLeadsPerMonth || 1000;
         break;
       case "property_search":
-        used = currentUsage.propertySearchesUsed;
-        limit = currentUsage.propertySearchesLimit;
+        used = currentUsage.propertySearches || 0;
+        limit = plan?.maxPropertySearches || 500;
         break;
       case "sms_sent":
-        used = currentUsage.smsUsed;
-        limit = currentUsage.smsLimit;
+        used = currentUsage.smsSent || 0;
+        limit = plan?.maxSmsPerMonth || 500;
         break;
       case "skip_trace":
-        used = currentUsage.skipTracesUsed;
-        limit = currentUsage.skipTracesLimit;
+        used = currentUsage.skipTraces || 0;
+        limit = plan?.maxSkipTraces || 50;
         break;
     }
 
@@ -277,17 +285,17 @@ export async function getSubscriptionSummary(userId: string) {
     usage: currentUsage
       ? {
           leads: {
-            used: currentUsage.leadsUsed,
-            limit: currentUsage.leadsLimit,
+            used: currentUsage.leadsCreated || 0,
+            limit: subscription.plan?.maxLeadsPerMonth || 1000,
           },
           searches: {
-            used: currentUsage.propertySearchesUsed,
-            limit: currentUsage.propertySearchesLimit,
+            used: currentUsage.propertySearches || 0,
+            limit: subscription.plan?.maxPropertySearches || 500,
           },
-          sms: { used: currentUsage.smsUsed, limit: currentUsage.smsLimit },
+          sms: { used: currentUsage.smsSent || 0, limit: subscription.plan?.maxSmsPerMonth || 500 },
           skipTraces: {
-            used: currentUsage.skipTracesUsed,
-            limit: currentUsage.skipTracesLimit,
+            used: currentUsage.skipTraces || 0,
+            limit: subscription.plan?.maxSkipTraces || 50,
           },
         }
       : null,

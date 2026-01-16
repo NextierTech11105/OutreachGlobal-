@@ -170,16 +170,13 @@ export async function POST(request: NextRequest) {
           // Initialize usage record
           await db.insert(usage).values({
             subscriptionId: newSubscription[0].id,
+            userId,
             periodStart: now,
             periodEnd: periodEnd,
-            leadsUsed: 0,
-            leadsLimit: plan.maxLeadsPerMonth || 1000,
-            propertySearchesUsed: 0,
-            propertySearchesLimit: plan.maxPropertySearches || 500,
-            smsUsed: 0,
-            smsLimit: plan.maxSmsPerMonth || 500,
-            skipTracesUsed: 0,
-            skipTracesLimit: plan.maxSkipTraces || 50,
+            leadsCreated: 0,
+            propertySearches: 0,
+            smsSent: 0,
+            skipTraces: 0,
           });
 
           return NextResponse.json({
@@ -242,16 +239,13 @@ export async function POST(request: NextRequest) {
     // Initialize usage record
     await db.insert(usage).values({
       subscriptionId: newSubscription[0].id,
+      userId,
       periodStart: now,
       periodEnd: periodEnd,
-      leadsUsed: 0,
-      leadsLimit: plan.maxLeadsPerMonth || 1000,
-      propertySearchesUsed: 0,
-      propertySearchesLimit: plan.maxPropertySearches || 500,
-      smsUsed: 0,
-      smsLimit: plan.maxSmsPerMonth || 500,
-      skipTracesUsed: 0,
-      skipTracesLimit: plan.maxSkipTraces || 50,
+      leadsCreated: 0,
+      propertySearches: 0,
+      smsSent: 0,
+      skipTraces: 0,
     });
 
     return NextResponse.json({
