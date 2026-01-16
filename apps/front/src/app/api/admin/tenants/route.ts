@@ -61,12 +61,13 @@ export async function POST(request: NextRequest) {
     // Full sync to SignalHouse
     if (action === "sync") {
       const result = await fullTenantSync();
+      const { success, ...rest } = result;
       return NextResponse.json({
-        success: result.success,
-        message: result.success
+        success,
+        message: success
           ? "Tenants synced to SignalHouse"
           : "Some syncs failed",
-        ...result,
+        ...rest,
       });
     }
 

@@ -291,8 +291,8 @@ async function handleCreateLeads(body: { matches: CrossReferenceMatch[] }) {
 
     // Store match record
     crossReferenceMatches.set(matchId, {
-      id: matchId,
       ...match,
+      id: matchId,
       created_at: new Date().toISOString(),
     });
 

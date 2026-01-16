@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     // Remove cancellation - subscription will continue
-    const subscription = await stripe.subscriptions.update(
+    const stripeSubscription = await stripe.subscriptions.update(
       stripeSubscriptionId,
       {
         cancel_at_period_end: false,
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Subscription reactivated successfully",
       subscription: {
-        id: subscription.id,
-        status: subscription.status,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        id: stripeSubscription.id,
+        status: stripeSubscription.status,
+        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
       },
     });
   } catch (error: any) {

@@ -237,8 +237,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Store temp password to return to admin
-        // @ts-expect-error - Adding to scope for response
-        body._tempPassword = tempPassword;
+        (body as any)._tempPassword = tempPassword;
       }
     } else if (ownerId) {
       // Verify ownerId exists

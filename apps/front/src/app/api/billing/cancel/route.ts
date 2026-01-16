@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     // Cancel at period end (not immediately)
-    const subscription = await stripe.subscriptions.update(
+    const stripeSubscription = await stripe.subscriptions.update(
       stripeSubscriptionId,
       {
         cancel_at_period_end: true,
@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
       },
     );
 
-    const periodEndDate = new Date(subscription.current_period_end * 1000);
+    const periodEndDate = new Date(
+      stripeSubscription.current_period_end * 1000,
+    );
 
     // Update local database
     try {
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Get customer email for notification
     const customer = await stripe.customers.retrieve(
-      subscription.customer as string,
+      stripeSubscription.customer as string,
     );
 
     if (customer && !customer.deleted && customer.email) {
@@ -117,9 +119,9 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Subscription will cancel at period end",
       subscription: {
-        id: subscription.id,
-        status: subscription.status,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        id: stripeSubscription.id,
+        status: stripeSubscription.status,
+        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
         currentPeriodEnd: periodEndDate.toISOString(),
       },
     });

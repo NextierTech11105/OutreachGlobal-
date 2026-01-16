@@ -158,12 +158,12 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        const signalhouseNumbers = ownedResult.data?.numbers || [];
+        const signalhouseNumbers = ownedResult.data || [];
         const localNumbers = await db.select().from(teamPhoneNumbers);
 
         const localMap = new Map(localNumbers.map((n) => [n.phoneNumber, n]));
         const signalhouseMap = new Map(
-          signalhouseNumbers.map((n: any) => [n.phoneNumber, n]),
+          signalhouseNumbers.map((n) => [n.phoneNumber, n]),
         );
 
         const toAdd: any[] = [];
@@ -272,6 +272,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Store in local DB with team mapping
+        // Cast to any for API response fields not in our interface
+        const purchaseData = purchaseResult.data as any;
         const id = crypto.randomUUID();
         await db.insert(teamPhoneNumbers).values({
           id,
@@ -279,8 +281,8 @@ export async function POST(request: NextRequest) {
           phoneNumber,
           formattedNumber: formatPhoneNumber(phoneNumber),
           areaCode: phoneNumber.slice(2, 5),
-          signalhouseId: purchaseResult.data?.numberId,
-          orderId: purchaseResult.data?.orderId,
+          signalhouseId: purchaseData?.numberId || purchaseData?.id || phoneNumber,
+          orderId: purchaseData?.orderId,
           numberType,
           status: "active",
           provisionedAt: new Date(),
@@ -294,7 +296,7 @@ export async function POST(request: NextRequest) {
             id,
             phoneNumber,
             teamId,
-            signalhouseId: purchaseResult.data?.numberId,
+            signalhouseId: purchaseData?.numberId || purchaseData?.id,
           },
         });
       }
@@ -392,7 +394,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const signalhouseNumbers = ownedResult.data?.numbers || [];
+        const signalhouseNumbers = ownedResult.data || [];
         const localNumbers = await db.select().from(teamPhoneNumbers);
         const localSet = new Set(localNumbers.map((n) => n.phoneNumber));
 
@@ -400,19 +402,21 @@ export async function POST(request: NextRequest) {
         for (const shNumber of signalhouseNumbers) {
           if (!localSet.has(shNumber.phoneNumber)) {
             const id = crypto.randomUUID();
+            // Cast to any for API response fields not in our interface
+            const num = shNumber as any;
             await db.insert(teamPhoneNumbers).values({
               id,
               teamId,
               phoneNumber: shNumber.phoneNumber,
               formattedNumber: formatPhoneNumber(shNumber.phoneNumber),
               areaCode: shNumber.phoneNumber.slice(2, 5),
-              signalhouseId: shNumber.numberId || shNumber.id,
-              numberType: shNumber.type || "local",
+              signalhouseId: num.numberId || num.id || shNumber.phoneNumber,
+              numberType: num.type || "local",
               status: "active",
               capabilities: {
-                sms: shNumber.sms !== false,
-                mms: shNumber.mms === true,
-                voice: shNumber.voice === true,
+                sms: num.sms !== false,
+                mms: num.mms === true,
+                voice: num.voice === true,
                 fax: false,
               },
               provisionedAt: new Date(),
