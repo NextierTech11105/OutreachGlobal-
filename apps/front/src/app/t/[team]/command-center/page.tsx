@@ -162,10 +162,40 @@ export default function CommandCenterPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSkipTracing, setIsSkipTracing] = useState(false);
   const [luciActive, setLuciActive] = useState(false);
+  const [luciDailyLimit, setLuciDailyLimit] = useState(500);
+
+  // Fetch LUCI config on mount
+  const fetchLuciConfig = async () => {
+    try {
+      const res = await fetch("/api/team-settings/luci");
+      if (res.ok) {
+        const config = await res.json();
+        setLuciActive(config.active || false);
+        setLuciDailyLimit(config.dailyLimit || 500);
+      }
+    } catch (error) {
+      console.error("Failed to fetch LUCI config:", error);
+    }
+  };
+
+  // Save LUCI config
+  const saveLuciConfig = async (active: boolean, dailyLimit: number) => {
+    try {
+      await fetch("/api/team-settings/luci", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active, dailyLimit }),
+      });
+    } catch (error) {
+      console.error("Failed to save LUCI config:", error);
+    }
+  };
 
   // Fetch pipeline stats
   useEffect(() => {
     fetchStats();
+    fetchBrandCampaigns();
+    fetchLuciConfig();
   }, []);
 
   const fetchStats = async () => {
@@ -215,6 +245,54 @@ export default function CommandCenterPage() {
     }
   };
 
+  // Fetch SignalHouse brand campaigns
+  const fetchBrandCampaigns = async () => {
+    try {
+      const res = await fetch("/api/signalhouse/brand");
+      const data = await res.json();
+
+      if (data.brands && Array.isArray(data.brands)) {
+        // Map SignalHouse brands to our BrandCampaign interface
+        const mappedBrands: BrandCampaign[] = data.brands.map((brand: {
+          brandId: string;
+          brandName: string;
+          brandStatus: string;
+          createdAt?: string;
+          campaigns?: Array<{
+            campaignId: string;
+            usecase: string;
+            status: string;
+          }>;
+        }) => ({
+          id: brand.brandId,
+          brandName: brand.brandName || "Unknown Brand",
+          brandId: brand.brandId,
+          status: brand.brandStatus?.toLowerCase() === "approved" ? "approved" :
+                  brand.brandStatus?.toLowerCase() === "rejected" ? "rejected" : "pending",
+          registeredAt: brand.createdAt,
+          subCampaigns: (brand.campaigns || []).map((campaign: {
+            campaignId: string;
+            usecase: string;
+            status: string;
+          }) => ({
+            id: campaign.campaignId,
+            name: campaign.usecase || "Campaign",
+            type: "initial" as const,
+            assignedWorker: "gianna",
+            status: campaign.status?.toLowerCase() === "active" ? "active" as const :
+                    campaign.status?.toLowerCase() === "paused" ? "paused" as const : "draft" as const,
+            stats: { sent: 0, delivered: 0, responses: 0, positive: 0 },
+          })),
+        }));
+
+        setBrandCampaigns(mappedBrands);
+      }
+    } catch (error) {
+      console.error("Failed to fetch brand campaigns:", error);
+      // Don't show error toast - it's ok if SignalHouse isn't configured yet
+    }
+  };
+
   // Start batch skip trace
   const handleBatchSkipTrace = async () => {
     if (stats.skipTracedToday >= DAILY_SKIP_TRACE_LIMIT) {
@@ -261,13 +339,22 @@ export default function CommandCenterPage() {
   };
 
   // Toggle LUCI autopilot
-  const toggleLuci = () => {
-    setLuciActive(!luciActive);
-    if (!luciActive) {
+  const toggleLuci = async () => {
+    const newActive = !luciActive;
+    setLuciActive(newActive);
+    await saveLuciConfig(newActive, luciDailyLimit);
+    if (newActive) {
       toast.success("LUCI activated - will pull leads until 20K reached");
     } else {
       toast.info("LUCI paused");
     }
+  };
+
+  // Update LUCI daily limit
+  const updateLuciDailyLimit = async (limit: number) => {
+    setLuciDailyLimit(limit);
+    await saveLuciConfig(luciActive, limit);
+    toast.success(`Daily limit set to ${limit}`);
   };
 
   const formatNumber = (num: number): string => {
@@ -865,23 +952,16 @@ export default function CommandCenterPage() {
                       {[250, 500, 1000, 2000].map((limit) => (
                         <Button
                           key={limit}
-                          variant={
-                            stats.skipTracedToday <= limit
-                              ? "default"
-                              : "outline"
-                          }
+                          variant={luciDailyLimit === limit ? "default" : "outline"}
                           size="sm"
                           className={cn(
                             "flex-1",
-                            limit === 250 && "bg-blue-600 hover:bg-blue-700",
-                            limit === 500 && "bg-green-600 hover:bg-green-700",
-                            limit === 1000 && "bg-amber-600 hover:bg-amber-700",
-                            limit === 2000 &&
-                              "bg-purple-600 hover:bg-purple-700",
+                            luciDailyLimit === limit && limit === 250 && "bg-blue-600 hover:bg-blue-700",
+                            luciDailyLimit === limit && limit === 500 && "bg-green-600 hover:bg-green-700",
+                            luciDailyLimit === limit && limit === 1000 && "bg-amber-600 hover:bg-amber-700",
+                            luciDailyLimit === limit && limit === 2000 && "bg-purple-600 hover:bg-purple-700",
                           )}
-                          onClick={() =>
-                            toast.success(`Daily limit set to ${limit}`)
-                          }
+                          onClick={() => updateLuciDailyLimit(limit)}
                         >
                           {formatNumber(limit)}
                         </Button>

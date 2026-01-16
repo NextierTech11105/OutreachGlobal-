@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle2,
   Circle,
@@ -10,6 +10,7 @@ import {
   Database,
   MessageSquare,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,18 +33,53 @@ interface OnboardingStep {
   completed: boolean;
 }
 
+interface ProgressData {
+  profile: boolean;
+  team: boolean;
+  data: boolean;
+  templates: boolean;
+  integrations: boolean;
+}
+
 export default function GettingStartedPage() {
   const params = useParams<{ team: string }>();
   const teamSlug = params.team;
+  const [isLoading, setIsLoading] = useState(true);
+  const [progressData, setProgressData] = useState<ProgressData>({
+    profile: false,
+    team: false,
+    data: false,
+    templates: false,
+    integrations: false,
+  });
 
-  const [steps] = useState<OnboardingStep[]>([
+  // Fetch real progress from API
+  useEffect(() => {
+    const fetchProgress = async () => {
+      try {
+        const res = await fetch("/api/onboarding/progress");
+        if (res.ok) {
+          const data = await res.json();
+          setProgressData(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch progress:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProgress();
+  }, []);
+
+  const steps: OnboardingStep[] = [
     {
       id: "profile",
       title: "Complete Your Profile",
       description: "Add your business info and branding",
       icon: <Settings className="h-5 w-5" />,
       href: `/t/${teamSlug}/settings`,
-      completed: true,
+      completed: progressData.profile,
     },
     {
       id: "team",
@@ -51,7 +87,7 @@ export default function GettingStartedPage() {
       description: "Add colleagues to collaborate",
       icon: <Users className="h-5 w-5" />,
       href: `/t/${teamSlug}/users`,
-      completed: false,
+      completed: progressData.team,
     },
     {
       id: "data",
@@ -59,7 +95,7 @@ export default function GettingStartedPage() {
       description: "Upload leads or connect data sources",
       icon: <Database className="h-5 w-5" />,
       href: `/t/${teamSlug}/import`,
-      completed: false,
+      completed: progressData.data,
     },
     {
       id: "templates",
@@ -67,7 +103,7 @@ export default function GettingStartedPage() {
       description: "Create reusable outreach messages",
       icon: <MessageSquare className="h-5 w-5" />,
       href: `/t/${teamSlug}/message-templates`,
-      completed: false,
+      completed: progressData.templates,
     },
     {
       id: "integrations",
@@ -75,9 +111,9 @@ export default function GettingStartedPage() {
       description: "Link your CRM, email, and phone systems",
       icon: <Zap className="h-5 w-5" />,
       href: `/t/${teamSlug}/integrations`,
-      completed: false,
+      completed: progressData.integrations,
     },
-  ]);
+  ];
 
   const completedCount = steps.filter((s) => s.completed).length;
   const progress = (completedCount / steps.length) * 100;
@@ -102,7 +138,14 @@ export default function GettingStartedPage() {
             <div>
               <CardTitle>Setup Progress</CardTitle>
               <CardDescription>
-                {completedCount} of {steps.length} steps completed
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Checking progress...
+                  </span>
+                ) : (
+                  `${completedCount} of ${steps.length} steps completed`
+                )}
               </CardDescription>
             </div>
             <span className="text-2xl font-bold">{Math.round(progress)}%</span>
