@@ -30,6 +30,9 @@ export interface USBizDatabase {
   costPerLead: number;
 }
 
+// Type alias for backwards compatibility
+export type USBizDataDatabase = USBizDatabase;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // DATABASE REGISTRY
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -61,7 +64,14 @@ export const USBIZDATA_REGISTRY: USBizDatabase[] = [
     verified: true,
     lastUpdated: "2026-01-01",
     category: "REAL_ESTATE",
-    fields: ["company", "contact", "phone", "email", "address", "units_managed"],
+    fields: [
+      "company",
+      "contact",
+      "phone",
+      "email",
+      "address",
+      "units_managed",
+    ],
     costPerLead: 0.01,
   },
 
@@ -130,13 +140,21 @@ export const USBIZDATA_REGISTRY: USBizDatabase[] = [
     verified: true,
     lastUpdated: "2026-01-01",
     category: "HOME_SERVICES",
-    fields: ["company", "contact", "phone", "email", "address", "certifications"],
+    fields: [
+      "company",
+      "contact",
+      "phone",
+      "email",
+      "address",
+      "certifications",
+    ],
     costPerLead: 0.01,
   },
   {
     id: "kitchen_remodelers",
     name: "Kitchen Remodeling Contractors",
-    description: "Kitchen remodelers, cabinet installers, countertop specialists",
+    description:
+      "Kitchen remodelers, cabinet installers, countertop specialists",
     sicCode: "1521",
     sicDescription: "General Contractors - Residential",
     recordCount: 120000,
@@ -212,7 +230,15 @@ export const USBIZDATA_REGISTRY: USBizDatabase[] = [
     verified: true,
     lastUpdated: "2026-01-01",
     category: "TRUCKING",
-    fields: ["company", "contact", "phone", "email", "address", "dot_number", "mc_number"],
+    fields: [
+      "company",
+      "contact",
+      "phone",
+      "email",
+      "address",
+      "dot_number",
+      "mc_number",
+    ],
     costPerLead: 0.01,
   },
   {
@@ -225,7 +251,16 @@ export const USBIZDATA_REGISTRY: USBizDatabase[] = [
     verified: true,
     lastUpdated: "2026-01-01",
     category: "TRUCKING",
-    fields: ["company", "contact", "phone", "email", "address", "dot_number", "mc_number", "fleet_size"],
+    fields: [
+      "company",
+      "contact",
+      "phone",
+      "email",
+      "address",
+      "dot_number",
+      "mc_number",
+      "fleet_size",
+    ],
     costPerLead: 0.01,
   },
   {
@@ -255,7 +290,15 @@ export const USBIZDATA_REGISTRY: USBizDatabase[] = [
     verified: true,
     lastUpdated: "2026-01-01",
     category: "B2B",
-    fields: ["company", "contact", "phone", "email", "address", "website", "employees"],
+    fields: [
+      "company",
+      "contact",
+      "phone",
+      "email",
+      "address",
+      "website",
+      "employees",
+    ],
     costPerLead: 0.01,
   },
 ];
@@ -281,7 +324,9 @@ export function getVerifiedDatabases(): USBizDatabase[] {
 /**
  * Get databases by category
  */
-export function getDatabasesByCategory(category: USBizDatabase["category"]): USBizDatabase[] {
+export function getDatabasesByCategory(
+  category: USBizDatabase["category"],
+): USBizDatabase[] {
   return USBIZDATA_REGISTRY.filter((db) => db.category === category);
 }
 
@@ -302,10 +347,74 @@ export function getDatabaseBySIC(sicCode: string): USBizDatabase[] {
 /**
  * Calculate total cost for a batch
  */
-export function calculateBatchCost(recordCount: number, databaseId?: string): number {
+export function calculateBatchCost(
+  recordCount: number,
+  databaseId?: string,
+): number {
   const db = databaseId ? getDatabaseById(databaseId) : undefined;
   const costPerLead = db?.costPerLead ?? 0.01;
   return recordCount * costPerLead;
+}
+
+/**
+ * Get category statistics (record counts per category)
+ */
+export function getCategoryStats(): Record<USBizDatabase["category"], number> {
+  const stats: Record<USBizDatabase["category"], number> = {
+    B2B: 0,
+    REAL_ESTATE: 0,
+    HOME_SERVICES: 0,
+    TRUCKING: 0,
+  };
+
+  for (const db of USBIZDATA_REGISTRY) {
+    stats[db.category] += db.recordCount;
+  }
+
+  return stats;
+}
+
+/**
+ * Get business line stats (databases grouped by category with totals)
+ */
+export function getBusinessLineStats(): Array<{
+  category: USBizDatabase["category"];
+  databases: number;
+  totalRecords: number;
+  costPerLead: number;
+}> {
+  const categories: USBizDatabase["category"][] = [
+    "B2B",
+    "REAL_ESTATE",
+    "HOME_SERVICES",
+    "TRUCKING",
+  ];
+
+  return categories.map((category) => {
+    const dbs = getDatabasesByCategory(category);
+    return {
+      category,
+      databases: dbs.length,
+      totalRecords: dbs.reduce((sum, db) => sum + db.recordCount, 0),
+      costPerLead: 0.01,
+    };
+  });
+}
+
+/**
+ * Get LUCI daily capacity (based on skip trace limits)
+ */
+export function getLuciDailyCapacity(): {
+  skipTraces: number;
+  enrichments: number;
+  campaigns: number;
+} {
+  // Default daily capacity values
+  return {
+    skipTraces: 500,
+    enrichments: 1000,
+    campaigns: 50,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -325,5 +434,5 @@ export const USBIZDATA_STATS = {
 };
 
 console.log(
-  `[USBizData Registry] Loaded ${USBIZDATA_STATS.totalDatabases} databases with ${(USBIZDATA_STATS.totalRecords / 1000000).toFixed(1)}M total records`
+  `[USBizData Registry] Loaded ${USBIZDATA_STATS.totalDatabases} databases with ${(USBIZDATA_STATS.totalRecords / 1000000).toFixed(1)}M total records`,
 );
