@@ -2819,3 +2819,58 @@ export const workerPhoneAssignments = pgTable(
 export type WorkerPhoneAssignment = typeof workerPhoneAssignments.$inferSelect;
 export type NewWorkerPhoneAssignment =
   typeof workerPhoneAssignments.$inferInsert;
+
+// ============================================================
+// SDR ACTIVITY LOG - Tracks all agent actions for SDR console
+// ============================================================
+
+export const sdrActivityLog = pgTable(
+  "sdr_activity_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id").notNull(),
+
+    // Agent identification
+    agent: text("agent").notNull(), // 'GIANNA' | 'CATHY' | 'SABRINA' | 'LUCI' | 'COPILOT'
+    action: text("action").notNull(), // 'suggestion' | 'approval' | 'rejection' | 'auto_send' | 'enrichment' | 'booking'
+
+    // Related entities
+    leadId: text("lead_id"),
+    messageId: text("message_id"),
+    conversationId: text("conversation_id"),
+
+    // Action details
+    payload: jsonb("payload"), // { suggestion, confidence, reason, etc. }
+    status: text("status").notNull().default("pending"), // 'pending' | 'approved' | 'rejected' | 'auto_sent' | 'expired'
+
+    // Human-in-the-loop tracking
+    requiresApproval: boolean("requires_approval").default(false),
+    approvedBy: text("approved_by"), // user_id who approved
+    approvedAt: timestamp("approved_at"),
+    rejectionReason: text("rejection_reason"),
+
+    // SLA tracking
+    slaDeadline: timestamp("sla_deadline"), // When this needs to be actioned by
+    slaBreached: boolean("sla_breached").default(false),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("sdr_activity_log_team_id_idx").on(table.teamId),
+    agentIdx: index("sdr_activity_log_agent_idx").on(table.agent),
+    actionIdx: index("sdr_activity_log_action_idx").on(table.action),
+    statusIdx: index("sdr_activity_log_status_idx").on(table.status),
+    leadIdIdx: index("sdr_activity_log_lead_id_idx").on(table.leadId),
+    pendingApprovalIdx: index("sdr_activity_log_pending_approval_idx").on(
+      table.teamId,
+      table.requiresApproval,
+      table.status,
+    ),
+    createdAtIdx: index("sdr_activity_log_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export type SdrActivityLog = typeof sdrActivityLog.$inferSelect;
+export type NewSdrActivityLog = typeof sdrActivityLog.$inferInsert;
