@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -10,7 +12,7 @@ const nextConfig = {
   },
   // Fix workspace root detection for monorepo builds (Next.js 16+)
   turbopack: {
-    root: '../..',
+    root: path.resolve(__dirname, '../..'),
   },
 }
 
