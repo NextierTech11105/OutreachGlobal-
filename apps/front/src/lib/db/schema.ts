@@ -9,6 +9,7 @@ import {
   decimal,
   date,
   index,
+  real,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -2993,3 +2994,99 @@ export const aiUsageLimits = pgTable(
 
 export type AiUsageLimits = typeof aiUsageLimits.$inferSelect;
 export type NewAiUsageLimits = typeof aiUsageLimits.$inferInsert;
+
+// ============================================================
+// AUTO-RESPOND TEMPLATES - Toggleable SMS templates per agent/team
+// ============================================================
+
+export const autoRespondTemplates = pgTable(
+  "auto_respond_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id").notNull(),
+
+    // Agent and category
+    agentType: text("agent_type").notNull(), // GIANNA, CATHY, SABRINA
+    category: text("category").notNull(), // opener, followUp, objection, booking, nudge
+
+    // Template content
+    name: text("name").notNull(),
+    template: text("template").notNull(),
+    variables: jsonb("variables"), // [{name: string, required: boolean, default?: string}]
+
+    // Controls
+    isActive: boolean("is_active").notNull().default(true),
+    priority: integer("priority").notNull().default(0), // Higher = selected first
+
+    // Metadata
+    usageCount: integer("usage_count").notNull().default(0),
+    lastUsedAt: timestamp("last_used_at"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamAgentCategoryIdx: index("auto_respond_team_agent_category_idx").on(
+      table.teamId,
+      table.agentType,
+      table.category
+    ),
+    activeIdx: index("auto_respond_active_idx").on(table.isActive),
+    teamIdx: index("auto_respond_team_idx").on(table.teamId),
+  })
+);
+
+export type AutoRespondTemplate = typeof autoRespondTemplates.$inferSelect;
+export type NewAutoRespondTemplate = typeof autoRespondTemplates.$inferInsert;
+
+// ============================================================
+// AI PROMPTS - Toggleable AI prompts with versioning
+// ============================================================
+
+export const aiPrompts = pgTable(
+  "ai_prompts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id").notNull(),
+
+    // Prompt identification
+    promptKey: text("prompt_key").notNull(), // classify_intent, generate_response, suggest_reply, etc
+    version: integer("version").notNull().default(1),
+
+    // Prompt content
+    name: text("name").notNull(),
+    description: text("description"),
+    systemPrompt: text("system_prompt").notNull(),
+    userPromptTemplate: text("user_prompt_template"), // Can contain {variables}
+
+    // Model configuration
+    model: text("model").notNull().default("gpt-4o-mini"),
+    temperature: real("temperature").notNull().default(0.7),
+    maxTokens: integer("max_tokens"),
+
+    // Controls
+    isActive: boolean("is_active").notNull().default(true),
+    isDefault: boolean("is_default").notNull().default(false), // System default
+
+    // Metadata
+    usageCount: integer("usage_count").notNull().default(0),
+    avgLatencyMs: integer("avg_latency_ms"),
+    successRate: real("success_rate"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamPromptKeyIdx: index("ai_prompts_team_key_idx").on(
+      table.teamId,
+      table.promptKey
+    ),
+    activeIdx: index("ai_prompts_active_idx").on(table.isActive),
+    teamIdx: index("ai_prompts_team_idx").on(table.teamId),
+  })
+);
+
+export type AiPrompt = typeof aiPrompts.$inferSelect;
+export type NewAiPrompt = typeof aiPrompts.$inferInsert;

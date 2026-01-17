@@ -117,3 +117,10 @@ export * from "./audience-builder.schema";
 
 // ===== GROWTH OS: SMS SEQUENCES =====
 export * from "./sms-sequences.schema";
+
+// ===== AI TEMPLATES & PROMPTS (Toggleable) =====
+export * from "./auto-respond-templates.schema";
+export * from "./ai-prompts.schema";
+
+// ===== UNIFIED LEAD MODULE =====
+export * from "./unified-lead.schema";

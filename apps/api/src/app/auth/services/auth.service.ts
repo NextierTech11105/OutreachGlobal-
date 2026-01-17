@@ -29,6 +29,11 @@ export class AuthService {
       })
       .then(orFail("user"));
 
+    // Google OAuth users don't have passwords
+    if (!user.password) {
+      throw new BadRequestException("This account uses Google sign-in");
+    }
+
     const passwordValid = await hashVerify(user.password, options.password);
     if (!passwordValid) {
       throw new BadRequestException("wrong password");

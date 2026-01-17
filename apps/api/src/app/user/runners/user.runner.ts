@@ -35,6 +35,10 @@ export class UserRunner extends CommandRunner {
           undefined,
         );
 
+        if (!data.password) {
+          throw new Error("Password is required");
+        }
+
         const [user] = await this.db
           .insert(usersTable)
           .values({
