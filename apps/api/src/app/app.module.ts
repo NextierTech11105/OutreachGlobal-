@@ -76,6 +76,8 @@ import { BillingModule } from "./billing/billing.module";
       inject: [ConfigService],
       imports: [ConfigModule],
     }),
+    // BillingModule MUST come before UserModule (UserService depends on SubscriptionService)
+    BillingModule,
     AuthModule,
     UserModule,
     TeamModule,
@@ -98,7 +100,6 @@ import { BillingModule } from "./billing/billing.module";
     EnrichmentModule,
     MetricsModule,
     OutboundModule,
-    BillingModule,
   ],
   providers: [
     AppRunner,

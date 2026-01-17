@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Inject, forwardRef } from "@nestjs/common";
 import { LoginInput } from "../inputs/login.input";
 import { RegisterInput } from "../inputs/register.input";
 import { AuthService } from "@/app/auth/services/auth.service";
@@ -25,6 +25,7 @@ export class UserService {
     private authService: AuthService,
     @InjectDB() private db: DrizzleClient,
     private mailService: MailService,
+    @Inject(forwardRef(() => SubscriptionService))
     private subscriptionService: SubscriptionService,
   ) {}
 
