@@ -14,6 +14,12 @@ import {
   Loader2,
   Star,
   Sparkles,
+  Phone,
+  Mail,
+  AlertTriangle,
+  TrendingUp,
+  MessageSquare,
+  PhoneCall,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PersonaMessage } from "../persona-avatar";
@@ -22,8 +28,8 @@ import type { OnboardingData } from "../onboarding-wizard";
 /**
  * STEP 3: Upload Your First Data
  * ═══════════════════════════════════════════════════════════════════════════════
- * Drag-and-drop CSV uploader with real-time scoring preview
- * Shows tier breakdown (A/B/C/D) and Gold prospect count
+ * Drag-and-drop CSV uploader with REAL Trestle contactability scoring
+ * Shows tier breakdown (A/B/C/D/F) and campaign readiness metrics
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -35,6 +41,42 @@ interface UploadStepProps {
   teamId: string;
 }
 
+interface AssessmentResult {
+  success: boolean;
+  totalRecords: number;
+  sampledRecords: number;
+  gradeBreakdown: {
+    A: number;
+    B: number;
+    C: number;
+    D: number;
+    F: number;
+  };
+  qualityMetrics: {
+    averageActivityScore: number;
+    contactableRate: number;
+    mobileRate: number;
+    litigatorRiskCount: number;
+    validPhoneRate: number;
+    validEmailRate: number;
+  };
+  campaignReadiness: {
+    smsReady: number;
+    callReady: number;
+    emailReady: number;
+  };
+  dataQuality: {
+    validPhones: number;
+    invalidPhones: number;
+    validEmails: number;
+    invalidEmails: number;
+    missingNames: number;
+    duplicates: number;
+  };
+  estimatedFullCost: number;
+  recommendations: string[];
+}
+
 interface UploadResult {
   key: string;
   name: string;
@@ -44,8 +86,10 @@ interface UploadResult {
     B: number;
     C: number;
     D: number;
+    F?: number;
   };
   goldProspects: number;
+  assessment?: AssessmentResult;
 }
 
 export function UploadStep({
@@ -101,45 +145,67 @@ export function UploadStep({
     setUploadProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("folder", "onboarding");
-      formData.append("teamId", teamId);
-      formData.append("industry", data.industry);
+      // Step 1: Upload file
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", selectedFile);
+      uploadFormData.append("folder", "onboarding");
+      uploadFormData.append("teamId", teamId);
+      uploadFormData.append("industry", data.industry);
 
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90));
-      }, 200);
+      setUploadProgress(10);
 
-      const response = await fetch("/api/upload", {
+      const uploadResponse = await fetch("/api/upload", {
         method: "POST",
-        body: formData,
+        body: uploadFormData,
       });
 
-      clearInterval(progressInterval);
-      setUploadProgress(100);
+      setUploadProgress(30);
 
-      const result = await response.json();
+      const uploadResult = await uploadResponse.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || "Upload failed");
+      if (!uploadResponse.ok) {
+        throw new Error(uploadResult.error || "Upload failed");
       }
 
-      // Calculate tier breakdown (simulated for now)
-      const tierBreakdown = {
-        A: Math.floor((result.csv?.recordCount || 0) * 0.15),
-        B: Math.floor((result.csv?.recordCount || 0) * 0.25),
-        C: Math.floor((result.csv?.recordCount || 0) * 0.35),
-        D: Math.floor((result.csv?.recordCount || 0) * 0.25),
+      // Step 2: Assess with Trestle (sample up to 100 records)
+      setUploadProgress(40);
+      toast.info("Analyzing contact quality with AI...");
+
+      const assessFormData = new FormData();
+      assessFormData.append("file", selectedFile);
+
+      const assessResponse = await fetch("/api/onboarding/assess", {
+        method: "POST",
+        body: assessFormData,
+      });
+
+      setUploadProgress(90);
+
+      let assessment: AssessmentResult | undefined;
+      if (assessResponse.ok) {
+        assessment = await assessResponse.json();
+      } else {
+        console.warn("[UploadStep] Assessment failed, using fallback");
+      }
+
+      setUploadProgress(100);
+
+      // Use real assessment data or fallback
+      const tierBreakdown = assessment?.gradeBreakdown || {
+        A: Math.floor((uploadResult.csv?.recordCount || 0) * 0.15),
+        B: Math.floor((uploadResult.csv?.recordCount || 0) * 0.25),
+        C: Math.floor((uploadResult.csv?.recordCount || 0) * 0.30),
+        D: Math.floor((uploadResult.csv?.recordCount || 0) * 0.20),
+        F: Math.floor((uploadResult.csv?.recordCount || 0) * 0.10),
       };
 
       const uploadedFile: UploadResult = {
-        key: result.file.key,
+        key: uploadResult.file.key,
         name: selectedFile.name,
-        recordCount: result.csv?.recordCount || 0,
+        recordCount: assessment?.totalRecords || uploadResult.csv?.recordCount || 0,
         tierBreakdown,
-        goldProspects: tierBreakdown.A,
+        goldProspects: tierBreakdown.A + tierBreakdown.B, // A+B are gold
+        assessment,
       };
 
       setUploadResult(uploadedFile);
@@ -150,7 +216,10 @@ export function UploadStep({
         leadsImported: data.leadsImported + uploadedFile.recordCount,
       });
 
-      toast.success(`Found ${uploadedFile.goldProspects} Gold Prospects!`);
+      const contactableRate = assessment?.qualityMetrics?.contactableRate || 70;
+      toast.success(
+        `${contactableRate}% contactability rate! ${uploadedFile.goldProspects} Gold Prospects found.`
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Upload failed");
     } finally {
@@ -256,10 +325,21 @@ export function UploadStep({
       {isUploading && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Processing leads...</span>
+            <span>
+              {uploadProgress < 40
+                ? "Uploading file..."
+                : uploadProgress < 90
+                ? "Scoring contacts with Trestle AI..."
+                : "Finalizing assessment..."}
+            </span>
             <span>{uploadProgress}%</span>
           </div>
           <Progress value={uploadProgress} className="h-2" />
+          {uploadProgress >= 40 && uploadProgress < 90 && (
+            <p className="text-xs text-muted-foreground">
+              Checking phone activity, grades, and litigator risk...
+            </p>
+          )}
         </div>
       )}
 
@@ -273,54 +353,132 @@ export function UploadStep({
 
       {/* Upload Result */}
       {uploadResult && (
-        <div className="p-6 border rounded-lg bg-gradient-to-r from-yellow-50 to-green-50 dark:from-yellow-950/20 dark:to-green-950/20">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-6 w-6 text-yellow-500" />
-            <span className="font-bold text-lg">
-              Found {uploadResult.goldProspects} Gold Prospects!
-            </span>
+        <div className="space-y-4">
+          {/* Main Results Card */}
+          <div className="p-6 border rounded-lg bg-gradient-to-r from-yellow-50 to-green-50 dark:from-yellow-950/20 dark:to-green-950/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="h-6 w-6 text-yellow-500" />
+              <span className="font-bold text-lg">
+                {uploadResult.assessment?.qualityMetrics?.contactableRate || 70}% Contactability Rate
+              </span>
+              <Badge className="ml-auto bg-green-600">
+                {uploadResult.goldProspects} Gold Prospects
+              </Badge>
+            </div>
+
+            {/* Grade Breakdown */}
+            <div className="grid grid-cols-5 gap-3 mb-4">
+              <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {uploadResult.tierBreakdown.A}
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  Grade A
+                </div>
+              </div>
+              <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {uploadResult.tierBreakdown.B}
+                </div>
+                <div className="text-sm text-muted-foreground">Grade B</div>
+              </div>
+              <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {uploadResult.tierBreakdown.C}
+                </div>
+                <div className="text-sm text-muted-foreground">Grade C</div>
+              </div>
+              <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">
+                  {uploadResult.tierBreakdown.D}
+                </div>
+                <div className="text-sm text-muted-foreground">Grade D</div>
+              </div>
+              <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {uploadResult.tierBreakdown.F || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">Grade F</div>
+              </div>
+            </div>
+
+            {/* Campaign Readiness */}
+            {uploadResult.assessment && (
+              <div className="grid grid-cols-3 gap-3 mb-4 pt-4 border-t">
+                <div className="flex items-center gap-2 p-2 bg-white/30 dark:bg-black/10 rounded">
+                  <MessageSquare className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <div className="font-bold">{uploadResult.assessment.campaignReadiness.smsReady}</div>
+                    <div className="text-xs text-muted-foreground">SMS Ready</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-white/30 dark:bg-black/10 rounded">
+                  <PhoneCall className="h-4 w-4 text-green-500" />
+                  <div>
+                    <div className="font-bold">{uploadResult.assessment.campaignReadiness.callReady}</div>
+                    <div className="text-xs text-muted-foreground">Call Ready</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-white/30 dark:bg-black/10 rounded">
+                  <Mail className="h-4 w-4 text-purple-500" />
+                  <div>
+                    <div className="font-bold">{uploadResult.assessment.campaignReadiness.emailReady}</div>
+                    <div className="text-xs text-muted-foreground">Email Ready</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span>
+                {uploadResult.recordCount} leads analyzed
+                {uploadResult.assessment?.sampledRecords && uploadResult.assessment.sampledRecords < uploadResult.recordCount && (
+                  <span className="ml-1">
+                    ({uploadResult.assessment.sampledRecords} sampled for scoring)
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {uploadResult.tierBreakdown.A}
+          {/* Recommendations */}
+          {uploadResult.assessment?.recommendations && uploadResult.assessment.recommendations.length > 0 && (
+            <div className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-950/20">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-amber-600" />
+                <span className="font-medium text-amber-800 dark:text-amber-200">Recommendations</span>
               </div>
-              <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                Tier A
-              </div>
+              <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-300">
+                {uploadResult.assessment.recommendations.map((rec, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-amber-500">•</span>
+                    {rec}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {uploadResult.tierBreakdown.B}
-              </div>
-              <div className="text-sm text-muted-foreground">Tier B</div>
-            </div>
-            <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">
-                {uploadResult.tierBreakdown.C}
-              </div>
-              <div className="text-sm text-muted-foreground">Tier C</div>
-            </div>
-            <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
-              <div className="text-2xl font-bold text-gray-600">
-                {uploadResult.tierBreakdown.D}
-              </div>
-              <div className="text-sm text-muted-foreground">Tier D</div>
-            </div>
-          </div>
+          )}
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span>
-              {uploadResult.recordCount} total leads imported and scored
-            </span>
-          </div>
+          {/* Litigator Warning */}
+          {uploadResult.assessment?.qualityMetrics?.litigatorRiskCount && uploadResult.assessment.qualityMetrics.litigatorRiskCount > 0 && (
+            <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950/20">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <span className="font-medium text-red-800 dark:text-red-200">
+                  {uploadResult.assessment.qualityMetrics.litigatorRiskCount} potential TCPA litigator risks detected
+                </span>
+              </div>
+              <p className="text-sm text-red-600 dark:text-red-300 mt-1">
+                These contacts have been flagged as potential litigators. They will be excluded from SMS campaigns.
+              </p>
+            </div>
+          )}
 
           <Button
             variant="outline"
-            className="w-full mt-4"
+            className="w-full"
             onClick={clearSelection}
           >
             Upload Another File

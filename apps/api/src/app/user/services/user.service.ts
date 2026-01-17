@@ -17,6 +17,7 @@ import { hashMake } from "@/common/utils/hash";
 import { slugify, TeamMemberRole, TeamMemberStatus } from "@nextier/common";
 import { addDays } from "date-fns";
 import { MailService } from "@/lib/mail/mail.service";
+import { SubscriptionService } from "@/app/billing/services/subscription.service";
 
 @Injectable()
 export class UserService {
@@ -24,6 +25,7 @@ export class UserService {
     private authService: AuthService,
     @InjectDB() private db: DrizzleClient,
     private mailService: MailService,
+    private subscriptionService: SubscriptionService,
   ) {}
 
   async login(input: LoginInput) {
@@ -86,6 +88,10 @@ export class UserService {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Create 14-day trial subscription
+    const subscription = await this.subscriptionService.createTrialSubscription(team.id);
+    console.log(`[UserService] Created trial subscription for team ${team.id}, expires: ${subscription.trialEnd}`);
 
     // Generate access token
     const { token } = await this.authService.accessToken(user);
@@ -181,6 +187,10 @@ export class UserService {
         createdAt: now,
         updatedAt: now,
       });
+
+      // Create 14-day trial subscription
+      const subscription = await this.subscriptionService.createTrialSubscription(team.id);
+      console.log(`[UserService] Created trial subscription for team ${team.id}, expires: ${subscription.trialEnd}`);
 
       const { token } = await this.authService.accessToken(user);
 

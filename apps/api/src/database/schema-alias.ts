@@ -230,3 +230,21 @@ export const industryCodesTable = industryCodes;
 export const dataSourcesTable = dataSources;
 export const consentLogTable = consentLog;
 export const priorityQueueTable = priorityQueue;
+
+// Billing & Subscriptions
+import {
+  plans,
+  subscriptions,
+  payments,
+  usageRecords,
+  invoices,
+  paymentMethods,
+  credits,
+} from "./schema/billing.schema";
+export const plansTable = plans;
+export const subscriptionsTable = subscriptions;
+export const paymentsTable = payments;
+export const usageRecordsTable = usageRecords;
+export const invoicesTable = invoices;
+export const paymentMethodsTable = paymentMethods;
+export const creditsTable = credits;
