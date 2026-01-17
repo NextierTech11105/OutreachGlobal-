@@ -18,7 +18,10 @@ export class User extends TimestampModel implements UserSelect {
   role: string;
 
   @StringField()
-  password: string;
+  password: string | null;
+
+  @StringField()
+  googleId: string | null;
 
   @DateField()
   emailVerifiedAt: Date | null;
