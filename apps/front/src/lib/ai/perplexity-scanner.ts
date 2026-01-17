@@ -21,6 +21,8 @@
 
 import { z } from "zod";
 import { Logger } from "@/lib/logger";
+import { perplexityCircuit, CircuitBreakerError } from "./circuit-breaker";
+import { trackUsage, checkUsageLimits } from "./usage-tracker";
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY || "";
@@ -242,26 +244,55 @@ async function queryPerplexity(
     model?: string;
     maxTokens?: number;
     operation?: string;
+    teamId?: string;
   } = {},
 ): Promise<{ content: string; usage: TokenUsage | null }> {
   const {
     model = "llama-3.1-sonar-small-128k-online",
     maxTokens = 1000,
     operation = "unknown",
+    teamId,
   } = options;
+
+  // Check usage limits if teamId provided
+  if (teamId) {
+    const limitCheck = await checkUsageLimits(teamId);
+    if (!limitCheck.allowed) {
+      Logger.warn("Perplexity", "Usage limit exceeded", {
+        teamId,
+        reason: limitCheck.reason,
+        percentUsed: limitCheck.percentUsed,
+      });
+      throw new Error(`AI usage limit exceeded: ${limitCheck.reason}`);
+    }
+  }
 
   if (!PERPLEXITY_API_KEY) {
     throw new Error("PERPLEXITY_API_KEY not configured");
   }
 
+  // Check circuit breaker before attempting call
+  if (!perplexityCircuit.canExecute()) {
+    Logger.warn("Perplexity", "Circuit breaker OPEN, rejecting request", {
+      operation,
+      stats: perplexityCircuit.getStats(),
+    });
+    throw new CircuitBreakerError(
+      "Perplexity circuit breaker is OPEN. Service temporarily unavailable.",
+      "perplexity",
+      perplexityCircuit.getStats().state
+    );
+  }
+
   let lastError: Error | null = null;
+  let startTime = Date.now();
 
   for (let attempt = 0; attempt < CONFIG.MAX_RETRIES; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
 
     try {
-      const startTime = Date.now();
+      startTime = Date.now();
 
       const response = await fetch(PERPLEXITY_API_URL, {
         method: "POST",
@@ -319,7 +350,25 @@ async function queryPerplexity(
           latencyMs,
           attempt: attempt + 1,
         });
+
+        // Track usage in database if teamId provided
+        if (teamId) {
+          trackUsage({
+            teamId,
+            provider: "perplexity",
+            model,
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            latencyMs,
+            success: true,
+          }).catch((err) => {
+            Logger.error("Perplexity", "Failed to track usage", { error: err.message });
+          });
+        }
       }
+
+      // Record success with circuit breaker
+      perplexityCircuit.recordSuccess();
 
       return {
         content: data.choices[0]?.message?.content || "",
@@ -346,10 +395,30 @@ async function queryPerplexity(
         attempt: attempt + 1,
         error: lastError.message,
       });
+
+      // Track failed usage if teamId provided
+      if (teamId) {
+        trackUsage({
+          teamId,
+          provider: "perplexity",
+          model,
+          promptTokens: 0,
+          completionTokens: 0,
+          latencyMs: Date.now() - startTime,
+          success: false,
+        }).catch(() => {});
+      }
+
+      // Record failure with circuit breaker
+      perplexityCircuit.recordFailure(lastError);
       throw lastError;
     }
   }
 
+  // Record failure with circuit breaker if all retries exhausted
+  if (lastError) {
+    perplexityCircuit.recordFailure(lastError);
+  }
   throw lastError || new Error("Perplexity query failed after retries");
 }
 
@@ -364,6 +433,7 @@ export async function verifyBusiness(
   companyName: string,
   address?: string,
   website?: string,
+  teamId?: string,
 ): Promise<BusinessVerification> {
   const sanitizedName = sanitizeInput(companyName);
   const sanitizedAddress = address ? sanitizeInput(address) : "";
@@ -410,6 +480,7 @@ Respond with JSON only:
   try {
     const { content } = await queryPerplexity(prompt, {
       operation: "verifyBusiness",
+      teamId,
     });
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -490,6 +561,7 @@ Respond with JSON only:
 export async function researchOwner(
   companyName: string,
   existingOwnerName?: string,
+  teamId?: string,
 ): Promise<OwnerResearch> {
   const sanitizedName = sanitizeInput(companyName);
   const sanitizedOwner = existingOwnerName
@@ -525,6 +597,7 @@ Respond with JSON only:
   try {
     const { content } = await queryPerplexity(prompt, {
       operation: "researchOwner",
+      teamId,
     });
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -585,6 +658,7 @@ Respond with JSON only:
 export async function getCompetitiveIntel(
   companyName: string,
   industry?: string,
+  teamId?: string,
 ): Promise<CompetitiveIntel> {
   const sanitizedName = sanitizeInput(companyName);
   const sanitizedIndustry = industry ? sanitizeInput(industry) : "";
@@ -614,6 +688,7 @@ Respond with JSON only:
   try {
     const { content } = await queryPerplexity(prompt, {
       operation: "getCompetitiveIntel",
+      teamId,
     });
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -666,6 +741,7 @@ export async function batchVerifyBusinesses(
     website?: string;
   }>,
   concurrency: number = 3,
+  teamId?: string,
 ): Promise<Map<string, BusinessVerification>> {
   const results = new Map<string, BusinessVerification>();
 
@@ -677,6 +753,7 @@ export async function batchVerifyBusinesses(
         biz.companyName,
         biz.address,
         biz.website,
+        teamId,
       );
       results.set(biz.companyName, result);
     });

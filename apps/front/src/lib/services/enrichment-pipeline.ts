@@ -1,19 +1,38 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * ENRICHMENT PIPELINE - Lead Data Enhancement
+ * LEAD LAB - A NextTier Solution
  * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Enrichment Pipeline - Lead Data Enhancement & Contactability Scoring
  *
  * Pipeline Order:
  * 1. USBizData CSV Import (raw data)
  * 2. Perplexity Verification (is business active? verify owner)
- * 3. Tracerfy Skip Trace ($0.02/record - phones with line type, emails)
- * 4. Ready for THE LOOP
+ * 3. Tracerfy Skip Trace ($0.02/record) → DATA ENGINE (phones, emails)
+ * 4. Trestle Real Contact ($0.03/record) → CONTACTABILITY ENGINE (grades, scores)
+ * 5. ContactabilityProfile → Risk Tier + Routing Strategy
+ * 6. Lead ID Assignment + Campaign Registration (ONLY if contactable)
+ * 7. Ready for THE LOOP
  *
- * Tracerfy returns:
+ * COST: $0.05/lead (Tracerfy $0.02 + Trestle $0.03)
+ *
+ * DATA ENGINE (Tracerfy) returns:
  * - primary_phone + primary_phone_type
  * - mobile_1 through mobile_5 (labeled as Mobile)
  * - landline_1 through landline_3 (labeled as Landline)
  * - email_1 through email_5
+ *
+ * CONTACTABILITY ENGINE (Trestle) returns:
+ * - phone.is_valid, phone.activity_score (0-100), phone.line_type
+ * - phone.name_match, phone.contact_grade (A-F)
+ * - email.is_valid, email.contact_grade, email.is_deliverable
+ * - litigator_checks.phone.is_litigator_risk (TCPA critical)
+ *
+ * RISK TIERS:
+ * - SAFE: Green light for all outreach channels
+ * - ELEVATED: Proceed with caution, may need manual review
+ * - HIGH: Limit to low-touch channels (email nurture)
+ * - BLOCK: Do not contact (litigator, DNC, severe risk)
  *
  * ═══════════════════════════════════════════════════════════════════════════════
  */
@@ -25,11 +44,38 @@ import {
   type TracerfyNormalResult,
 } from "@/lib/tracerfy";
 import {
+  getTrestleClient,
+  isPhoneContactable,
+  hasLitigatorRisk,
+  calculateContactabilityScore,
+  mapLineType,
+  type TrestleAddOn,
+} from "@/lib/trestle";
+import {
+  evaluateLeadContactability,
+  type ContactabilityResult,
+} from "@/lib/services/contactability-engine";
+import {
+  decideRouting,
+  getRouteDescription,
+  type RouteDecision,
+} from "@/lib/services/routing-strategy";
+import type {
+  ContactabilityProfile,
+  RiskTier,
+} from "@/lib/domain/contactability";
+import {
   verifyBusiness,
   researchOwner,
   type BusinessVerification,
   type OwnerResearch,
 } from "@/lib/ai/perplexity-scanner";
+import {
+  TRESTLE_COST_PER_CONTACT,
+  TRESTLE_GOOD_ACTIVITY_SCORE,
+  TRESTLE_PASSING_GRADES,
+  TRESTLE_DEFAULT_ADDONS,
+} from "@/config/constants";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -90,8 +136,36 @@ export interface EnrichedLead extends RawLead {
     zip?: string;
   };
 
+  // Trestle validation (contactability scoring)
+  trestleValidation?: {
+    phoneActivityScore?: number; // 0-100 (70+ good, 30- bad)
+    phoneContactGrade?: string; // A-F
+    phoneLineType?: string; // Mobile, Landline, FixedVOIP, etc.
+    phoneNameMatch?: boolean;
+    phoneIsValid?: boolean;
+    emailIsValid?: boolean;
+    emailContactGrade?: string; // A-F
+    emailNameMatch?: boolean;
+    emailIsDeliverable?: boolean;
+    emailAgeScore?: number;
+    isLitigatorRisk?: boolean; // TCPA litigator flag - CRITICAL
+    validatedAt?: Date;
+  };
+
+  // Overall contactability
+  isContactable?: boolean;
+  contactabilityScore?: number; // 0-100
+
+  // Lead Lab Contactability Profile (full profile from ContactabilityEngine)
+  contactabilityProfile?: ContactabilityProfile;
+  riskTier?: RiskTier;
+
+  // Routing decision (from RoutingStrategy)
+  routingDecision?: RouteDecision;
+  routingDescription?: string;
+
   // Pipeline metadata
-  pipelineStage: "import" | "verify" | "enrich" | "ready" | "in_loop";
+  pipelineStage: "import" | "verify" | "enrich" | "validate" | "ready" | "in_loop";
   costToEnrich: number;
 }
 
@@ -113,6 +187,9 @@ export interface PipelineConfig {
   skipTrace: boolean;
   skipTraceType: "normal" | "enhanced";
   preferMobile: boolean;
+  // Trestle Real Contact validation (Step 4)
+  trestleValidation: boolean;
+  trestleAddOns: TrestleAddOn[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -125,6 +202,9 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
   skipTrace: true,
   skipTraceType: "normal",
   preferMobile: true,
+  // Trestle validation ON by default - critical for TCPA compliance
+  trestleValidation: true,
+  trestleAddOns: [...TRESTLE_DEFAULT_ADDONS] as TrestleAddOn[],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -391,6 +471,153 @@ export async function enrichLead(
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 4: Trestle Real Contact Validation ($0.03/record)
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // This is the CONTACTABILITY ENGINE - validates that phones are:
+  // - Active (activity score 70+)
+  // - Contactable (grade A, B, or C)
+  // - NOT a TCPA litigator risk
+  //
+  // Only leads passing this gate get assigned Lead IDs and registered for campaigns.
+  //
+
+  if (pipelineConfig.trestleValidation && lead.phones.length > 0) {
+    const startTime = Date.now();
+    try {
+      lead.pipelineStage = "validate";
+      const trestleClient = getTrestleClient();
+
+      // Get primary phone to validate (prefer mobile)
+      const phoneToValidate = lead.primaryPhone || lead.phones[0];
+      const fullName = `${lead.firstName || ""} ${lead.lastName || ""}`.trim();
+
+      // Call Trestle Real Contact API
+      const validation = await trestleClient.realContact({
+        name: fullName,
+        phone: phoneToValidate.number,
+        email: lead.primaryEmail,
+        businessName: lead.company,
+        address: lead.address
+          ? {
+              street_line_1: lead.address,
+              city: lead.city,
+              state_code: lead.state,
+              postal_code: lead.zip,
+              country_code: "US",
+            }
+          : undefined,
+        addOns: pipelineConfig.trestleAddOns,
+      });
+
+      // Store validation results
+      lead.trestleValidation = {
+        phoneActivityScore: validation.phone.activityScore ?? undefined,
+        phoneContactGrade: validation.phone.contactGrade ?? undefined,
+        phoneLineType: validation.phone.lineType ?? undefined,
+        phoneNameMatch: validation.phone.nameMatch ?? undefined,
+        phoneIsValid: validation.phone.isValid ?? undefined,
+        isLitigatorRisk:
+          validation.addOns?.litigatorChecks?.phoneIsLitigatorRisk ?? undefined,
+        validatedAt: new Date(),
+      };
+
+      // Add email validation if we have email
+      if (validation.email) {
+        lead.trestleValidation.emailIsValid =
+          validation.email.isValid ?? undefined;
+        lead.trestleValidation.emailContactGrade =
+          validation.email.contactGrade ?? undefined;
+        lead.trestleValidation.emailNameMatch =
+          validation.email.nameMatch ?? undefined;
+      }
+      if (validation.addOns?.emailChecks) {
+        lead.trestleValidation.emailIsDeliverable =
+          validation.addOns.emailChecks.isDeliverable ?? undefined;
+        lead.trestleValidation.emailAgeScore =
+          validation.addOns.emailChecks.ageScore ?? undefined;
+      }
+
+      // Calculate overall contactability
+      lead.contactabilityScore = calculateContactabilityScore(validation);
+      lead.isContactable =
+        isPhoneContactable(
+          validation,
+          TRESTLE_GOOD_ACTIVITY_SCORE,
+          [...TRESTLE_PASSING_GRADES]
+        ) && !hasLitigatorRisk(validation);
+
+      // Update phone with verified line type from Trestle
+      if (phoneToValidate && validation.phone.lineType) {
+        phoneToValidate.type = mapLineType(validation.phone.lineType);
+        phoneToValidate.verified = validation.phone.isValid ?? false;
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // LEAD LAB: Build full ContactabilityProfile and routing decision
+      // ─────────────────────────────────────────────────────────────────────────
+      const contactabilityResult = await evaluateLeadContactability({
+        leadId: lead.id,
+        name: fullName,
+        phone: phoneToValidate.number,
+        email: lead.primaryEmail,
+        businessName: lead.company,
+        address: lead.address
+          ? {
+              street: lead.address,
+              city: lead.city,
+              state: lead.state,
+              zip: lead.zip,
+            }
+          : undefined,
+        addOns: pipelineConfig.trestleAddOns,
+      });
+
+      if (contactabilityResult.success && contactabilityResult.profile) {
+        lead.contactabilityProfile = contactabilityResult.profile;
+        lead.riskTier = contactabilityResult.profile.riskTier;
+        lead.contactabilityScore = contactabilityResult.profile.overallContactabilityScore;
+        lead.isContactable = contactabilityResult.profile.riskTier !== "BLOCK";
+
+        // Determine routing strategy
+        lead.routingDecision = decideRouting(contactabilityResult.profile);
+        lead.routingDescription = getRouteDescription(lead.routingDecision);
+      }
+
+      // Track cost
+      totalCost += TRESTLE_COST_PER_CONTACT;
+
+      // Build step details
+      const litigatorWarning = lead.trestleValidation.isLitigatorRisk
+        ? " LITIGATOR RISK!"
+        : "";
+      const riskTierInfo = lead.riskTier ? ` | Risk: ${lead.riskTier}` : "";
+      steps.push({
+        step: "Trestle Real Contact Validation",
+        status: "success",
+        duration: Date.now() - startTime,
+        details: `Grade: ${validation.phone.contactGrade || "N/A"}, Score: ${validation.phone.activityScore ?? "N/A"}, Contactable: ${lead.isContactable ? "YES" : "NO"}${riskTierInfo}${litigatorWarning}`,
+      });
+    } catch (error) {
+      steps.push({
+        step: "Trestle Real Contact Validation",
+        status: "failed",
+        duration: Date.now() - startTime,
+        details: error instanceof Error ? error.message : "Failed",
+      });
+    }
+  } else {
+    steps.push({
+      step: "Trestle Real Contact Validation",
+      status: "skipped",
+      duration: 0,
+      details: pipelineConfig.trestleValidation
+        ? "No phones to validate"
+        : "Trestle validation disabled",
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // FINALIZE
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -523,6 +750,7 @@ export const ENRICHMENT_COSTS = {
   perplexityResearch: 0, // Free (API key based)
   tracerfyNormal: 0.02, // $0.02/record
   tracerfyEnhanced: 0.15, // $0.15/record
+  trestleRealContact: 0.03, // $0.03/record
 };
 
 /**
@@ -533,6 +761,7 @@ export function estimateEnrichmentCost(
   config: Partial<PipelineConfig> = {},
 ): {
   tracerfyCost: number;
+  trestleCost: number;
   perplexityCost: number;
   totalCost: number;
   costPerLead: number;
@@ -543,12 +772,17 @@ export function estimateEnrichmentCost(
     ? leadCount * (pipelineConfig.skipTraceType === "enhanced" ? 0.15 : 0.02)
     : 0;
 
+  const trestleCost = pipelineConfig.trestleValidation
+    ? leadCount * ENRICHMENT_COSTS.trestleRealContact
+    : 0;
+
   const perplexityCost = 0; // Free with API key
 
-  const totalCost = tracerfyCost + perplexityCost;
+  const totalCost = tracerfyCost + trestleCost + perplexityCost;
 
   return {
     tracerfyCost,
+    trestleCost,
     perplexityCost,
     totalCost,
     costPerLead: leadCount > 0 ? totalCost / leadCount : 0,

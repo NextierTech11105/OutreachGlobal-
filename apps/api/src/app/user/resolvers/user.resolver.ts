@@ -5,8 +5,9 @@ import {
   LoginPayload,
   RegisterPayload,
   UpdateProfilePayload,
+  OAuthLoginPayload,
 } from "../objects/user.object";
-import { LoginArgs, RegisterArgs, UpdateProfileArgs } from "../args/user.args";
+import { LoginArgs, RegisterArgs, UpdateProfileArgs, OAuthLoginArgs } from "../args/user.args";
 import { UserService } from "../services/user.service";
 import { BaseResolver } from "@/app/apollo/base.resolver";
 import { loginSchema, z } from "@nextier/dto";
@@ -50,5 +51,19 @@ export class UserResolver extends BaseResolver(User) {
       args.input,
     );
     return this.userService.updateProfile(user.id, input);
+  }
+
+  @Mutation(() => OAuthLoginPayload)
+  async oauthLogin(@Args() args: OAuthLoginArgs) {
+    const input = this.validate(
+      z.object({
+        email: z.string().email(),
+        provider: z.enum(["google"]),
+        name: z.string().min(1).max(100).optional(),
+        googleId: z.string().optional(),
+      }),
+      args.input,
+    );
+    return this.userService.oauthLogin(input);
   }
 }

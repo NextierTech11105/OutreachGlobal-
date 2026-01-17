@@ -28,14 +28,16 @@ export default function OAuthCompletePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  
+
   const email = searchParams.get("email");
   const provider = searchParams.get("provider");
+  const name = searchParams.get("name");
+  const googleId = searchParams.get("googleId");
 
   const [oauthLogin] = useMutation(OAUTH_LOGIN_MUTATION, {
     onCompleted: (data) => {
       const { token, team } = data.oauthLogin;
-      $cookie.set("token", token, { expires: addMonths(new Date(), 1) });
+      $cookie.set("session", token, { expires: addMonths(new Date(), 10) });
       router.push(`/t/${team.slug}`);
     },
     onError: (err) => {
@@ -48,11 +50,16 @@ export default function OAuthCompletePage() {
     if (email && provider) {
       oauthLogin({
         variables: {
-          input: { email, provider },
+          input: {
+            email,
+            provider,
+            ...(name && { name }),
+            ...(googleId && { googleId }),
+          },
         },
       });
     }
-  }, [email, provider, oauthLogin]);
+  }, [email, provider, name, googleId, oauthLogin]);
 
   if (error) {
     return (

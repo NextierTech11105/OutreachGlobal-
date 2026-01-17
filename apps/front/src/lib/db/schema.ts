@@ -2008,6 +2008,10 @@ export const signalhouseCampaigns = pgTable(
     description: text("description").notNull(),
     sampleMessages: jsonb("sample_messages").$type<string[]>().default([]),
 
+    // Vertical isolation - each campaign targets a specific industry
+    vertical: text("vertical").notNull().default("GENERAL"), // PLUMBING, TRUCKING, CPA, CONSULTANT, AGENT_BROKER, SALES_PRO, SOLOPRENEUR, PE_BOUTIQUE
+    verticalDisplayName: text("vertical_display_name"), // Human-readable name
+
     // Message flow settings
     subscriberOptIn: boolean("subscriber_opt_in").notNull().default(true),
     subscriberOptOut: boolean("subscriber_opt_out").notNull().default(true),
@@ -2204,6 +2208,27 @@ export const users = pgTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+// ============================================================
+// PASSWORD RESET TOKENS
+// ============================================================
+
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("password_reset_tokens_user_id_idx").on(table.userId),
+    tokenIdx: index("password_reset_tokens_token_idx").on(table.token),
+  })
+);
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
 // ============================================================
 // TEAMS - Multi-tenant companies/organizations
@@ -2874,3 +2899,97 @@ export const sdrActivityLog = pgTable(
 
 export type SdrActivityLog = typeof sdrActivityLog.$inferSelect;
 export type NewSdrActivityLog = typeof sdrActivityLog.$inferInsert;
+
+// ============================================================
+// AI USAGE TRACKING - Token usage metering per tenant for billing
+// Aggregates usage by tenant, provider, model per day
+// ============================================================
+
+export const aiUsageTracking = pgTable(
+  "ai_usage_tracking",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id").notNull(),
+
+    // Time period (daily aggregation)
+    periodStart: timestamp("period_start").notNull(), // Start of day UTC
+    periodEnd: timestamp("period_end").notNull(), // End of day UTC
+
+    // Provider/Model identification
+    provider: text("provider").notNull(), // 'openai' | 'perplexity' | 'anthropic'
+    model: text("model").notNull(), // 'gpt-4o-mini', 'claude-3-haiku', 'sonar-small-128k'
+
+    // Token counts (aggregated)
+    promptTokens: integer("prompt_tokens").notNull().default(0),
+    completionTokens: integer("completion_tokens").notNull().default(0),
+    totalTokens: integer("total_tokens").notNull().default(0),
+
+    // Request counts
+    requestCount: integer("request_count").notNull().default(0),
+    successCount: integer("success_count").notNull().default(0),
+    failureCount: integer("failure_count").notNull().default(0),
+
+    // Cost tracking (USD)
+    estimatedCostUsd: decimal("estimated_cost_usd", { precision: 12, scale: 6 }).default("0"),
+
+    // Performance metrics
+    avgLatencyMs: integer("avg_latency_ms"),
+    p95LatencyMs: integer("p95_latency_ms"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamPeriodProviderIdx: index("ai_usage_team_period_provider_idx").on(
+      table.teamId,
+      table.periodStart,
+      table.provider,
+      table.model
+    ),
+    periodIdx: index("ai_usage_period_idx").on(table.periodStart),
+    teamIdx: index("ai_usage_team_idx").on(table.teamId),
+  })
+);
+
+export type AiUsageTracking = typeof aiUsageTracking.$inferSelect;
+export type NewAiUsageTracking = typeof aiUsageTracking.$inferInsert;
+
+// ============================================================
+// AI USAGE LIMITS - Per-tenant AI usage quotas/limits
+// ============================================================
+
+export const aiUsageLimits = pgTable(
+  "ai_usage_limits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: text("team_id").notNull().unique(),
+
+    // Monthly limits
+    monthlyTokenLimit: integer("monthly_token_limit"), // null = unlimited
+    monthlyRequestLimit: integer("monthly_request_limit"),
+    monthlyCostLimitUsd: decimal("monthly_cost_limit_usd", { precision: 10, scale: 2 }),
+
+    // Daily limits (for rate limiting)
+    dailyTokenLimit: integer("daily_token_limit"),
+    dailyRequestLimit: integer("daily_request_limit"),
+
+    // Alert thresholds (percentage)
+    alertThresholdPercent: integer("alert_threshold_percent").default(80),
+    hardLimitPercent: integer("hard_limit_percent").default(100), // 100 = hard stop
+
+    // Status
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    lastAlertSentAt: timestamp("last_alert_sent_at"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdx: index("ai_usage_limits_team_idx").on(table.teamId),
+  })
+);
+
+export type AiUsageLimits = typeof aiUsageLimits.$inferSelect;
+export type NewAiUsageLimits = typeof aiUsageLimits.$inferInsert;

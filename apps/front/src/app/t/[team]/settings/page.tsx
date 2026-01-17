@@ -6,6 +6,7 @@ import { TeamSettings } from "@/features/team/components/team-settings";
 import { getTitle } from "@/config/title";
 import { BusinessListSettings } from "@/features/team/components/business-list-settings";
 import { ApiKeysManagement } from "@/components/api-keys-management";
+import { UsageDashboard } from "@/components/usage-dashboard";
 
 export const metadata: Metadata = {
   title: getTitle("Settings"),
@@ -32,6 +33,9 @@ export default function SettingsPage() {
           <TabsTrigger value="api-keys" className="min-w-40">
             API Keys
           </TabsTrigger>
+          <TabsTrigger value="usage" className="min-w-40">
+            Usage & Billing
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="general" className="space-y-4">
           <ProfileSettings />
@@ -44,6 +48,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="api-keys" className="space-y-4">
           <ApiKeysManagement />
+        </TabsContent>
+        <TabsContent value="usage" className="space-y-4">
+          <UsageDashboard />
         </TabsContent>
       </Tabs>
     </div>

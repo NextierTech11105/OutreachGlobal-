@@ -28,3 +28,15 @@ export class UpdateProfilePayload {
   @Field(() => User)
   user: UserSelect;
 }
+
+@ObjectType()
+export class OAuthLoginPayload {
+  @Field(() => User)
+  user: UserSelect;
+
+  @Field(() => Team)
+  team: TeamSelect;
+
+  @Field()
+  token: string;
+}

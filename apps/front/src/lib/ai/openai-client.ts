@@ -21,6 +21,8 @@
 
 import { z } from "zod";
 import { Logger } from "@/lib/logger";
+import { openaiCircuit, CircuitBreakerError } from "./circuit-breaker";
+import { trackUsage, checkUsageLimits } from "./usage-tracker";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -264,6 +266,7 @@ async function callOpenAI(
     temperature?: number;
     maxTokens?: number;
     operation?: string;
+    teamId?: string;
   } = {},
 ): Promise<{ content: string; usage: TokenUsage | null }> {
   const {
@@ -271,20 +274,48 @@ async function callOpenAI(
     temperature = 0.3,
     maxTokens = 500,
     operation = "unknown",
+    teamId,
   } = options;
+
+  // Check usage limits if teamId provided
+  if (teamId) {
+    const limitCheck = await checkUsageLimits(teamId);
+    if (!limitCheck.allowed) {
+      Logger.warn("AI", "Usage limit exceeded", {
+        teamId,
+        reason: limitCheck.reason,
+        percentUsed: limitCheck.percentUsed,
+      });
+      throw new Error(`AI usage limit exceeded: ${limitCheck.reason}`);
+    }
+  }
 
   if (!OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY not configured");
   }
 
+  // Check circuit breaker before attempting call
+  if (!openaiCircuit.canExecute()) {
+    Logger.warn("AI", "OpenAI circuit breaker OPEN, rejecting request", {
+      operation,
+      stats: openaiCircuit.getStats(),
+    });
+    throw new CircuitBreakerError(
+      "OpenAI circuit breaker is OPEN. Service temporarily unavailable.",
+      "openai",
+      openaiCircuit.getStats().state
+    );
+  }
+
   let lastError: Error | null = null;
+  let startTime = Date.now();
 
   for (let attempt = 0; attempt < CONFIG.MAX_RETRIES; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
 
     try {
-      const startTime = Date.now();
+      startTime = Date.now();
 
       const response = await fetch(OPENAI_API_URL, {
         method: "POST",
@@ -332,7 +363,25 @@ async function callOpenAI(
           latencyMs,
           attempt: attempt + 1,
         });
+
+        // Track usage in database if teamId provided
+        if (teamId) {
+          trackUsage({
+            teamId,
+            provider: "openai",
+            model,
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            latencyMs,
+            success: true,
+          }).catch((err) => {
+            Logger.error("AI", "Failed to track usage", { error: err.message });
+          });
+        }
       }
+
+      // Record success with circuit breaker
+      openaiCircuit.recordSuccess();
 
       return {
         content: data.choices[0]?.message?.content || "{}",
@@ -362,10 +411,30 @@ async function callOpenAI(
         attempt: attempt + 1,
         error: lastError.message,
       });
+
+      // Track failed usage if teamId provided
+      if (teamId) {
+        trackUsage({
+          teamId,
+          provider: "openai",
+          model,
+          promptTokens: 0,
+          completionTokens: 0,
+          latencyMs: Date.now() - startTime,
+          success: false,
+        }).catch(() => {});
+      }
+
+      // Record failure with circuit breaker
+      openaiCircuit.recordFailure(lastError);
       throw lastError;
     }
   }
 
+  // Record failure with circuit breaker if all retries exhausted
+  if (lastError) {
+    openaiCircuit.recordFailure(lastError);
+  }
   throw lastError || new Error("OpenAI call failed after retries");
 }
 
@@ -378,6 +447,7 @@ export async function classifyMessage(
     leadName?: string;
     previousMessages?: string[];
     campaignType?: string;
+    teamId?: string;
   },
 ): Promise<ClassificationResult> {
   // SECURITY: Sanitize input to prevent prompt injection
@@ -408,6 +478,7 @@ export async function classifyMessage(
   const { content } = await callOpenAI(messages, {
     temperature: 0.1,
     operation: "classifyMessage",
+    teamId: context?.teamId,
   });
 
   try {
@@ -477,6 +548,7 @@ export async function generateResponse(
     companyName?: string;
     campaignContext?: string;
     calendlyLink?: string;
+    teamId?: string;
   },
 ): Promise<GeneratedResponse> {
   // SECURITY: Sanitize all inputs
@@ -512,6 +584,7 @@ INTENT: ${sanitizeInput(classification.intent)}
   const { content } = await callOpenAI(messages, {
     temperature: 0.7,
     operation: "generateResponse",
+    teamId: context.teamId,
   });
 
   try {

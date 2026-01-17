@@ -1,0 +1,61 @@
+{
+  "name": "api",
+  "projectType": "application",
+  "root": "apps/api",
+  "sourceRoot": "apps/api/src",
+  "tags": ["type:app", "scope:api"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "pnpm --filter api build"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter api dev"
+      },
+      "cache": false
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter api start"
+      },
+      "cache": false
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter api lint"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter api test"
+      }
+    },
+    "db:generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter api db:generate"
+      }
+    },
+    "db:migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter api db:migrate"
+      }
+    },
+    "artisan": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter api artisan"
+      },
+      "cache": false
+    }
+  }
+}

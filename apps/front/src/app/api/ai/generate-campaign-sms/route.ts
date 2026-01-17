@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  callOpenAIHardened,
+  callAnthropicHardened,
+} from "@/lib/ai/provider-wrapper";
 
 // AI Campaign SMS Generator - Creates initial outreach messages
 // Based on tone sliders and intent selection
+// With circuit breaker, retry, and usage tracking
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
@@ -120,90 +125,73 @@ function slidersToToneDescription(
   return parts.join(", ");
 }
 
-// Generate with OpenAI
+// Generate with OpenAI (with hardening)
 async function generateWithOpenAI(
   systemPrompt: string,
   userPrompt: string,
   variations: number,
+  teamId?: string,
 ): Promise<string[]> {
   const messages = [];
 
   for (let i = 0; i < variations; i++) {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content:
-              userPrompt +
-              (i > 0
-                ? `\n\nGenerate variation #${i + 1} - make it distinctly different from previous attempts.`
-                : ""),
-          },
-        ],
-        max_tokens: 100,
-        temperature: 0.8 + i * 0.1, // Increase temp for more variety
-      }),
+    const result = await callOpenAIHardened({
+      apiKey: OPENAI_API_KEY,
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content:
+            userPrompt +
+            (i > 0
+              ? `\n\nGenerate variation #${i + 1} - make it distinctly different from previous attempts.`
+              : ""),
+        },
+      ],
+      maxTokens: 100,
+      temperature: 0.8 + i * 0.1, // Increase temp for more variety
+      teamId,
+      operation: "generate-campaign-sms",
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content?.trim() || "";
+    const reply = result.content?.trim() || "";
     if (reply) messages.push(reply);
   }
 
   return messages;
 }
 
-// Generate with Anthropic
+// Generate with Anthropic (with hardening)
 async function generateWithAnthropic(
   systemPrompt: string,
   userPrompt: string,
   variations: number,
+  teamId?: string,
 ): Promise<string[]> {
   const messages = [];
 
   for (let i = 0; i < variations; i++) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "Content-Type": "application/json",
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 100,
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content:
-              userPrompt +
-              (i > 0
-                ? `\n\nGenerate variation #${i + 1} - make it distinctly different.`
-                : ""),
-          },
-        ],
-      }),
+    const result = await callAnthropicHardened({
+      apiKey: ANTHROPIC_API_KEY,
+      model: "claude-3-haiku-20240307",
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content:
+            userPrompt +
+            (i > 0
+              ? `\n\nGenerate variation #${i + 1} - make it distinctly different.`
+              : ""),
+        },
+      ],
+      maxTokens: 100,
+      teamId,
+      operation: "generate-campaign-sms",
     });
 
-    if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const reply = data.content?.[0]?.text?.trim() || "";
+    const reply = result.content?.trim() || "";
     if (reply) messages.push(reply);
   }
 

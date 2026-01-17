@@ -10,10 +10,15 @@ import {
   detectObjection,
   type GiannaPersonality,
 } from "@/lib/gianna/knowledge-base";
+import {
+  callOpenAIHardened,
+  callAnthropicHardened,
+} from "@/lib/ai/provider-wrapper";
 
 // =============================================================================
 // GIANNA AI RESPONSE ENGINE
 // The Ultimate Digital SDR - Trained by Real Gianna, Scaled by AI
+// With circuit breaker, retry, and usage tracking
 // =============================================================================
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -473,31 +478,22 @@ async function generateWithOpenAI(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
   personality: GiannaPersonality,
+  teamId?: string,
 ): Promise<{ reply: string; confidence: number }> {
   // Map personality to temperature (more humor/warmth = higher temp)
   const temperature = 0.5 + (personality.warmth + personality.humor) / 400;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      max_tokens: 100,
-      temperature,
-    }),
+  const result = await callOpenAIHardened({
+    apiKey: OPENAI_API_KEY,
+    model: "gpt-4o-mini",
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
+    maxTokens: 100,
+    temperature,
+    teamId,
+    operation: "suggest-reply",
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-  const reply = data.choices?.[0]?.message?.content?.trim() || "";
+  const reply = result.content?.trim() || "";
 
   // Confidence based on response quality
   let confidence = 75;
@@ -513,36 +509,26 @@ async function generateWithAnthropic(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
   personality: GiannaPersonality,
+  teamId?: string,
 ): Promise<{ reply: string; confidence: number }> {
   // Map personality to temperature
   const temperature = 0.5 + (personality.warmth + personality.humor) / 400;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": ANTHROPIC_API_KEY,
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 100,
-      temperature,
-      system: systemPrompt,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    }),
+  const result = await callAnthropicHardened({
+    apiKey: ANTHROPIC_API_KEY,
+    model: "claude-3-haiku-20240307",
+    system: systemPrompt,
+    messages: messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    })),
+    maxTokens: 100,
+    temperature,
+    teamId,
+    operation: "suggest-reply",
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Anthropic API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-  const reply = data.content?.[0]?.text?.trim() || "";
+  const reply = result.content?.trim() || "";
 
   // Confidence based on response quality
   let confidence = 80;

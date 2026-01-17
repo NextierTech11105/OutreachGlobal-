@@ -44,6 +44,17 @@ interface PageSection {
 
 const sections: PageSection[] = [
   {
+    title: "Tools & Landing Pages",
+    pages: [
+      {
+        name: "Lead Lab",
+        href: "/lead-lab",
+        icon: BarChart3,
+        description: "Contactability assessment - upload CSV, get lead quality report",
+      },
+    ],
+  },
+  {
     title: "Dashboard & Properties",
     pages: [
       {

@@ -170,6 +170,14 @@ export const navigationGroups: NavGroup[] = [
         icon: BrainCircuit,
         description: "AI data pipeline",
       },
+      {
+        label: "Lead Lab",
+        href: "/lead-lab",
+        icon: BarChart3,
+        badge: "NEW",
+        badgeVariant: "default",
+        description: "Contactability assessment",
+      },
     ],
   },
 

@@ -1,0 +1,30 @@
+{
+  "name": "fdaily-pro",
+  "projectType": "application",
+  "root": "apps/fdaily-pro",
+  "sourceRoot": "apps/fdaily-pro/src",
+  "tags": ["type:app", "scope:fdaily-pro"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.next"],
+      "options": {
+        "command": "pnpm --filter fdaily-pro build"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter fdaily-pro dev"
+      },
+      "cache": false
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter fdaily-pro start"
+      },
+      "cache": false
+    }
+  }
+}

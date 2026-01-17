@@ -2,6 +2,7 @@ import { ArgsType, Field } from "@nestjs/graphql";
 import { LoginInput } from "../inputs/login.input";
 import { RegisterInput } from "../inputs/register.input";
 import { UpdateProfileInput } from "../inputs/profile.input";
+import { OAuthLoginInput } from "../inputs/oauth-login.input";
 
 @ArgsType()
 export class LoginArgs {
@@ -19,4 +20,10 @@ export class RegisterArgs {
 export class UpdateProfileArgs {
   @Field()
   input: UpdateProfileInput;
+}
+
+@ArgsType()
+export class OAuthLoginArgs {
+  @Field()
+  input: OAuthLoginInput;
 }

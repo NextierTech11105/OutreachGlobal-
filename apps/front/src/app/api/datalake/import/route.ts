@@ -6,8 +6,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parse } from "csv-parse/sync";
 import { db } from "@/lib/db";
-import { businesses, contacts } from "@/lib/db/schema";
+import { businesses, contacts, importJobs } from "@/lib/db/schema";
 import { requireTenantContext } from "@/lib/api-auth";
+
+// Campaign verticals for isolated campaign tracking
+const VALID_VERTICALS = [
+  "PLUMBING",
+  "TRUCKING",
+  "CPA",
+  "CONSULTANT",
+  "AGENT_BROKER",
+  "SALES_PRO",
+  "SOLOPRENEUR",
+  "PE_BOUTIQUE",
+  "GENERAL",
+] as const;
 
 // Field mappings for USBizData format
 const FIELD_MAP: Record<string, string[]> = {
@@ -189,6 +202,13 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
     const importType = (formData.get("type") as string) || "business"; // business or contact
     const batchSize = parseInt((formData.get("batchSize") as string) || "100");
+    const vertical = (formData.get("vertical") as string) || "GENERAL"; // Campaign vertical
+    const autoEnrich = formData.get("autoEnrich") === "true"; // Auto-enrich with LUCI
+
+    // Validate vertical
+    const validatedVertical = VALID_VERTICALS.includes(vertical as any)
+      ? vertical
+      : "GENERAL";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -269,7 +289,9 @@ export async function POST(request: NextRequest) {
                 ? parseInt(revenueStr.replace(/[^0-9]/g, ""))
                 : null,
               ownerName: extractValue(row, headers, "contactName"),
-              enrichmentStatus: "pending",
+              // Campaign vertical for isolated tracking
+              primarySectorId: validatedVertical,
+              enrichmentStatus: autoEnrich ? "queued" : "pending",
               status: "new",
               rawData: row,
             };
@@ -364,10 +386,17 @@ export async function POST(request: NextRequest) {
         totalRows: records.length,
         inserted: insertedCount,
         errors: errorCount,
+        duplicates: 0, // TODO: Add duplicate detection
         userId: userId,
+        teamId: teamId,
+        vertical: validatedVertical,
+        autoEnrich: autoEnrich,
         priorityBreakdown,
       },
       errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
+      nextSteps: autoEnrich
+        ? "Records queued for LUCI enrichment. Check /lead-lab for progress."
+        : "Records imported. Enable auto-enrich or use Lead Lab to enrich.",
     });
   } catch (error) {
     console.error("[Datalake Import] Error:", error);
@@ -384,23 +413,30 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     success: true,
-    message: "Direct CSV import to database",
+    message: "Direct CSV import to database with campaign vertical support",
     endpoint: "POST /api/datalake/import",
     usage: {
       method: "POST",
       contentType: "multipart/form-data",
       fields: {
-        file: "CSV file from USBizData",
+        file: "CSV file (USBizData, Apollo, etc.)",
         type: "business or contact (default: business)",
-        batchSize: "Records per batch (default: 100)",
+        batchSize: "Records per batch (default: 100, max: 1000)",
+        vertical:
+          "Campaign vertical: PLUMBING, TRUCKING, CPA, CONSULTANT, AGENT_BROKER, SALES_PRO, SOLOPRENEUR, PE_BOUTIQUE, GENERAL (default: GENERAL)",
+        autoEnrich:
+          "true/false - Auto-enrich with LUCI pipeline (default: false)",
       },
     },
     example: `
 curl -X POST http://localhost:3000/api/datalake/import \\
-  -F "file=@ny-businesses.csv" \\
+  -F "file=@ny-plumbers.csv" \\
   -F "type=business" \\
+  -F "vertical=PLUMBING" \\
+  -F "autoEnrich=true" \\
   -F "batchSize=500"
     `.trim(),
     supportedFields: Object.keys(FIELD_MAP),
+    verticals: VALID_VERTICALS,
   });
 }

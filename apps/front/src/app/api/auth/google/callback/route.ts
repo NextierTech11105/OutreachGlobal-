@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -99,41 +96,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if user exists
-    let user = await db.query.users.findFirst({
-      where: eq(users.email, googleUser.email.toLowerCase()),
-    });
-
-    if (user) {
-      // User exists - log them in via GraphQL mutation call
-      // Redirect to a special route that completes the login
-      const response = NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/auth/oauth-complete?` +
-        new URLSearchParams({
-          email: googleUser.email,
-          provider: "google",
-          token: tokens.access_token,
-        }).toString()
-      );
-      
-      // Clear OAuth state cookie
-      response.cookies.delete("oauth_state");
-      return response;
-    } else {
-      // New user - redirect to register with pre-filled data
-      const response = NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/auth/register?` +
+    // Redirect to oauth-complete for both login and registration
+    // The backend will auto-register new users
+    const response = NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/auth/oauth-complete?` +
         new URLSearchParams({
           email: googleUser.email,
           name: googleUser.name,
+          googleId: googleUser.id,
           provider: "google",
-          oauth: "true",
         }).toString()
-      );
-      
-      response.cookies.delete("oauth_state");
-      return response;
-    }
+    );
+
+    // Clear OAuth state cookie
+    response.cookies.delete("oauth_state");
+    return response;
   } catch (error) {
     console.error("[Google OAuth] Callback error:", error);
     return NextResponse.redirect(

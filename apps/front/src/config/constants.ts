@@ -217,6 +217,58 @@ export const TRACERFY_MAX_EMAILS = 3;
 export const TRACERFY_PROCESSING_TIME_MINUTES = 15;
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// TRESTLE REAL CONTACT API (for phone/email verification + contactability scoring)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Cost per contact verification via Trestle Real Contact API */
+export const TRESTLE_COST_PER_CONTACT = 0.03;
+
+/** Combined cost: Tracerfy skip trace + Trestle validation */
+export const TOTAL_ENRICHMENT_COST_PER_LEAD =
+  TRACERFY_COST_PER_LEAD + TRESTLE_COST_PER_CONTACT; // $0.05
+
+/** Activity score threshold - 70+ means phone is connected and active */
+export const TRESTLE_GOOD_ACTIVITY_SCORE = 70;
+
+/** Activity score threshold - 30 or below means phone is likely disconnected */
+export const TRESTLE_BAD_ACTIVITY_SCORE = 30;
+
+/** Contact grades that pass verification (A, B, C are acceptable) */
+export const TRESTLE_PASSING_GRADES = ["A", "B", "C"] as const;
+
+/** Failing contact grades (D and F should be deprioritized) */
+export const TRESTLE_FAILING_GRADES = ["D", "F"] as const;
+
+/** Default add-ons to request (litigator check is critical for TCPA) */
+export const TRESTLE_DEFAULT_ADDONS = [
+  "litigator_checks",
+  "email_checks_deliverability",
+] as const;
+
+/** Trestle line types */
+export const TRESTLE_LINE_TYPES = [
+  "Mobile",
+  "Landline",
+  "FixedVOIP",
+  "NonFixedVOIP",
+  "Premium",
+  "TollFree",
+  "Voicemail",
+  "Other",
+] as const;
+
+export type TrestleLineType = (typeof TRESTLE_LINE_TYPES)[number];
+
+/** Line types that are SMS-capable */
+export const TRESTLE_SMS_CAPABLE_TYPES: TrestleLineType[] = ["Mobile"];
+
+/** Line types that may work for SMS but with caveats */
+export const TRESTLE_SMS_MAYBE_TYPES: TrestleLineType[] = [
+  "FixedVOIP",
+  "NonFixedVOIP",
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // THE LOOP - 30-Day Relentless Intent Path
 // ═══════════════════════════════════════════════════════════════════════════════
 //
@@ -338,13 +390,14 @@ export const API_ENDPOINTS = {
   campaignIntents: "/api/campaigns/intents",
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // DATA IMPORT + ENRICHMENT (Tracerfy $0.02/lead)
+  // DATA IMPORT + ENRICHMENT (Tracerfy $0.02/lead + Trestle $0.03/lead)
   // ═══════════════════════════════════════════════════════════════════════════
   leadsImport: "/api/leads/import",
   enrich: "/api/enrich",
   skipTrace: "/api/skip-trace",
   tracerfyTrace: "/api/skip-trace/tracerfy",
   tracerfyWebhook: "/api/skip-trace/tracerfy/webhook",
+  trestleValidation: "/api/validation/trestle", // Trestle Real Contact API
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SMS CAMPAIGN (SignalHouse)
@@ -497,8 +550,60 @@ export const SABRINA_CONFIG = {
 
   // Booking link
   calendlyLink:
-    process.env.CALENDLY_LINK || "https://calendly.com/nextier/strategy",
+    process.env.CALENDLY_LINK || "https://calendly.com/tb-outreachglobal",
 } as const;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CALENDLY CONFIGURATION - tb@outreachglobal.io
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const CALENDLY_CONFIG = {
+  // Owner email
+  ownerEmail: "tb@outreachglobal.io",
+
+  // Base URL
+  baseUrl: process.env.CALENDLY_BASE_URL || "https://calendly.com/tb-outreachglobal",
+
+  // Meeting types with durations
+  meetingTypes: {
+    QUICK_CALL: {
+      name: "15-Minute Quick Call",
+      slug: "15min",
+      duration: 15,
+      url: process.env.CALENDLY_15MIN_URL || "https://calendly.com/tb-outreachglobal/15min",
+      description: "Quick intro call - perfect for initial discovery",
+    },
+    STRATEGY_CALL: {
+      name: "30-Minute Strategy Call",
+      slug: "30min",
+      duration: 30,
+      url: process.env.CALENDLY_30MIN_URL || "https://calendly.com/tb-outreachglobal/30min",
+      description: "In-depth strategy discussion",
+    },
+    DEEP_DIVE: {
+      name: "60-Minute Deep Dive",
+      slug: "60min",
+      duration: 60,
+      url: process.env.CALENDLY_60MIN_URL || "https://calendly.com/tb-outreachglobal/60min",
+      description: "Full consultation and demo",
+    },
+  },
+
+  // Default meeting for THE LOOP (15-min discovery)
+  defaultMeeting: "QUICK_CALL",
+
+  // Webhook endpoint
+  webhookUrl: "/api/calendly/webhook",
+
+  // Events we listen for
+  events: [
+    "invitee.created",
+    "invitee.canceled",
+    "invitee.rescheduled",
+  ],
+} as const;
+
+export type CalendlyMeetingType = keyof typeof CALENDLY_CONFIG.meetingTypes;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CORE EXECUTION FLOW

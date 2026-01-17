@@ -1,0 +1,14 @@
+{
+  "name": "extension",
+  "projectType": "application",
+  "root": "apps/extension",
+  "tags": ["type:app", "scope:extension"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter @nextier/extension build"
+      }
+    }
+  }
+}

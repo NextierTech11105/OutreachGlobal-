@@ -4,9 +4,13 @@ import {
   COMPANY_NAME,
   getAISystemPrompt,
 } from "@/config/branding";
+import {
+  callOpenAIHardened,
+  callAnthropicHardened,
+} from "@/lib/ai/provider-wrapper";
 
 // AI Chat API - General purpose assistant for the platform
-// Powered by OpenAI or Anthropic
+// Powered by OpenAI or Anthropic with circuit breaker, retry, and usage tracking
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
@@ -126,62 +130,40 @@ export async function POST(request: NextRequest) {
 async function generateWithOpenAI(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
+  teamId?: string,
 ): Promise<string> {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      max_tokens: 500,
-      temperature: 0.8,
-    }),
+  const result = await callOpenAIHardened({
+    apiKey: OPENAI_API_KEY,
+    model: "gpt-4o-mini",
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
+    maxTokens: 500,
+    temperature: 0.8,
+    teamId,
+    operation: "chat",
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-  return (
-    data.choices?.[0]?.message?.content?.trim() ||
-    "I couldn't generate a response."
-  );
+  return result.content?.trim() || "I couldn't generate a response.";
 }
 
 async function generateWithAnthropic(
   systemPrompt: string,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
+  teamId?: string,
 ): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": ANTHROPIC_API_KEY,
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 500,
-      system: systemPrompt,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    }),
+  const result = await callAnthropicHardened({
+    apiKey: ANTHROPIC_API_KEY,
+    model: "claude-3-haiku-20240307",
+    system: systemPrompt,
+    messages: messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    })),
+    maxTokens: 500,
+    teamId,
+    operation: "chat",
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Anthropic API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-  return data.content?.[0]?.text?.trim() || "I couldn't generate a response.";
+  return result.content?.trim() || "I couldn't generate a response.";
 }
 
 // GET - Health check

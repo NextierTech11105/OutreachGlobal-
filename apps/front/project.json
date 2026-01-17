@@ -1,0 +1,48 @@
+{
+  "name": "front",
+  "projectType": "application",
+  "root": "apps/front",
+  "sourceRoot": "apps/front/src",
+  "tags": ["type:app", "scope:front"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.next", "{projectRoot}/dist"],
+      "options": {
+        "command": "pnpm --filter front build"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter front dev"
+      },
+      "cache": false
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter front start"
+      },
+      "cache": false
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter front lint"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter front test"
+      }
+    },
+    "codegen": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter front codegen"
+      }
+    }
+  }
+}
