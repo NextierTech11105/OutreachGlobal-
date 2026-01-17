@@ -1,4 +1,5 @@
 import { CustomModule } from "@/common/decorators";
+import { forwardRef } from "@nestjs/common";
 import { TeamService } from "./services/team.service";
 import { TeamPolicy } from "./policies/team.policy";
 import { TeamResolver } from "./resolvers/team.resolver";
@@ -19,7 +20,7 @@ import { BusinessListSettingsResolver } from "./resolvers/business-list-settings
 import { SignalHouseSettingsResolver } from "./resolvers/signalhouse-settings.resolver";
 
 @CustomModule({
-  imports: [CacheModule, ConfigModule, MailModule, UserModule, TwilioModule],
+  imports: [CacheModule, ConfigModule, MailModule, forwardRef(() => UserModule), TwilioModule],
   providers: [
     TeamService,
     TeamMemberService,

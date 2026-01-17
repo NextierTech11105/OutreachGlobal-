@@ -6,11 +6,12 @@ import { UserService } from "./services/user.service";
 import { ConfigModule } from "@nestjs/config";
 import { DefaultAdminBootstrap } from "./bootstrap/default-admin.bootstrap";
 import { MailModule } from "@/lib/mail/mail.module";
-import { forwardRef } from "@nestjs/common";
-import { AuthModule } from "@/app/auth/auth.module";
+
+// NOTE: AuthModule is @Global() so AuthService is automatically available
+// without explicit import - this avoids circular dependency with TeamModule
 
 @CustomModule({
-  imports: [ConfigModule, MailModule, forwardRef(() => AuthModule)],
+  imports: [ConfigModule, MailModule],
   runners: [UserRunner, CreateUserQuestion],
   resolvers: [UserResolver],
   providers: [UserService, DefaultAdminBootstrap],
