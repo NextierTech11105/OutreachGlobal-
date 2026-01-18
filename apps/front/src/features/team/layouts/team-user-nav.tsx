@@ -22,10 +22,20 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuthState } from "@/hooks/use-auth";
 import { useLogout } from "@/hooks/use-logout";
 
+// Map role to display label
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: "Platform Owner",
+  ADMIN: "Admin",
+  MEMBER: "Team Member",
+  VIEWER: "Viewer",
+};
+
 export function TeamUserNav() {
   const { isMobile } = useSidebar();
   const user = useAuthState();
   const [logout, { loading }] = useLogout();
+
+  const roleLabel = ROLE_LABELS[user.role] || user.role;
 
   return (
     <SidebarMenu>

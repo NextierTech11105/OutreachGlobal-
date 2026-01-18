@@ -36,13 +36,27 @@ export default function OAuthCompletePage() {
 
   const [oauthLogin] = useMutation(OAUTH_LOGIN_MUTATION, {
     onCompleted: (data) => {
+      console.log("[OAuth] Response:", data);
+
+      if (!data?.oauthLogin) {
+        setError("Login failed - no response from server");
+        return;
+      }
+
       const { token, team } = data.oauthLogin;
+
+      if (!token || !team?.slug) {
+        setError("Login failed - missing token or team");
+        return;
+      }
+
       $cookie.set("session", token, { expires: addMonths(new Date(), 10) });
       router.push(`/t/${team.slug}`);
     },
     onError: (err) => {
       console.error("[OAuth] Login error:", err);
-      setError(err.message);
+      console.error("[OAuth] Error details:", JSON.stringify(err, null, 2));
+      setError(err.message || "Login failed");
     },
   });
 
