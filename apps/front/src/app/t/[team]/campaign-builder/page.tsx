@@ -130,6 +130,15 @@ const STATUS_COLORS = {
   completed: "bg-emerald-600 text-emerald-100",
 };
 
+interface SkipTracedLead {
+  id: string;
+  phone: string;
+  firstName?: string;
+  lastName?: string;
+  company?: string;
+  email?: string;
+}
+
 interface CampaignBlock {
   id: string;
   name: string;
@@ -151,6 +160,7 @@ interface CampaignBlock {
   respondedCount: number;
   bookedCount: number;
   createdAt: Date;
+  leads?: SkipTracedLead[]; // Enriched leads with phone numbers
   filters?: {
     state?: string;
     sicCode?: string;
@@ -497,22 +507,49 @@ export default function CampaignBuilderPage() {
           withPhone: data.stats?.withPhones || 0,
         });
 
-        // Update campaign with enrichment stats
+        // Extract leads with phones from skip trace results
+        const enrichedLeads: SkipTracedLead[] = (data.results || [])
+          .filter((r: { success: boolean; phones?: Array<{ number: string; type?: string }> }) =>
+            r.success && r.phones && r.phones.length > 0
+          )
+          .map((r: {
+            id?: string;
+            input?: { propertyId?: string };
+            firstName?: string;
+            lastName?: string;
+            ownerName?: string;
+            phones?: Array<{ number: string; type?: string }>;
+            emails?: Array<{ email: string }>;
+          }) => {
+            // Get mobile phone if available, otherwise first phone
+            const mobilePhone = r.phones?.find(p => p.type?.toLowerCase() === "mobile") || r.phones?.[0];
+            return {
+              id: r.id || r.input?.propertyId || `lead_${Math.random().toString(36).slice(2)}`,
+              phone: mobilePhone?.number || "",
+              firstName: r.firstName || r.ownerName?.split(" ")[0] || "",
+              lastName: r.lastName || r.ownerName?.split(" ").slice(1).join(" ") || "",
+              email: r.emails?.[0]?.email,
+            };
+          })
+          .filter((l: { phone: string }) => l.phone);
+
+        // Update campaign with enrichment stats AND leads
         setCampaigns((prev) =>
           prev.map((c) =>
             c.id === campaign.id
               ? {
                   ...c,
                   enrichedCount: data.stats?.total || 0,
-                  withPhoneCount: data.stats?.withPhones || 0,
-                  status: (data.stats?.withPhones || 0) > 0 ? "ready" : "draft",
+                  withPhoneCount: enrichedLeads.length,
+                  leads: enrichedLeads,
+                  status: enrichedLeads.length > 0 ? "ready" : "draft",
                 }
               : c,
           ),
         );
 
         toast.success(
-          `Skip traced ${data.stats?.total || 0} leads: ${data.stats?.withPhones || 0} with mobile phones`,
+          `Skip traced ${data.stats?.total || 0} leads: ${enrichedLeads.length} with mobile phones`,
         );
 
         if (data.usage) {
@@ -530,13 +567,13 @@ export default function CampaignBuilderPage() {
 
   // Send campaign SMS blast
   const sendCampaign = async (campaign: CampaignBlock) => {
-    if (campaign.withPhoneCount === 0) {
+    if (!campaign.leads || campaign.leads.length === 0) {
       toast.error("No phone numbers - run skip trace first!");
       return;
     }
 
     setSendingCampaign(campaign.id);
-    setSendProgress({ sent: 0, total: campaign.withPhoneCount });
+    setSendProgress({ sent: 0, total: campaign.leads.length });
 
     try {
       // Update status to sending
@@ -552,7 +589,8 @@ export default function CampaignBuilderPage() {
         body: JSON.stringify({
           campaignId: campaign.id,
           template: campaign.template,
-          limit: campaign.withPhoneCount,
+          limit: campaign.leads.length,
+          leads: campaign.leads, // Pass the actual leads array
         }),
       });
 
