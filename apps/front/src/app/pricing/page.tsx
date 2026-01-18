@@ -29,7 +29,12 @@ import {
   FileSearch,
   Settings,
   Headphones,
+  Calendar,
+  Sparkles,
 } from "lucide-react";
+
+// Calendly link for consultative sales
+const CALENDLY_LINK = "https://calendly.com/nextier/demo";
 
 const plans = [
   {
@@ -145,6 +150,35 @@ const plans = [
       skipTraces: 2500,
     },
   },
+  {
+    name: "Custom",
+    slug: "custom",
+    description: "Let's design something for you",
+    priceMonthly: 0, // Contact for pricing
+    priceYearly: 0,
+    icon: Sparkles,
+    popular: false,
+    isCustom: true,
+    features: [
+      { text: "Tailored to your needs", included: true },
+      { text: "Flexible user limits", included: true },
+      { text: "Custom lead volumes", included: true },
+      { text: "Volume SMS pricing", included: true },
+      { text: "Bulk skip trace rates", included: true },
+      { text: "Dedicated success manager", included: true },
+      { text: "Custom integrations", included: true },
+      { text: "SLA guarantees", included: true },
+      { text: "Priority feature requests", included: true },
+      { text: "Quarterly business reviews", included: true },
+    ],
+    limits: {
+      users: -1,
+      leads: -1,
+      searches: -1,
+      sms: -1,
+      skipTraces: -1,
+    },
+  },
 ];
 
 const addOns = [
@@ -227,13 +261,14 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <div className="container mx-auto px-4 pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {plans.map((plan) => {
             const Icon = plan.icon;
             const price = isYearly ? plan.priceYearly : plan.priceMonthly;
             const monthlyEquivalent = isYearly
               ? Math.round(plan.priceYearly / 12)
               : plan.priceMonthly;
+            const isCustomPlan = (plan as any).isCustom;
 
             return (
               <Card
@@ -242,7 +277,7 @@ export default function PricingPage() {
                   plan.popular
                     ? "border-primary shadow-lg scale-105 z-10"
                     : "hover:border-primary/50"
-                }`}
+                } ${isCustomPlan ? "bg-gradient-to-br from-primary/5 to-primary/10" : ""}`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -262,21 +297,35 @@ export default function PricingPage() {
 
                 <CardContent className="flex-1">
                   <div className="text-center mb-6">
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-4xl font-bold">
-                        ${sf(monthlyEquivalent)}
-                      </span>
-                      <span className="text-muted-foreground">/mo</span>
-                    </div>
-                    {isYearly && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        ${sf(price)} billed annually
-                      </p>
-                    )}
-                    {plan.setupFee && (
-                      <p className="text-sm text-orange-500 mt-1">
-                        + ${sf(plan.setupFee)} one-time setup
-                      </p>
+                    {isCustomPlan ? (
+                      <div>
+                        <span className="text-2xl font-bold text-primary">
+                          Let's Talk
+                        </span>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Pricing based on your needs
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-1">Starting at</p>
+                        <div className="flex items-baseline justify-center gap-1">
+                          <span className="text-4xl font-bold">
+                            ${sf(monthlyEquivalent)}
+                          </span>
+                          <span className="text-muted-foreground">/mo</span>
+                        </div>
+                        {isYearly && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            ${sf(price)} billed annually
+                          </p>
+                        )}
+                        {(plan as any).setupFee && (
+                          <p className="text-sm text-orange-500 mt-1">
+                            + ${sf((plan as any).setupFee)} one-time setup
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -305,16 +354,31 @@ export default function PricingPage() {
                   </ul>
                 </CardContent>
 
-                <CardFooter>
-                  <Button
-                    className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
-                    onClick={() => handleSelectPlan(plan.slug)}
-                  >
-                    {plan.slug === "white-label"
-                      ? "Contact Sales"
-                      : "Get Started"}
-                  </Button>
+                <CardFooter className="flex-col gap-2">
+                  {isCustomPlan ? (
+                    <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="w-full">
+                      <Button className="w-full" variant="default">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule a Call
+                      </Button>
+                    </a>
+                  ) : (
+                    <>
+                      <Button
+                        className="w-full"
+                        variant={plan.popular ? "default" : "outline"}
+                        onClick={() => handleSelectPlan(plan.slug)}
+                      >
+                        Get Started
+                      </Button>
+                      <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="w-full">
+                        <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground" size="sm">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          Let's Talk
+                        </Button>
+                      </a>
+                    </>
+                  )}
                 </CardFooter>
               </Card>
             );

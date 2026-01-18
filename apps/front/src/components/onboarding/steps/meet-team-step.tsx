@@ -18,6 +18,8 @@ interface MeetTeamStepProps {
   updateData: (updates: Partial<OnboardingData>) => void;
   onNext: () => void;
   onBack: () => void;
+  onSkip?: () => void;
+  skipLabel?: string;
 }
 
 export function MeetTeamStep({
@@ -25,6 +27,8 @@ export function MeetTeamStep({
   updateData,
   onNext,
   onBack,
+  onSkip,
+  skipLabel = "Skip intro",
 }: MeetTeamStepProps) {
   const handleAcknowledge = () => {
     updateData({ teamAcknowledged: true });
@@ -106,15 +110,22 @@ export function MeetTeamStep({
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={handleAcknowledge} size="lg">
-          Got it, let&apos;s continue
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {onSkip && (
+            <Button variant="ghost" onClick={onSkip} className="text-muted-foreground">
+              {skipLabel}
+            </Button>
+          )}
+          <Button onClick={handleAcknowledge} size="lg">
+            Got it, let&apos;s continue
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

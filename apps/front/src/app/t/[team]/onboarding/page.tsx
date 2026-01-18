@@ -16,8 +16,8 @@ export default function OnboardingPage() {
   }
 
   const handleComplete = () => {
-    // Redirect to command center after onboarding completes
-    router.push(`/t/${teamId}/command-center`);
+    // Redirect to success page after onboarding completes
+    router.push(`/t/${teamId}/success`);
   };
 
   return <OnboardingWizard teamId={teamId} onComplete={handleComplete} />;

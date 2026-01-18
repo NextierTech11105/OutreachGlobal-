@@ -64,6 +64,8 @@ interface MessageStepProps {
   updateData: (updates: Partial<OnboardingData>) => void;
   onNext: () => void;
   onBack: () => void;
+  onSkip?: () => void;
+  skipLabel?: string;
 }
 
 export function MessageStep({
@@ -71,6 +73,8 @@ export function MessageStep({
   updateData,
   onNext,
   onBack,
+  onSkip,
+  skipLabel = "Use default",
 }: MessageStepProps) {
   const [testPhone, setTestPhone] = useState("");
   const [isSendingTest, setIsSendingTest] = useState(false);
@@ -227,15 +231,32 @@ export function MessageStep({
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={onNext} disabled={!canContinue} size="lg">
-          Continue to Launch
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {onSkip && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                // Set a default message if skipping
+                if (!message) {
+                  updateData({ firstMessageTemplate: MESSAGE_TEMPLATES[0].message });
+                }
+                onSkip();
+              }}
+              className="text-muted-foreground"
+            >
+              {skipLabel}
+            </Button>
+          )}
+          <Button onClick={onNext} disabled={!canContinue} size="lg">
+            Continue to Launch
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

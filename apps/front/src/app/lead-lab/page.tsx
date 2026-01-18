@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,6 +21,8 @@ import {
   AtSign,
   BarChart3,
   CreditCard,
+  Calendar,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -56,7 +59,13 @@ interface AssessmentStats {
   };
 }
 
+// Calendly link for demos
+const CALENDLY_LINK = "https://calendly.com/nextier/demo";
+
 export default function LeadLabPage() {
+  const searchParams = useSearchParams();
+  const simpleMode = searchParams.get("simple") === "true" || searchParams.get("demo") === "true";
+
   const [email, setEmail] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<AssessmentStatus>("idle");
@@ -66,6 +75,7 @@ export default function LeadLabPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [recordCount, setRecordCount] = useState(0);
   const [requiresPayment, setRequiresPayment] = useState(false);
+  const [showDetailedView, setShowDetailedView] = useState(!simpleMode);
 
   // Handle file drop
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -292,7 +302,7 @@ export default function LeadLabPage() {
                 </div>
               </div>
 
-              {/* Summary Stats */}
+              {/* Summary Stats - Always shown */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                   <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
@@ -308,25 +318,9 @@ export default function LeadLabPage() {
                 </div>
               </div>
 
-              {/* Tabbed Results */}
-              <Tabs defaultValue="contactability" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
-                  <TabsTrigger value="contactability" className="text-xs data-[state=active]:bg-slate-700">
-                    <Users className="h-3 w-3 mr-1" />
-                    Contactability
-                  </TabsTrigger>
-                  <TabsTrigger value="format" className="text-xs data-[state=active]:bg-slate-700">
-                    <FileCheck className="h-3 w-3 mr-1" />
-                    Data Format
-                  </TabsTrigger>
-                  <TabsTrigger value="readiness" className="text-xs data-[state=active]:bg-slate-700">
-                    <Rocket className="h-3 w-3 mr-1" />
-                    Readiness
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="contactability" className="mt-4 space-y-4">
-                  {/* Grade Breakdown */}
+              {/* Simple Mode - Grade summary only */}
+              {!showDetailedView && (
+                <div className="space-y-4 mb-6">
                   <div className="flex gap-2">
                     {(["A", "B", "C", "D", "F"] as const).map((grade) => (
                       <div
@@ -345,72 +339,142 @@ export default function LeadLabPage() {
                       </div>
                     ))}
                   </div>
+                  <button
+                    onClick={() => setShowDetailedView(true)}
+                    className="text-sm text-sky-400 hover:text-sky-300 underline"
+                  >
+                    View detailed breakdown
+                  </button>
+                </div>
+              )}
 
-                  {stats.litigatorRiskCount > 0 && (
-                    <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                      <AlertCircle className="h-4 w-4 text-red-400" />
-                      <span className="text-sm text-red-400">{stats.litigatorRiskCount} litigator risk flags</span>
-                    </div>
-                  )}
-                </TabsContent>
+              {/* Detailed View - Full tabs */}
+              {showDetailedView && (
+                <Tabs defaultValue="contactability" className="w-full mb-6">
+                  <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
+                    <TabsTrigger value="contactability" className="text-xs data-[state=active]:bg-slate-700">
+                      <Users className="h-3 w-3 mr-1" />
+                      Contactability
+                    </TabsTrigger>
+                    <TabsTrigger value="format" className="text-xs data-[state=active]:bg-slate-700">
+                      <FileCheck className="h-3 w-3 mr-1" />
+                      Data Format
+                    </TabsTrigger>
+                    <TabsTrigger value="readiness" className="text-xs data-[state=active]:bg-slate-700">
+                      <Rocket className="h-3 w-3 mr-1" />
+                      Readiness
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="format" className="mt-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-800/50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Phone className="h-4 w-4 text-sky-400" />
-                        <span className="font-medium">Phones</span>
-                      </div>
-                      <p className="text-2xl font-bold text-emerald-400">{stats.dataFormat.validPhones}</p>
-                      <p className="text-xs text-slate-500">valid</p>
-                      {stats.dataFormat.invalidPhones > 0 && (
-                        <p className="text-xs text-red-400 mt-1">{stats.dataFormat.invalidPhones} invalid</p>
-                      )}
-                    </div>
-                    <div className="p-4 bg-slate-800/50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AtSign className="h-4 w-4 text-purple-400" />
-                        <span className="font-medium">Emails</span>
-                      </div>
-                      <p className="text-2xl font-bold text-emerald-400">{stats.dataFormat.validEmails}</p>
-                      <p className="text-xs text-slate-500">valid</p>
-                      {stats.dataFormat.invalidEmails > 0 && (
-                        <p className="text-xs text-red-400 mt-1">{stats.dataFormat.invalidEmails} invalid</p>
-                      )}
-                    </div>
-                  </div>
-                  {(stats.dataFormat.duplicates > 0 || stats.dataFormat.missingNames > 0) && (
-                    <div className="space-y-2">
-                      {stats.dataFormat.duplicates > 0 && (
-                        <div className="flex justify-between p-2 bg-amber-500/10 rounded">
-                          <span className="text-sm text-amber-400">Duplicates</span>
-                          <Badge variant="outline" className="border-amber-500/50 text-amber-400">{stats.dataFormat.duplicates}</Badge>
+                  <TabsContent value="contactability" className="mt-4 space-y-4">
+                    {/* Grade Breakdown */}
+                    <div className="flex gap-2">
+                      {(["A", "B", "C", "D", "F"] as const).map((grade) => (
+                        <div
+                          key={grade}
+                          className={cn(
+                            "flex-1 text-center p-3 rounded-lg",
+                            grade === "A" && "bg-emerald-500/20",
+                            grade === "B" && "bg-green-500/20",
+                            grade === "C" && "bg-amber-500/20",
+                            grade === "D" && "bg-orange-500/20",
+                            grade === "F" && "bg-red-500/20"
+                          )}
+                        >
+                          <p className="font-bold text-lg">{grade}</p>
+                          <p className="text-sm text-slate-400">{stats.gradeBreakdown[grade]}</p>
                         </div>
-                      )}
-                      {stats.dataFormat.missingNames > 0 && (
-                        <div className="flex justify-between p-2 bg-amber-500/10 rounded">
-                          <span className="text-sm text-amber-400">Missing names</span>
-                          <Badge variant="outline" className="border-amber-500/50 text-amber-400">{stats.dataFormat.missingNames}</Badge>
+                      ))}
+                    </div>
+
+                    {stats.litigatorRiskCount > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <AlertCircle className="h-4 w-4 text-red-400" />
+                        <span className="text-sm text-red-400">{stats.litigatorRiskCount} litigator risk flags</span>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="format" className="mt-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-800/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Phone className="h-4 w-4 text-sky-400" />
+                          <span className="font-medium">Phones</span>
                         </div>
-                      )}
+                        <p className="text-2xl font-bold text-emerald-400">{stats.dataFormat.validPhones}</p>
+                        <p className="text-xs text-slate-500">valid</p>
+                        {stats.dataFormat.invalidPhones > 0 && (
+                          <p className="text-xs text-red-400 mt-1">{stats.dataFormat.invalidPhones} invalid</p>
+                        )}
+                      </div>
+                      <div className="p-4 bg-slate-800/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AtSign className="h-4 w-4 text-purple-400" />
+                          <span className="font-medium">Emails</span>
+                        </div>
+                        <p className="text-2xl font-bold text-emerald-400">{stats.dataFormat.validEmails}</p>
+                        <p className="text-xs text-slate-500">valid</p>
+                        {stats.dataFormat.invalidEmails > 0 && (
+                          <p className="text-xs text-red-400 mt-1">{stats.dataFormat.invalidEmails} invalid</p>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </TabsContent>
+                    {(stats.dataFormat.duplicates > 0 || stats.dataFormat.missingNames > 0) && (
+                      <div className="space-y-2">
+                        {stats.dataFormat.duplicates > 0 && (
+                          <div className="flex justify-between p-2 bg-amber-500/10 rounded">
+                            <span className="text-sm text-amber-400">Duplicates</span>
+                            <Badge variant="outline" className="border-amber-500/50 text-amber-400">{stats.dataFormat.duplicates}</Badge>
+                          </div>
+                        )}
+                        {stats.dataFormat.missingNames > 0 && (
+                          <div className="flex justify-between p-2 bg-amber-500/10 rounded">
+                            <span className="text-sm text-amber-400">Missing names</span>
+                            <Badge variant="outline" className="border-amber-500/50 text-amber-400">{stats.dataFormat.missingNames}</Badge>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </TabsContent>
 
-                <TabsContent value="readiness" className="mt-4 space-y-3">
-                  <ReadinessRow icon={Phone} label="SMS Ready" count={stats.campaignReadiness.smsReady} total={stats.total} color="sky" />
-                  <ReadinessRow icon={Phone} label="Call Ready" count={stats.campaignReadiness.callReady} total={stats.total} color="emerald" />
-                  <ReadinessRow icon={AtSign} label="Email Ready" count={stats.campaignReadiness.emailReady} total={stats.total} color="purple" />
-                  {stats.campaignReadiness.notReady > 0 && (
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm">
-                      <span className="text-amber-400 font-medium">{stats.campaignReadiness.notReady} records</span>
-                      <span className="text-slate-500"> not ready for any channel</span>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+                  <TabsContent value="readiness" className="mt-4 space-y-3">
+                    <ReadinessRow icon={Phone} label="SMS Ready" count={stats.campaignReadiness.smsReady} total={stats.total} color="sky" />
+                    <ReadinessRow icon={Phone} label="Call Ready" count={stats.campaignReadiness.callReady} total={stats.total} color="emerald" />
+                    <ReadinessRow icon={AtSign} label="Email Ready" count={stats.campaignReadiness.emailReady} total={stats.total} color="purple" />
+                    {stats.campaignReadiness.notReady > 0 && (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm">
+                        <span className="text-amber-400 font-medium">{stats.campaignReadiness.notReady} records</span>
+                        <span className="text-slate-500"> not ready for any channel</span>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              )}
 
-              <Button onClick={handleReset} className="w-full mt-6 bg-gradient-to-r from-sky-500 to-orange-400 text-slate-950 font-semibold hover:opacity-90">
+              {/* Primary CTA - Book a Demo */}
+              <a
+                href={CALENDLY_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full"
+              >
+                <Button className="w-full bg-gradient-to-r from-sky-500 to-orange-400 text-slate-950 font-semibold hover:opacity-90 py-6 text-base">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book a Demo
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </a>
+
+              <p className="text-center text-xs text-slate-500 mt-3 mb-4">
+                See how NEXTIER can automate outreach to your {stats.campaignReadiness.smsReady.toLocaleString()} SMS-ready leads
+              </p>
+
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                className="w-full border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
                 Run Another Assessment
               </Button>
             </div>

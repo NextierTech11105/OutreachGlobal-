@@ -92,6 +92,8 @@ interface AudienceStepProps {
   updateData: (updates: Partial<OnboardingData>) => void;
   onNext: () => void;
   onBack: () => void;
+  onSkip?: () => void;
+  skipLabel?: string;
 }
 
 export function AudienceStep({
@@ -99,6 +101,8 @@ export function AudienceStep({
   updateData,
   onNext,
   onBack,
+  onSkip,
+  skipLabel = "Edit later",
 }: AudienceStepProps) {
   const [newRole, setNewRole] = useState("");
   const [newSicCode, setNewSicCode] = useState("");
@@ -431,15 +435,22 @@ export function AudienceStep({
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={onNext} disabled={!canContinue} size="lg">
-          Continue
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {onSkip && (
+            <Button variant="ghost" onClick={onSkip} className="text-muted-foreground">
+              {skipLabel}
+            </Button>
+          )}
+          <Button onClick={onNext} disabled={!canContinue} size="lg">
+            Continue
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -118,44 +118,55 @@ const INITIAL_DATA: OnboardingData = {
 };
 
 // Step configuration with icons
+// skippable: true means the step has a "Skip" button
+// Core steps (industry, upload, capacity, launch) cannot be skipped
 const STEPS = [
   {
     id: "welcome",
     label: "Industry",
     icon: Sparkles,
     description: "Select your industry",
+    skippable: false,
   },
   {
     id: "audience",
     label: "ICP",
     icon: Target,
     description: "Program your ideal customer",
+    skippable: true,
+    skipLabel: "Edit later",
   },
   {
     id: "upload",
     label: "Leads",
     icon: Upload,
     description: "Upload your contacts",
+    skippable: false,
   },
   {
     id: "team",
     label: "Team",
     icon: Users,
     description: "Meet GIANNA, CATHY, SABRINA",
+    skippable: true,
+    skipLabel: "Skip intro",
   },
   {
     id: "capacity",
     label: "Capacity",
     icon: Zap,
     description: "Set daily volume",
+    skippable: false,
   },
   {
     id: "message",
     label: "Message",
     icon: MessageSquare,
     description: "Customize opener",
+    skippable: true,
+    skipLabel: "Use default",
   },
-  { id: "launch", label: "Launch", icon: Rocket, description: "Go live" },
+  { id: "launch", label: "Launch", icon: Rocket, description: "Go live", skippable: false },
 ];
 
 interface OnboardingWizardProps {
@@ -188,6 +199,14 @@ export function OnboardingWizard({
   const prevStep = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
+    }
+  }, [currentStep]);
+
+  // Skip handler for optional steps
+  const skipStep = useCallback(() => {
+    if (currentStep < STEPS.length - 1) {
+      toast.info(`Skipped ${STEPS[currentStep].label} — you can configure this later`);
+      setCurrentStep((prev) => prev + 1);
     }
   }, [currentStep]);
 
@@ -234,6 +253,8 @@ export function OnboardingWizard({
             updateData={updateData}
             onNext={nextStep}
             onBack={prevStep}
+            onSkip={skipStep}
+            skipLabel={STEPS[1].skipLabel}
           />
         );
       case 2:
@@ -253,6 +274,8 @@ export function OnboardingWizard({
             updateData={updateData}
             onNext={nextStep}
             onBack={prevStep}
+            onSkip={skipStep}
+            skipLabel={STEPS[3].skipLabel}
           />
         );
       case 4:
@@ -271,6 +294,8 @@ export function OnboardingWizard({
             updateData={updateData}
             onNext={nextStep}
             onBack={prevStep}
+            onSkip={skipStep}
+            skipLabel={STEPS[5].skipLabel}
           />
         );
       case 6:

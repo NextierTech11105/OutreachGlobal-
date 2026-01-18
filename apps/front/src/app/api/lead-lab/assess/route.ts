@@ -1,221 +1,46 @@
 /**
- * Lead Lab Assessment API
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * LEAD LAB ASSESSMENT API
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * POST /api/lead-lab/assess - Submit CSV for assessment
+ * POST /api/lead-lab/assess
  *
- * Free tier: Up to 10,000 records, aggregate report only
- * Paid tier: Unlimited records, per-lead results, geocoding
+ * Receives CSV upload and processes through Trestle Real Contact API.
+ * This is the NEXTIER wrapper around Trestle that powers Lead Lab.
+ *
+ * FREE TIER: Up to 10,000 records, aggregate stats only
+ * PAID TIER: Unlimited records, per-lead results, CSV export
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
-import { parse } from "csv-parse/sync";
-import Stripe from "stripe";
+import {
+  processBatch,
+  parseCSVForBatch,
+  BATCH_CONFIG,
+  type BatchRecord,
+  type BatchStats,
+} from "@/lib/trestle/batch-upload";
+import { nanoid } from "nanoid";
 
-// Pricing
-const PRICE_PER_RECORD = 0.03; // $0.03 per record (matches Trestle API cost)
-const FREE_TIER_LIMIT = 10_000;
-const MIN_CHARGE = 5.00; // Minimum charge $5
+// ═══════════════════════════════════════════════════════════════════════════════
+// IN-MEMORY STORE (Replace with Redis/DB in production)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Lazy Stripe initialization to avoid build errors
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    throw new Error("STRIPE_SECRET_KEY not configured");
-  }
-  return new Stripe(key, { apiVersion: "2024-12-18.acacia" });
-}
-
-interface CSVRecord {
-  name?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const formData = await req.formData();
-    const email = formData.get("email") as string;
-    const file = formData.get("file") as File;
-    const tier = formData.get("tier") as string || "free"; // "free" or "paid"
-
-    // Validate inputs
-    if (!email || !email.includes("@")) {
-      return NextResponse.json(
-        { error: "Valid email address is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!file) {
-      return NextResponse.json(
-        { error: "CSV file is required" },
-        { status: 400 }
-      );
-    }
-
-    // Parse CSV
-    const fileContent = await file.text();
-    let records: CSVRecord[];
-
-    try {
-      records = parse(fileContent, {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-        relax_column_count: true,
-      });
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid CSV format. Please check your file." },
-        { status: 400 }
-      );
-    }
-
-    if (records.length === 0) {
-      return NextResponse.json(
-        { error: "CSV file is empty" },
-        { status: 400 }
-      );
-    }
-
-    // Validate required columns
-    const firstRecord = records[0];
-    const hasName = "name" in firstRecord || "Name" in firstRecord || "full_name" in firstRecord;
-    const hasPhone = "phone" in firstRecord || "Phone" in firstRecord || "phone_number" in firstRecord;
-
-    if (!hasName || !hasPhone) {
-      return NextResponse.json(
-        { error: "CSV must have 'name' and 'phone' columns" },
-        { status: 400 }
-      );
-    }
-
-    const recordCount = records.length;
-
-    // Free tier check
-    if (tier === "free") {
-      if (recordCount > FREE_TIER_LIMIT) {
-        return NextResponse.json(
-          {
-            error: `Free tier limited to ${FREE_TIER_LIMIT.toLocaleString()} records. You have ${recordCount.toLocaleString()} records.`,
-            recordCount,
-            requiresPayment: true,
-            estimatedCost: Math.max(MIN_CHARGE, recordCount * PRICE_PER_RECORD),
-          },
-          { status: 402 }
-        );
-      }
-
-      // Create assessment job for free tier
-      const assessmentId = randomUUID();
-
-      // Store job in database (or in-memory for now)
-      // In production, this would go to a queue/database
-      await createAssessmentJob({
-        id: assessmentId,
-        email,
-        tier: "free",
-        recordCount,
-        records, // Store for processing
-        status: "pending",
-        createdAt: new Date(),
-      });
-
-      // Trigger async processing
-      processAssessmentAsync(assessmentId).catch(console.error);
-
-      return NextResponse.json({
-        success: true,
-        assessmentId,
-        tier: "free",
-        recordCount,
-        message: "Assessment started. Results will be emailed.",
-      });
-    }
-
-    // Paid tier - Create Stripe checkout session
-    const amount = Math.max(MIN_CHARGE, recordCount * PRICE_PER_RECORD);
-    const assessmentId = randomUUID();
-
-    // Store pending assessment
-    await createAssessmentJob({
-      id: assessmentId,
-      email,
-      tier: "paid",
-      recordCount,
-      records,
-      status: "awaiting_payment",
-      createdAt: new Date(),
-    });
-
-    // Create Stripe checkout session
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Lead Lab Assessment",
-              description: `${recordCount.toLocaleString()} records - Full assessment with per-lead results & geocoding`,
-            },
-            unit_amount: Math.round(amount * 100), // Stripe uses cents
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/lead-lab/success?session_id={CHECKOUT_SESSION_ID}&assessment_id=${assessmentId}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/lead-lab?cancelled=true`,
-      customer_email: email,
-      metadata: {
-        assessmentId,
-        recordCount: recordCount.toString(),
-        email,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      requiresPayment: true,
-      checkoutUrl: session.url,
-      assessmentId,
-      tier: "paid",
-      recordCount,
-      estimatedCost: amount,
-    });
-  } catch (error) {
-    console.error("[Lead Lab] Assessment error:", error);
-    return NextResponse.json(
-      { error: "Failed to process assessment request" },
-      { status: 500 }
-    );
-  }
-}
-
-// Assessment job storage (in production, use database)
-const assessmentJobs = new Map<string, AssessmentJob>();
-
-interface AssessmentJob {
+interface Assessment {
   id: string;
   email: string;
   tier: "free" | "paid";
-  recordCount: number;
-  records: CSVRecord[];
-  status: "pending" | "awaiting_payment" | "processing" | "complete" | "error";
+  status: "pending" | "processing" | "complete" | "error";
   createdAt: Date;
   completedAt?: Date;
-  stats?: AssessmentStats;
   error?: string;
+  recordCount: number;
+  stats?: LeadLabStats;
+  results?: any[];
 }
 
-interface AssessmentStats {
+// Transform BatchStats to LeadLab format expected by frontend
+interface LeadLabStats {
   total: number;
   gradeBreakdown: { A: number; B: number; C: number; D: number; F: number };
   qualityBreakdown: { high: number; medium: number; low: number };
@@ -240,248 +65,272 @@ interface AssessmentStats {
   };
 }
 
-async function createAssessmentJob(job: AssessmentJob): Promise<void> {
-  assessmentJobs.set(job.id, job);
-  console.log(`[Lead Lab] Created assessment job ${job.id} with ${job.recordCount} records`);
+// In-memory store - exported so status route can access it
+export const assessments = new Map<string, Assessment>();
+
+// Export types for status route
+export type { Assessment, LeadLabStats };
+
+// Export getter for status route
+export async function getAssessmentJob(assessmentId: string): Promise<Assessment | null> {
+  return assessments.get(assessmentId) || null;
 }
 
-export async function getAssessmentJob(id: string): Promise<AssessmentJob | null> {
-  return assessmentJobs.get(id) || null;
+// Export updater for webhook route
+export async function updateAssessmentJob(
+  assessmentId: string,
+  updates: Partial<Assessment>
+): Promise<Assessment | null> {
+  const job = assessments.get(assessmentId);
+  if (!job) return null;
+
+  const updated = { ...job, ...updates };
+  assessments.set(assessmentId, updated);
+  return updated;
 }
 
-export async function updateAssessmentJob(id: string, updates: Partial<AssessmentJob>): Promise<void> {
-  const job = assessmentJobs.get(id);
-  if (job) {
-    assessmentJobs.set(id, { ...job, ...updates });
+// ═══════════════════════════════════════════════════════════════════════════════
+// POST - Submit Assessment
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function POST(request: NextRequest) {
+  try {
+    const contentType = request.headers.get("content-type") || "";
+
+    if (!contentType.includes("multipart/form-data")) {
+      return NextResponse.json(
+        { error: "Expected multipart/form-data" },
+        { status: 400 }
+      );
+    }
+
+    const formData = await request.formData();
+    const email = formData.get("email") as string;
+    const file = formData.get("file") as File | null;
+    const tier = (formData.get("tier") as string) || "free";
+
+    // Validate inputs
+    if (!email || !email.includes("@")) {
+      return NextResponse.json(
+        { error: "Valid email required" },
+        { status: 400 }
+      );
+    }
+
+    if (!file) {
+      return NextResponse.json(
+        { error: "CSV file required" },
+        { status: 400 }
+      );
+    }
+
+    // Parse CSV
+    const csvContent = await file.text();
+    const records = parseCSVForBatch(csvContent);
+
+    if (records.length === 0) {
+      return NextResponse.json(
+        { error: "No valid records found in CSV. Ensure it has name and phone columns." },
+        { status: 400 }
+      );
+    }
+
+    // Check free tier limit
+    if (tier === "free" && records.length > BATCH_CONFIG.FREE_TIER_MAX_RECORDS) {
+      return NextResponse.json(
+        {
+          error: `Free tier limited to ${BATCH_CONFIG.FREE_TIER_MAX_RECORDS.toLocaleString()} records`,
+          requiresPayment: true,
+          recordCount: records.length,
+          estimatedCost: Math.max(5.00, records.length * BATCH_CONFIG.COST_PER_QUERY),
+        },
+        { status: 402 }
+      );
+    }
+
+    // Create assessment
+    const assessmentId = nanoid(12);
+    const assessment: Assessment = {
+      id: assessmentId,
+      email,
+      tier: tier as "free" | "paid",
+      status: "pending",
+      createdAt: new Date(),
+      recordCount: records.length,
+    };
+
+    assessments.set(assessmentId, assessment);
+
+    console.log(`[Lead Lab] Assessment ${assessmentId} created:`, {
+      email,
+      tier,
+      records: records.length,
+    });
+
+    // Process in background (don't await)
+    processAssessmentAsync(assessmentId, records, email);
+
+    return NextResponse.json({
+      success: true,
+      assessmentId,
+      recordCount: records.length,
+      message: "Assessment started. Poll /api/lead-lab/status/{id} for results.",
+    });
+  } catch (error: any) {
+    console.error("[Lead Lab] Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Assessment failed" },
+      { status: 500 }
+    );
   }
 }
 
-// Async processing function
-async function processAssessmentAsync(assessmentId: string): Promise<void> {
-  const job = assessmentJobs.get(assessmentId);
-  if (!job) {
-    console.error(`[Lead Lab] Job not found: ${assessmentId}`);
-    return;
-  }
+// ═══════════════════════════════════════════════════════════════════════════════
+// BACKGROUND PROCESSING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function processAssessmentAsync(
+  assessmentId: string,
+  records: BatchRecord[],
+  email: string
+) {
+  const assessment = assessments.get(assessmentId);
+  if (!assessment) return;
 
   try {
-    await updateAssessmentJob(assessmentId, { status: "processing" });
-    console.log(`[Lead Lab] Processing assessment ${assessmentId}...`);
+    // Update status
+    assessment.status = "processing";
+    assessments.set(assessmentId, assessment);
 
-    // Process records and build stats
-    const stats = await processRecords(job.records, job.tier);
+    console.log(`[Lead Lab] Processing ${records.length} records for ${assessmentId}...`);
 
-    await updateAssessmentJob(assessmentId, {
-      status: "complete",
-      completedAt: new Date(),
-      stats,
+    // Process through Trestle
+    const { results, stats } = await processBatch(records, {
+      onProgress: (processed, total) => {
+        console.log(`[Lead Lab] ${assessmentId}: ${processed}/${total}`);
+      },
     });
 
-    // Send email with results
-    await sendAssessmentEmail(job.email, stats, job.tier, assessmentId);
+    // Transform stats to frontend format
+    const leadLabStats = transformToLeadLabStats(stats, records, results);
 
-    console.log(`[Lead Lab] Assessment ${assessmentId} complete`);
-  } catch (error) {
-    console.error(`[Lead Lab] Processing error for ${assessmentId}:`, error);
-    await updateAssessmentJob(assessmentId, {
-      status: "error",
-      error: error instanceof Error ? error.message : "Unknown error",
+    // Update assessment
+    assessment.status = "complete";
+    assessment.completedAt = new Date();
+    assessment.stats = leadLabStats;
+
+    // Store results for paid tier
+    if (assessment.tier === "paid") {
+      assessment.results = results;
+    }
+
+    assessments.set(assessmentId, assessment);
+
+    console.log(`[Lead Lab] Assessment ${assessmentId} complete:`, {
+      contactableRate: leadLabStats.contactableRate,
+      gradeA: leadLabStats.gradeBreakdown.A,
+      gradeB: leadLabStats.gradeBreakdown.B,
     });
+
+    // TODO: Send email with results
+    // await sendAssessmentEmail(email, leadLabStats);
+
+  } catch (error: any) {
+    console.error(`[Lead Lab] Assessment ${assessmentId} failed:`, error);
+    assessment.status = "error";
+    assessment.error = error.message;
+    assessments.set(assessmentId, assessment);
   }
 }
 
-// Import Trestle client for real scoring
-import { getTrestleClient, type TrestleContactGrade } from "@/lib/trestle";
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRANSFORM STATS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Process records and calculate stats using REAL Trestle API
-async function processRecords(records: CSVRecord[], tier: "free" | "paid"): Promise<AssessmentStats> {
-  // Data format audit
+function transformToLeadLabStats(
+  batchStats: BatchStats,
+  records: BatchRecord[],
+  results: any[]
+): LeadLabStats {
+  // Count valid/invalid phones and emails
   let validPhones = 0;
   let invalidPhones = 0;
   let validEmails = 0;
   let invalidEmails = 0;
   let missingNames = 0;
-  const phoneSet = new Set<string>();
-  let duplicates = 0;
 
-  // Grade counters from real Trestle scoring
-  const gradeBreakdown: Record<TrestleContactGrade, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-  let litigatorRiskCount = 0;
-  let mobileCount = 0;
-  let landlineCount = 0;
-  let totalScore = 0;
-  let scoredCount = 0;
-
-  // Collect valid records for Trestle scoring
-  const validRecords: Array<{
-    name: string;
-    phone: string;
-    email?: string;
-  }> = [];
-
-  // First pass: validate format
-  for (const record of records) {
-    const name = record.name || record.Name || (record as Record<string, string>).full_name || "";
-    const phone = record.phone || record.Phone || (record as Record<string, string>).phone_number || "";
-    const email = record.email || record.Email;
-
-    if (!name || name.trim() === "") {
-      missingNames++;
-    }
-
-    // Phone validation
-    if (phone) {
-      const normalizedPhone = phone.replace(/\D/g, "");
-      if (normalizedPhone.length >= 10 && normalizedPhone.length <= 11) {
-        if (phoneSet.has(normalizedPhone)) {
-          duplicates++;
-        } else {
-          phoneSet.add(normalizedPhone);
-          validPhones++;
-          // Only score records with valid phones
-          if (name && name.trim()) {
-            validRecords.push({
-              name: name.trim(),
-              phone: normalizedPhone,
-              email: email || undefined,
-            });
-          }
-        }
-      } else {
-        invalidPhones++;
-      }
+  records.forEach((record) => {
+    // Phone validation (basic - real validation happens in Trestle)
+    const phoneDigits = record.phone.replace(/\D/g, "");
+    if (phoneDigits.length >= 10) {
+      validPhones++;
     } else {
       invalidPhones++;
     }
 
     // Email validation
-    if (email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (emailRegex.test(email)) {
+    if (record.email) {
+      if (record.email.includes("@") && record.email.includes(".")) {
         validEmails++;
       } else {
         invalidEmails++;
       }
     }
-  }
 
-  // Use Trestle API for real scoring (sample if large list, full for small)
-  const TRESTLE_API_KEY = process.env.TRESTLE_API_KEY;
-  const MAX_FREE_SCORING = 100; // Score up to 100 records in free tier
-  const MAX_PAID_SCORING = 1000; // Score up to 1000 records in paid tier
-
-  const maxRecordsToScore = tier === "paid" ? MAX_PAID_SCORING : MAX_FREE_SCORING;
-  const recordsToScore = validRecords.slice(0, maxRecordsToScore);
-
-  if (TRESTLE_API_KEY && recordsToScore.length > 0) {
-    console.log(`[Lead Lab] Scoring ${recordsToScore.length} records with Trestle API`);
-    const trestle = getTrestleClient();
-
-    // Score records in batches (10 concurrent)
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < recordsToScore.length; i += BATCH_SIZE) {
-      const batch = recordsToScore.slice(i, i + BATCH_SIZE);
-
-      const results = await Promise.allSettled(
-        batch.map(async (record) => {
-          try {
-            return await trestle.realContact({
-              name: record.name,
-              phone: record.phone,
-              email: record.email,
-              addOns: ["litigator_checks", "email_checks_deliverability"],
-            });
-          } catch (err) {
-            console.error(`[Lead Lab] Trestle error for ${record.phone}:`, err);
-            return null;
-          }
-        })
-      );
-
-      for (const result of results) {
-        if (result.status === "fulfilled" && result.value) {
-          const data = result.value;
-          scoredCount++;
-
-          // Grade
-          const grade = data.phone.contactGrade || "F";
-          gradeBreakdown[grade as TrestleContactGrade]++;
-
-          // Activity score
-          if (data.phone.activityScore !== null) {
-            totalScore += data.phone.activityScore;
-          }
-
-          // Line type
-          if (data.phone.lineType === "Mobile") {
-            mobileCount++;
-          } else if (data.phone.lineType === "Landline" || data.phone.lineType === "FixedVOIP") {
-            landlineCount++;
-          }
-
-          // Litigator risk
-          if (data.addOns?.litigatorChecks?.phoneIsLitigatorRisk) {
-            litigatorRiskCount++;
-          }
-        }
-      }
-
-      // Small delay between batches to avoid rate limiting
-      if (i + BATCH_SIZE < recordsToScore.length) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      }
+    // Name check
+    if (!record.name || record.name.trim().length < 2) {
+      missingNames++;
     }
+  });
 
-    console.log(`[Lead Lab] Scored ${scoredCount} records successfully`);
-  } else {
-    // Fallback: estimate based on format validation if no Trestle API
-    console.log(`[Lead Lab] No Trestle API key - using format-based estimates`);
-    const total = records.length;
-    gradeBreakdown.A = Math.floor(validPhones * 0.15);
-    gradeBreakdown.B = Math.floor(validPhones * 0.25);
-    gradeBreakdown.C = Math.floor(validPhones * 0.30);
-    gradeBreakdown.D = Math.floor(validPhones * 0.20);
-    gradeBreakdown.F = validPhones - gradeBreakdown.A - gradeBreakdown.B - gradeBreakdown.C - gradeBreakdown.D;
-    mobileCount = Math.floor(validPhones * 0.65);
-    landlineCount = validPhones - mobileCount;
-    litigatorRiskCount = Math.floor(total * 0.02);
-    totalScore = (gradeBreakdown.A + gradeBreakdown.B + gradeBreakdown.C) * 70;
-    scoredCount = validPhones;
-  }
-
-  // Extrapolate grades to full list if we only sampled
-  const scaleFactor = validRecords.length > 0 ? validRecords.length / Math.max(1, scoredCount) : 1;
-  if (scaleFactor > 1) {
-    for (const grade of ["A", "B", "C", "D", "F"] as const) {
-      gradeBreakdown[grade] = Math.round(gradeBreakdown[grade] * scaleFactor);
+  // Check for duplicates
+  const phoneSet = new Set<string>();
+  let duplicates = 0;
+  records.forEach((record) => {
+    const phone = record.phone.replace(/\D/g, "");
+    if (phoneSet.has(phone)) {
+      duplicates++;
+    } else {
+      phoneSet.add(phone);
     }
-    mobileCount = Math.round(mobileCount * scaleFactor);
-    landlineCount = Math.round(landlineCount * scaleFactor);
-    litigatorRiskCount = Math.round(litigatorRiskCount * scaleFactor);
-  }
+  });
 
-  const total = records.length;
-  const high = gradeBreakdown.A + gradeBreakdown.B;
-  const medium = gradeBreakdown.C;
-  const low = gradeBreakdown.D + gradeBreakdown.F;
-  const contactableRate = total > 0 ? ((high + medium) / total) * 100 : 0;
+  // Calculate campaign readiness
+  const smsReady = batchStats.contactable;
+  const callReady = batchStats.mobile + batchStats.landline;
+  const emailReady = validEmails;
+  const notReady = Math.max(0, batchStats.total - Math.max(smsReady, callReady, emailReady));
+
+  // Calculate average score
+  let totalScore = 0;
+  let scoredCount = 0;
+  results.forEach((r) => {
+    if (r.activityScore !== null) {
+      totalScore += r.activityScore;
+      scoredCount++;
+    }
+  });
   const averageScore = scoredCount > 0 ? Math.round(totalScore / scoredCount) : 0;
 
-  // Campaign readiness
-  const smsReady = Math.floor(mobileCount * 0.85);
-  const callReady = Math.floor(validPhones * 0.70);
-  const emailReady = Math.floor(validEmails * 0.80);
-  const notReady = Math.max(0, total - Math.max(smsReady, callReady, emailReady));
-
   return {
-    total,
-    gradeBreakdown,
-    qualityBreakdown: { high, medium, low },
+    total: batchStats.total,
+    gradeBreakdown: {
+      A: batchStats.gradeA,
+      B: batchStats.gradeB,
+      C: batchStats.gradeC,
+      D: batchStats.gradeD,
+      F: batchStats.gradeF,
+    },
+    qualityBreakdown: {
+      high: batchStats.highActivity,
+      medium: batchStats.mediumActivity,
+      low: batchStats.lowActivity,
+    },
     averageScore,
-    contactableRate,
-    litigatorRiskCount,
-    mobileCount,
-    landlineCount,
+    contactableRate: Math.round(batchStats.contactabilityRate * 100),
+    litigatorRiskCount: batchStats.litigatorRisk,
+    mobileCount: batchStats.mobile,
+    landlineCount: batchStats.landline,
     dataFormat: {
       validPhones,
       invalidPhones,
@@ -499,19 +348,33 @@ async function processRecords(records: CSVRecord[], tier: "free" | "paid"): Prom
   };
 }
 
-// Send email with assessment results
-async function sendAssessmentEmail(
-  email: string,
-  stats: AssessmentStats,
-  tier: "free" | "paid",
-  assessmentId: string
-): Promise<void> {
-  // In production, use a proper email service (SendGrid, Resend, etc.)
-  console.log(`[Lead Lab] Sending assessment email to ${email}`);
-  console.log(`[Lead Lab] Assessment ID: ${assessmentId}`);
-  console.log(`[Lead Lab] Tier: ${tier}`);
-  console.log(`[Lead Lab] Stats:`, JSON.stringify(stats, null, 2));
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET - Assessment Info
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  // TODO: Implement actual email sending
-  // For now, just log it
+export async function GET() {
+  return NextResponse.json({
+    name: "Lead Lab Assessment API",
+    version: "1.0.0",
+    description: "NEXTIER wrapper around Trestle Real Contact API",
+
+    freeTier: {
+      maxRecords: BATCH_CONFIG.FREE_TIER_MAX_RECORDS,
+      features: ["Aggregate stats", "Grade distribution", "Activity scoring"],
+    },
+
+    paidTier: {
+      pricePerRecord: `$${BATCH_CONFIG.COST_PER_QUERY}`,
+      minCharge: "$5.00",
+      features: ["Per-lead results", "CSV export", "No record limit"],
+    },
+
+    endpoints: {
+      submit: "POST /api/lead-lab/assess (multipart/form-data)",
+      status: "GET /api/lead-lab/status/{assessmentId}",
+    },
+
+    requiredColumns: ["name (or first_name + last_name)", "phone"],
+    optionalColumns: ["email", "address", "city", "state", "zip"],
+  });
 }
