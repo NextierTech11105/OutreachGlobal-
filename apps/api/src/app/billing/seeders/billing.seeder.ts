@@ -134,6 +134,91 @@ export class BillingSeeder {
         isActive: true,
         sortOrder: 3,
       },
+      // ═══════════════════════════════════════════════════════════════════════════
+      // DIGITAL WORKFORCE - AI Agent Automation Package
+      // ═══════════════════════════════════════════════════════════════════════════
+      {
+        slug: "digital-workforce",
+        name: "Digital Workforce",
+        priceMonthly: 99900, // $999/mo
+        priceYearly: 999000, // $9,990/yr (2 months free)
+        limits: {
+          users: 100,
+          leads: 500000,
+          searches: 50000,
+          sms: 100000, // 100K SMS/month
+          skipTraces: 10000, // 10K enrichments/month
+          apiAccess: true,
+          powerDialer: true,
+          whiteLabel: true,
+          // AI Workers
+          aiWorkers: ["GIANNA", "CATHY", "SABRINA", "NEVA"],
+          workerAutonomy: true,
+          leadScoringAI: true,
+          // Lead Gen Pipeline
+          tracerfyAccess: true, // $0.02/lead skip trace
+          trestleScoring: true, // $0.03/lead contactability
+          signalHouse10DLC: true, // 10DLC compliant SMS
+          campaignBuilder: true,
+          // Business Intelligence
+          sectorBuckets: true,
+          dealSourcing: true,
+          businessBrokering: true,
+        },
+        features: [
+          { text: "AI Workforce (GIANNA, CATHY, SABRINA)", included: true },
+          { text: "500K leads/month capacity", included: true },
+          { text: "100K SMS/month", included: true },
+          { text: "10K enrichments/month ($0.05/lead)", included: true },
+          { text: "10DLC Compliant SMS", included: true },
+          { text: "Trestle Contactability Scoring", included: true },
+          { text: "Campaign Builder + Templates", included: true },
+          { text: "Sector Buckets (Lead Gen)", included: true },
+          { text: "Business Brokering Module", included: true },
+          { text: "Full White Label", included: true },
+          { text: "Dedicated Support", included: true },
+        ],
+        isActive: true,
+        sortOrder: 4,
+      },
+      {
+        slug: "enterprise",
+        name: "Enterprise",
+        priceMonthly: 0, // Custom pricing
+        priceYearly: 0,
+        limits: {
+          users: -1, // Unlimited
+          leads: -1,
+          searches: -1,
+          sms: -1,
+          skipTraces: -1,
+          apiAccess: true,
+          powerDialer: true,
+          whiteLabel: true,
+          aiWorkers: ["GIANNA", "CATHY", "SABRINA", "NEVA", "CUSTOM"],
+          workerAutonomy: true,
+          leadScoringAI: true,
+          tracerfyAccess: true,
+          trestleScoring: true,
+          signalHouse10DLC: true,
+          campaignBuilder: true,
+          sectorBuckets: true,
+          dealSourcing: true,
+          businessBrokering: true,
+          customAgents: true,
+          dedicatedInfra: true,
+        },
+        features: [
+          { text: "Everything in Digital Workforce", included: true },
+          { text: "Unlimited leads & SMS", included: true },
+          { text: "Custom AI Agents", included: true },
+          { text: "Dedicated Infrastructure", included: true },
+          { text: "SLA & Priority Support", included: true },
+          { text: "Custom Integrations", included: true },
+        ],
+        isActive: true,
+        sortOrder: 5,
+      },
     ];
 
     for (const plan of defaultPlans) {

@@ -39,17 +39,17 @@ export interface PhoneCampaignConfig {
  * 3. Configure phone in SignalHouse to use the campaign
  */
 export const PHONE_CAMPAIGN_MAP: Record<string, PhoneCampaignConfig> = {
-  // Lane A: Cold Outreach (Low Volume Mixed)
+  // Lane A: Cold Outreach (Low Volume Mixed) - TCR APPROVED 01/06/2026
   "15164079249": {
     phoneNumber: "15164079249",
-    campaignId: "NEW_CAMPAIGN_ID", // Update after new campaign approved
+    campaignId: "CJRCU60", // TCR Approved 01/06/2026 - Expires 04/06/2026
     brandId: "BZOYPIH",
     lane: "cold_outreach",
     useCase: "LOW_VOLUME_MIXED",
     allowedWorkers: ["GIANNA"],
-    tpmLimit: 75, // AT&T limit for Low Volume
+    tpmLimit: 75, // AT&T SMS TPM, T-Mobile LOW tier
     dailyLimit: 2000,
-    description: "NEXTIER cold outreach - permission-seeking openers",
+    description: "NEXTIER cold outreach - lead gen for Plumbing/HVAC, Trucking, ECBB seller leads",
   },
 
   // Lane B: Engaged Leads (Conversational) - Add new numbers here

@@ -240,6 +240,23 @@ export const DEFAULT_FAVORITE_GROUPS: FavoriteGroup[] = [
       "ny-transport-trucking",
     ],
   },
+
+  // ===== LEAD GENERATION - Q1 2026 =====
+  // USBizData imports for SMS outreach campaigns
+  {
+    id: "leadgen-q1-2026",
+    name: "Lead Gen - Q1 2026 Lists",
+    description:
+      "USBizData imports for lead generation | Plumbing/HVAC (338K) + Trucking/Freight (306K) | $0.05/lead enrichment",
+    color: "#F97316",
+    icon: "zap",
+    bucketIds: [
+      // Plumbing/HVAC - 338,605 records, SIC 1711, $27
+      "us-construction-plumbers-hvac",
+      // Trucking/Freight - 306,647 records, SIC 4212/4213/4214, $27
+      "us-transport-trucking",
+    ],
+  },
 ];
 
 // ===== CONSTRUCTION & CONTRACTORS (SIC 15xx-17xx) =====
@@ -936,8 +953,9 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     storagePath:
       "datalake/business/us/sectors/construction-contractors/plumbers-hvac/",
     description:
-      "US Plumbing, Heating & AC contractors (SIC 1711) - 338,605 nationwide",
+      "US Plumbing, Heating & AC contractors (SIC 1711) - 338,605 nationwide | ECBB seller leads",
     state: "US",
+    tags: ["ecbb", "seller-leads", "lead-gen"],
   },
   {
     id: "us-hospitality-campgrounds-rv",
@@ -958,8 +976,10 @@ export const NATIONAL_BUCKETS: SectorBucket[] = [
     sicCodes: ["4212", "4213", "4214"],
     storagePath:
       "datalake/business/us/sectors/transportation-logistics/trucking/",
-    description: "US Trucking & freight companies - nationwide",
+    description:
+      "US Trucking & freight companies (SIC 4212/4213/4214) - 306,647 nationwide | ECBB seller leads",
     state: "US",
+    tags: ["ecbb", "seller-leads", "lead-gen"],
   },
   {
     id: "us-auto-car-wash",
