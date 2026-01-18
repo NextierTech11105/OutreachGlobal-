@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import {
@@ -58,8 +58,137 @@ const TRIAL_DURATION_DAYS = 14;
 const DEFAULT_PLAN_SLUG = "starter";
 
 @Injectable()
-export class SubscriptionService {
+export class SubscriptionService implements OnModuleInit {
+  private readonly logger = new Logger(SubscriptionService.name);
+
   constructor(@InjectDB() private db: DrizzleClient) {}
+
+  /**
+   * Ensure billing tables exist on module init
+   */
+  async onModuleInit() {
+    try {
+      await this.ensureBillingTablesExist();
+      await this.ensureStarterPlanExists();
+    } catch (error: any) {
+      this.logger.error("Failed to initialize billing tables:", error.message);
+    }
+  }
+
+  /**
+   * Create billing tables if they don't exist
+   */
+  private async ensureBillingTablesExist() {
+    try {
+      // Create plans table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS plans (
+          id VARCHAR(26) PRIMARY KEY,
+          slug VARCHAR NOT NULL UNIQUE,
+          name VARCHAR NOT NULL,
+          description VARCHAR,
+          price_monthly INTEGER NOT NULL,
+          price_yearly INTEGER NOT NULL,
+          setup_fee INTEGER DEFAULT 0,
+          limits JSONB,
+          features JSONB,
+          is_active BOOLEAN DEFAULT true,
+          sort_order INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // Create subscriptions table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS subscriptions (
+          id VARCHAR(26) PRIMARY KEY,
+          team_id VARCHAR(26) NOT NULL,
+          plan_id VARCHAR(26) NOT NULL REFERENCES plans(id),
+          stripe_customer_id VARCHAR,
+          stripe_subscription_id VARCHAR,
+          stripe_price_id VARCHAR,
+          status VARCHAR NOT NULL DEFAULT 'trialing',
+          billing_cycle VARCHAR NOT NULL DEFAULT 'monthly',
+          current_period_start TIMESTAMP,
+          current_period_end TIMESTAMP,
+          trial_start TIMESTAMP,
+          trial_end TIMESTAMP,
+          cancel_at_period_end BOOLEAN DEFAULT false,
+          canceled_at TIMESTAMP,
+          cancel_reason VARCHAR,
+          usage_this_period JSONB,
+          metadata JSONB,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // Create credits table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS credits (
+          id VARCHAR(26) PRIMARY KEY,
+          team_id VARCHAR(26) NOT NULL,
+          credit_type VARCHAR NOT NULL,
+          balance INTEGER NOT NULL DEFAULT 0,
+          total_purchased INTEGER DEFAULT 0,
+          total_used INTEGER DEFAULT 0,
+          expires_at TIMESTAMP,
+          source VARCHAR,
+          payment_id VARCHAR(26),
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      this.logger.log("Billing tables verified/created");
+    } catch (error: any) {
+      this.logger.error("Error creating billing tables:", error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Ensure starter plan exists
+   */
+  private async ensureStarterPlanExists() {
+    try {
+      const existing = await this.db.query.plans.findFirst({
+        where: (t, { eq }) => eq(t.slug, DEFAULT_PLAN_SLUG),
+      });
+
+      if (!existing) {
+        await this.db.insert(plansTable).values({
+          slug: DEFAULT_PLAN_SLUG,
+          name: "Starter",
+          priceMonthly: 9900,
+          priceYearly: 99000,
+          limits: {
+            users: 3,
+            leads: 5000,
+            searches: 500,
+            sms: 1000,
+            skipTraces: 100,
+            apiAccess: false,
+            powerDialer: true,
+            whiteLabel: false,
+          },
+          features: [
+            { text: "Up to 5,000 leads", included: true },
+            { text: "1,000 SMS/month", included: true },
+            { text: "Power Dialer", included: true },
+            { text: "3 Team Members", included: true },
+            { text: "Email Support", included: true },
+          ],
+          isActive: true,
+          sortOrder: 1,
+        });
+        this.logger.log("Created starter plan");
+      }
+    } catch (error: any) {
+      this.logger.error("Error ensuring starter plan:", error.message);
+    }
+  }
 
   /**
    * Create a new subscription for a team (called during registration)

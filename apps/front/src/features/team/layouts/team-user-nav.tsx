@@ -35,6 +35,11 @@ export function TeamUserNav() {
   const user = useAuthState();
   const [logout, { loading }] = useLogout();
 
+  // Guard against undefined user during initial load
+  if (!user) {
+    return null;
+  }
+
   const roleLabel = ROLE_LABELS[user.role] || user.role;
 
   return (
@@ -53,7 +58,7 @@ export function TeamUserNav() {
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate text-xs text-muted-foreground">{roleLabel}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -73,7 +78,8 @@ export function TeamUserNav() {
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                  <span className="truncate text-xs text-primary/70">{roleLabel}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

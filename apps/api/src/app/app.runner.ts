@@ -1,18 +1,23 @@
 import { Command, CommandRunner, Option } from "nest-commander";
 import { WorkflowSeeder } from "./workflow/seeders/workflow.seeder";
+import { BillingSeeder } from "./billing/seeders/billing.seeder";
 import { Logger } from "@nestjs/common";
 
 @Command({ name: "app" })
 export class AppRunner extends CommandRunner {
   private readonly logger = new Logger(AppRunner.name);
 
-  constructor(private workflowSeeder: WorkflowSeeder) {
+  constructor(
+    private workflowSeeder: WorkflowSeeder,
+    private billingSeeder: BillingSeeder,
+  ) {
     super();
   }
 
   async run(params: any, options?: any) {
     try {
       if (options?.seed) {
+        await this.billingSeeder.run();
         await this.workflowSeeder.run();
       }
 
