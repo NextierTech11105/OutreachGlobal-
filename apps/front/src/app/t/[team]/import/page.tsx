@@ -49,6 +49,23 @@ const CAMPAIGN_VERTICALS = [
   { id: "GENERAL", name: "General / Other", icon: "📁", color: "#6B7280" },
 ] as const;
 
+// Enrichment costs
+const COSTS = {
+  TRACERFY_PER_RECORD: 0.02,
+  TRESTLE_PER_PHONE: 0.03,
+  AVG_PHONES_PER_RECORD: 3,
+  SMS_PER_MESSAGE: 0.0075,
+} as const;
+
+function estimateCosts(recordCount: number) {
+  const tracerfy = recordCount * COSTS.TRACERFY_PER_RECORD;
+  const trestle = recordCount * COSTS.AVG_PHONES_PER_RECORD * COSTS.TRESTLE_PER_PHONE;
+  const enrichmentTotal = tracerfy + trestle;
+  const estimatedQualified = Math.floor(recordCount * 0.33); // 33% qualify rate
+  const estimatedSMS = estimatedQualified * COSTS.SMS_PER_MESSAGE;
+  return { tracerfy, trestle, enrichmentTotal, estimatedQualified, estimatedSMS, total: enrichmentTotal + estimatedSMS };
+}
+
 type ImportStep = "upload" | "configure" | "preview" | "processing" | "complete";
 
 interface ImportResult {
@@ -63,16 +80,49 @@ interface ImportResult {
   errors?: string[];
 }
 
+interface PipelineResult {
+  success: boolean;
+  campaign: {
+    id: string;
+    name: string;
+    status: string;
+    totalLeads: number;
+    stats: {
+      totalRecords: number;
+      enriched: number;
+      scored: number;
+      qualified: number;
+      rejected: number;
+      qualifyRate: number;
+    };
+    costs: {
+      tracerfy: number;
+      trestle: number;
+      enrichmentTotal: number;
+      estimatedSMS: number;
+      costPerQualifiedLead: number;
+    };
+    signalHouse: {
+      campaignId: string;
+      brandId: string;
+      fromPhone: string;
+    } | null;
+  };
+  message: string;
+}
+
 export default function ImportPage() {
   const [step, setStep] = useState<ImportStep>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [importType, setImportType] = useState("business");
   const [vertical, setVertical] = useState("GENERAL");
   const [autoEnrich, setAutoEnrich] = useState(true);
+  const [smsPipeline, setSmsPipeline] = useState(false); // New: Full SMS pipeline mode
   const [batchSize, setBatchSize] = useState("500");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [pipelineResult, setPipelineResult] = useState<PipelineResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<{
     headers: string[];
@@ -128,6 +178,7 @@ export default function ImportPage() {
     setUploading(true);
     setError(null);
     setResult(null);
+    setPipelineResult(null);
     setProgress(0);
 
     // Simulate progress
@@ -138,27 +189,60 @@ export default function ImportPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("type", importType);
-      formData.append("vertical", vertical);
-      formData.append("autoEnrich", String(autoEnrich));
-      formData.append("batchSize", batchSize);
 
-      const response = await fetch("/api/datalake/import", {
-        method: "POST",
-        body: formData,
-      });
+      // Use SMS pipeline or standard import
+      if (smsPipeline) {
+        formData.append("name", `${vertical} - ${file.name}`);
+        formData.append("config", JSON.stringify({
+          blockSize: 2000,
+          minGrade: "B",
+          minActivityScore: 70,
+          requireMobile: true,
+          requireNameMatch: true,
+          blockLitigators: true,
+        }));
 
-      const data = await response.json();
+        const response = await fetch("/api/pipeline/data-to-sms", {
+          method: "POST",
+          body: formData,
+        });
 
-      clearInterval(progressInterval);
-      setProgress(100);
+        const data = await response.json();
 
-      if (data.success) {
-        setResult(data);
-        setStep("complete");
+        clearInterval(progressInterval);
+        setProgress(100);
+
+        if (data.success) {
+          setPipelineResult(data);
+          setStep("complete");
+        } else {
+          setError(data.error || "Pipeline processing failed");
+          setStep("configure");
+        }
       } else {
-        setError(data.error || "Import failed");
-        setStep("configure");
+        // Standard import
+        formData.append("type", importType);
+        formData.append("vertical", vertical);
+        formData.append("autoEnrich", String(autoEnrich));
+        formData.append("batchSize", batchSize);
+
+        const response = await fetch("/api/datalake/import", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        clearInterval(progressInterval);
+        setProgress(100);
+
+        if (data.success) {
+          setResult(data);
+          setStep("complete");
+        } else {
+          setError(data.error || "Import failed");
+          setStep("configure");
+        }
       }
     } catch (err) {
       clearInterval(progressInterval);
@@ -174,6 +258,8 @@ export default function ImportPage() {
     setFile(null);
     setPreviewData(null);
     setResult(null);
+    setPipelineResult(null);
+    setSmsPipeline(false);
     setError(null);
     setProgress(0);
   };
@@ -381,27 +467,94 @@ export default function ImportPage() {
                 </div>
               </div>
 
-              {/* Auto-Enrich Toggle */}
-              <div className="flex items-start space-x-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <Checkbox
-                  id="auto-enrich"
-                  checked={autoEnrich}
-                  onCheckedChange={(checked) => setAutoEnrich(checked === true)}
-                />
-                <div className="space-y-1">
-                  <Label
-                    htmlFor="auto-enrich"
-                    className="font-semibold cursor-pointer flex items-center gap-2"
-                  >
-                    <Zap className="h-4 w-4 text-yellow-500" />
-                    Auto-Enrich with LUCI
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically verify phone numbers, find missing emails, and score
-                    contactability. Pay-as-you-go pricing applies.
-                  </p>
+              {/* SMS Pipeline Toggle */}
+              <div className={`p-4 rounded-lg border-2 transition-all ${
+                smsPipeline
+                  ? "bg-green-500/10 border-green-500/50"
+                  : "bg-muted/50 border-transparent"
+              }`}>
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="sms-pipeline"
+                    checked={smsPipeline}
+                    onCheckedChange={(checked) => {
+                      setSmsPipeline(checked === true);
+                      if (checked) setAutoEnrich(true);
+                    }}
+                  />
+                  <div className="space-y-1 flex-1">
+                    <Label
+                      htmlFor="sms-pipeline"
+                      className="font-semibold cursor-pointer flex items-center gap-2"
+                    >
+                      <Phone className="h-4 w-4 text-green-500" />
+                      Full SMS Campaign Pipeline
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Skip trace + contactability scoring + filter. Only Grade A/B, Activity 70+, Mobile phones reach your SMS campaign.
+                    </p>
+                  </div>
                 </div>
+
+                {/* Cost Estimate */}
+                {smsPipeline && previewData && (
+                  <div className="mt-4 p-3 bg-background rounded-lg">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
+                      ESTIMATED COSTS
+                    </div>
+                    {(() => {
+                      const costs = estimateCosts(previewData.rowCount);
+                      return (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <div className="font-semibold">${costs.tracerfy.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">Tracerfy</div>
+                          </div>
+                          <div>
+                            <div className="font-semibold">${costs.trestle.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">Trestle</div>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-green-600">~{costs.estimatedQualified.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Qualified (33%)</div>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-primary">${costs.total.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">Total</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      Contactability Gate: Grade A/B, Activity 70+, Mobile only, Name match, No litigators
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Auto-Enrich Toggle (only show if not using SMS pipeline) */}
+              {!smsPipeline && (
+                <div className="flex items-start space-x-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <Checkbox
+                    id="auto-enrich"
+                    checked={autoEnrich}
+                    onCheckedChange={(checked) => setAutoEnrich(checked === true)}
+                  />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="auto-enrich"
+                      className="font-semibold cursor-pointer flex items-center gap-2"
+                    >
+                      <Zap className="h-4 w-4 text-yellow-500" />
+                      Auto-Enrich with LUCI
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically verify phone numbers, find missing emails, and score
+                      contactability. Pay-as-you-go pricing applies.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Preview Table */}
               <div className="space-y-2">
@@ -488,8 +641,8 @@ export default function ImportPage() {
         </Card>
       )}
 
-      {/* Step 4: Complete */}
-      {step === "complete" && result && (
+      {/* Step 4: Complete - Standard Import */}
+      {step === "complete" && result && !pipelineResult && (
         <Card>
           <CardContent className="py-12 text-center">
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -544,6 +697,104 @@ export default function ImportPage() {
                 <a href="/campaign-builder">
                   <Zap className="mr-2 h-4 w-4" />
                   Create Campaign
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 4: Complete - SMS Pipeline */}
+      {step === "complete" && pipelineResult && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center">
+              <Phone className="h-8 w-8 text-green-500" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">SMS Campaign Ready!</h2>
+            <p className="text-muted-foreground mb-6">{pipelineResult.message}</p>
+
+            {/* Pipeline Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 max-w-3xl mx-auto mb-6">
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="text-xl font-bold">
+                  {pipelineResult.campaign.stats.totalRecords.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
+              <div className="p-3 bg-blue-500/10 rounded-lg">
+                <div className="text-xl font-bold text-blue-600">
+                  {pipelineResult.campaign.stats.enriched.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Enriched</div>
+              </div>
+              <div className="p-3 bg-purple-500/10 rounded-lg">
+                <div className="text-xl font-bold text-purple-600">
+                  {pipelineResult.campaign.stats.scored.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Scored</div>
+              </div>
+              <div className="p-3 bg-green-500/10 rounded-lg">
+                <div className="text-xl font-bold text-green-600">
+                  {pipelineResult.campaign.stats.qualified.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Qualified</div>
+              </div>
+              <div className="p-3 bg-red-500/10 rounded-lg">
+                <div className="text-xl font-bold text-red-600">
+                  {pipelineResult.campaign.stats.rejected.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Filtered</div>
+              </div>
+            </div>
+
+            {/* Qualify Rate */}
+            <div className="inline-flex items-center gap-3 px-4 py-2 bg-green-500/10 rounded-full mb-6">
+              <span className="font-semibold text-green-600">
+                {(pipelineResult.campaign.stats.qualifyRate * 100).toFixed(1)}% Qualify Rate
+              </span>
+              <span className="text-sm text-muted-foreground">|</span>
+              <span className="text-sm">
+                ${pipelineResult.campaign.costs.costPerQualifiedLead.toFixed(2)}/qualified lead
+              </span>
+            </div>
+
+            {/* Cost Breakdown */}
+            <div className="max-w-md mx-auto mb-6 p-4 bg-muted/50 rounded-lg">
+              <div className="text-sm font-medium mb-2">Cost Breakdown</div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div>
+                  <div className="font-semibold">${pipelineResult.campaign.costs.tracerfy.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">Tracerfy</div>
+                </div>
+                <div>
+                  <div className="font-semibold">${pipelineResult.campaign.costs.trestle.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">Trestle</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-primary">${pipelineResult.campaign.costs.enrichmentTotal.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">Total</div>
+                </div>
+              </div>
+            </div>
+
+            {/* SignalHouse Config */}
+            {pipelineResult.campaign.signalHouse && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted rounded-full mb-6">
+                <Phone className="h-4 w-4" />
+                <span className="font-medium">Campaign {pipelineResult.campaign.signalHouse.campaignId}</span>
+                <Badge variant="secondary">SignalHouse Ready</Badge>
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={resetImport}>
+                Import More
+              </Button>
+              <Button variant="default" asChild>
+                <a href="/campaign-builder">
+                  <Zap className="mr-2 h-4 w-4" />
+                  Launch SMS Campaign
                 </a>
               </Button>
             </div>
