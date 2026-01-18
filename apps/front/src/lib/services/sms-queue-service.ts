@@ -254,6 +254,12 @@ export class SMSQueueService {
    */
   private async loadOptOutsFromDatabase(): Promise<void> {
     try {
+      // Skip database query if db is not available (e.g., during build)
+      if (!db) {
+        console.log("[SMSQueue] Database not available, skipping opt-out load");
+        return;
+      }
+
       // Query leads with opted_out status that have phone numbers
       const optedOutLeads = await db
         .select({ phone: leads.phone })
@@ -1020,26 +1026,28 @@ export class SMSQueueService {
     const normalizedPhone = this.normalizePhone(phoneNumber);
 
     // 1. Write to Postgres first (source of truth)
-    try {
-      // Find leads with this phone number and update status to opted_out
-      const phoneLike = `%${phoneNumber.replace(/\D/g, "").slice(-10)}%`;
-      await db
-        .update(leads)
-        .set({ status: "opted_out", updatedAt: new Date() })
-        .where(
-          or(
-            like(leads.phone, phoneLike),
-            eq(leads.phone, phoneNumber),
-            eq(leads.phone, normalizedPhone),
-          ),
+    if (db) {
+      try {
+        // Find leads with this phone number and update status to opted_out
+        const phoneLike = `%${phoneNumber.replace(/\D/g, "").slice(-10)}%`;
+        await db
+          .update(leads)
+          .set({ status: "opted_out", updatedAt: new Date() })
+          .where(
+            or(
+              like(leads.phone, phoneLike),
+              eq(leads.phone, phoneNumber),
+              eq(leads.phone, normalizedPhone),
+            ),
+          );
+        console.log(
+          `[SMSQueue] Opt-out persisted to Postgres: ${normalizedPhone}`,
         );
-      console.log(
-        `[SMSQueue] Opt-out persisted to Postgres: ${normalizedPhone}`,
-      );
-    } catch (error) {
-      console.error("[SMSQueue] Failed to persist opt-out to Postgres:", error);
-      // Continue - we still want to add to in-memory list and Redis cache
-      // to prevent sending messages while the DB issue is resolved
+      } catch (error) {
+        console.error("[SMSQueue] Failed to persist opt-out to Postgres:", error);
+        // Continue - we still want to add to in-memory list and Redis cache
+        // to prevent sending messages while the DB issue is resolved
+      }
     }
 
     // 2. Add to in-memory list (hot cache)
@@ -1073,24 +1081,26 @@ export class SMSQueueService {
     const normalizedPhone = this.normalizePhone(phoneNumber);
 
     // 1. Update Postgres first (change status back from opted_out)
-    try {
-      const phoneLike = `%${phoneNumber.replace(/\D/g, "").slice(-10)}%`;
-      await db
-        .update(leads)
-        .set({ status: "active", updatedAt: new Date() })
-        .where(
-          or(
-            like(leads.phone, phoneLike),
-            eq(leads.phone, phoneNumber),
-            eq(leads.phone, normalizedPhone),
-          ),
+    if (db) {
+      try {
+        const phoneLike = `%${phoneNumber.replace(/\D/g, "").slice(-10)}%`;
+        await db
+          .update(leads)
+          .set({ status: "active", updatedAt: new Date() })
+          .where(
+            or(
+              like(leads.phone, phoneLike),
+              eq(leads.phone, phoneNumber),
+              eq(leads.phone, normalizedPhone),
+            ),
+          );
+        console.log(`[SMSQueue] Opt-out removed in Postgres: ${normalizedPhone}`);
+      } catch (error) {
+        console.error(
+          "[SMSQueue] Failed to remove opt-out from Postgres:",
+          error,
         );
-      console.log(`[SMSQueue] Opt-out removed in Postgres: ${normalizedPhone}`);
-    } catch (error) {
-      console.error(
-        "[SMSQueue] Failed to remove opt-out from Postgres:",
-        error,
-      );
+      }
     }
 
     // 2. Remove from in-memory list

@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
-import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const CONTACT_EMAIL = "tb@outreachglobal.io";
+
+// Lazy-load Resend to avoid build-time issues when API key is missing
+const getResend = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  // Dynamic import to avoid module-level initialization
+  const { Resend } = require("resend");
+  return new Resend(apiKey);
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +67,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Send welcome/trial email
-    if (process.env.RESEND_API_KEY) {
+    const resend = getResend();
+    if (resend) {
       try {
         await resend.emails.send({
           from: "NEXTIER <hello@nextier.io>",
