@@ -259,7 +259,190 @@ async function skipTracePerson(
   }
 }
 
-// Bulk skip trace
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRACERFY SKIP TRACE - PRIMARY PROVIDER ($0.02/lead)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function handleTracerfySkipTrace(request: NextRequest): Promise<Response> {
+  const body = await request.json();
+  const isBatch = Array.isArray(body.records);
+  const inputs: USBizSkipInput[] = isBatch ? body.records : [body];
+
+  if (inputs.length === 0) {
+    return NextResponse.json(
+      { error: "No records provided" },
+      { status: 400 },
+    );
+  }
+
+  // Check daily limit
+  const limit = checkDailyLimit(inputs.length);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      {
+        error: "Daily limit reached",
+        limit: DAILY_LIMIT,
+        remaining: limit.remaining,
+        requested: inputs.length,
+      },
+      { status: 429 },
+    );
+  }
+
+  // Validate and transform inputs for Tracerfy
+  const validInputs: USBizSkipInput[] = [];
+  const invalidResults: SkipTraceResult[] = [];
+
+  for (const input of inputs) {
+    const validation = validateInput(input);
+    if (validation.valid) {
+      validInputs.push(input);
+    } else {
+      invalidResults.push({ input, success: false, error: validation.error });
+    }
+  }
+
+  if (validInputs.length === 0) {
+    return NextResponse.json({
+      success: false,
+      results: invalidResults,
+      stats: {
+        total: inputs.length,
+        matched: 0,
+        with_mobile: 0,
+        with_email: 0,
+        failed: inputs.length,
+      },
+    });
+  }
+
+  // Transform to Tracerfy format
+  const tracerfyRecords: TraceJobInput[] = validInputs.map((input) => {
+    const { firstName, lastName } = parseName(input.full_name);
+    return {
+      first_name: firstName,
+      last_name: lastName,
+      address: input.address.trim(),
+      city: input.city.trim(),
+      state: input.state.trim().toUpperCase(),
+      zip: input.zip.trim().slice(0, 5),
+      mail_address: input.address.trim(),
+      mail_city: input.city.trim(),
+      mail_state: input.state.trim().toUpperCase(),
+      mailing_zip: input.zip.trim().slice(0, 5),
+    };
+  });
+
+  console.log(`[USBiz Skip Trace] Using Tracerfy for ${tracerfyRecords.length} records`);
+
+  try {
+    // Check Tracerfy balance first
+    const analytics = await tracerfy.getAnalytics();
+    if (analytics.balance < tracerfyRecords.length) {
+      return NextResponse.json(
+        {
+          error: "Insufficient Tracerfy credits",
+          balance: analytics.balance,
+          needed: tracerfyRecords.length,
+          cost: `$${(tracerfyRecords.length * TRACERFY_COST_PER_LEAD).toFixed(2)}`,
+        },
+        { status: 402 },
+      );
+    }
+
+    // Start the trace job
+    const traceResponse = await tracerfy.beginTrace(tracerfyRecords, "normal");
+    console.log(`[USBiz Skip Trace] Tracerfy job started: ${traceResponse.queue_id}`);
+
+    // Wait for results (Tracerfy processes async, but we poll)
+    const queue = await tracerfy.waitForQueue(traceResponse.queue_id, 3000, 120000);
+
+    // Get the results
+    const tracerfyResults = await tracerfy.getQueueResults(traceResponse.queue_id);
+
+    // Map Tracerfy results back to our format
+    const results: SkipTraceResult[] = [...invalidResults];
+
+    for (let i = 0; i < tracerfyResults.length; i++) {
+      const tr = tracerfyResults[i] as TracerfyNormalResult;
+      const originalInput = validInputs[i] || validInputs[0];
+
+      const phones = extractPhones(tr);
+      const emails = extractEmails(tr);
+      const mobilePhone = phones.find(p => p.type === "Mobile") || phones[0];
+
+      results.push({
+        input: originalInput,
+        success: phones.length > 0 || emails.length > 0,
+        mobile: mobilePhone?.number,
+        email: emails[0],
+        all_phones: phones.map(p => ({ number: p.number, type: p.type })),
+        all_emails: emails.map(e => ({ email: e, type: "personal" })),
+        confidence: phones.length > 0 ? 1 : 0,
+      });
+    }
+
+    // Increment usage
+    incrementUsage(tracerfyResults.length);
+
+    // Stats
+    const successful = results.filter((r) => r.success);
+    const withMobile = successful.filter((r) => r.mobile);
+    const withEmail = successful.filter((r) => r.email);
+
+    console.log(
+      `[USBiz Skip Trace] Tracerfy complete: ${successful.length}/${results.length} matched, ${withMobile.length} mobile, ${withEmail.length} email`,
+    );
+
+    // Single response format
+    if (!isBatch && results.length === 1) {
+      return NextResponse.json({
+        ...results[0],
+        provider: "tracerfy",
+        usage: {
+          today: dailyUsage.count,
+          limit: DAILY_LIMIT,
+          remaining: DAILY_LIMIT - dailyUsage.count,
+        },
+      });
+    }
+
+    // Batch response format
+    return NextResponse.json({
+      success: true,
+      provider: "tracerfy",
+      queueId: traceResponse.queue_id,
+      results,
+      stats: {
+        total: results.length,
+        matched: successful.length,
+        with_mobile: withMobile.length,
+        with_email: withEmail.length,
+        failed: results.length - successful.length,
+      },
+      usage: {
+        today: dailyUsage.count,
+        limit: DAILY_LIMIT,
+        remaining: DAILY_LIMIT - dailyUsage.count,
+      },
+    });
+  } catch (error) {
+    console.error("[USBiz Skip Trace] Tracerfy error:", error);
+    return NextResponse.json(
+      {
+        error: "Tracerfy skip trace failed",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REALESTATEAPI SKIP TRACE - FALLBACK PROVIDER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Bulk skip trace using RealEstateAPI (fallback)
 async function bulkSkipTrace(
   inputs: USBizSkipInput[],
 ): Promise<SkipTraceResult[]> {
@@ -409,16 +592,28 @@ async function bulkSkipTrace(
  *
  * Single: { full_name, address, city, state, zip }
  * Batch: { records: [{ full_name, address, city, state, zip }, ...] }
+ *
+ * ROUTING: Tracerfy (primary, $0.02/lead) → RealEstateAPI (fallback)
  */
 export async function POST(request: NextRequest) {
-  if (!REALESTATE_API_KEY) {
+  // Check if any provider is configured
+  if (!USE_TRACERFY && !REALESTATE_API_KEY) {
     return NextResponse.json(
       {
-        error: "RealEstateAPI not configured",
-        message: "Set REAL_ESTATE_API_KEY environment variable",
+        error: "Skip trace not configured",
+        message: "Set TRACERFY_API_TOKEN (preferred, $0.02/lead) or REAL_ESTATE_API_KEY environment variable",
+        providers: {
+          tracerfy: { url: "https://tracerfy.com", cost: "$0.02/lead" },
+          realestateapi: { url: "https://realestateapi.com", cost: "$0.10-0.25/lead" },
+        },
       },
       { status: 503 },
     );
+  }
+
+  // If Tracerfy is configured, use it directly
+  if (USE_TRACERFY) {
+    return handleTracerfySkipTrace(request);
   }
 
   const body = await request.json();
@@ -529,10 +724,23 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   const limit = checkDailyLimit(0);
+  const activeProvider = USE_TRACERFY ? "tracerfy" : REALESTATE_API_KEY ? "realestateapi" : null;
 
   return NextResponse.json({
-    configured: !!REALESTATE_API_KEY,
-    vendor: "RealEstateAPI",
+    configured: !!activeProvider,
+    provider: activeProvider,
+    providers: {
+      tracerfy: {
+        configured: USE_TRACERFY,
+        cost: "$0.02/lead",
+        status: USE_TRACERFY ? "ACTIVE" : "NOT_CONFIGURED",
+      },
+      realestateapi: {
+        configured: !!REALESTATE_API_KEY,
+        cost: "$0.10-0.25/lead",
+        status: USE_TRACERFY ? "STANDBY" : REALESTATE_API_KEY ? "ACTIVE" : "NOT_CONFIGURED",
+      },
+    },
     usage: {
       today: dailyUsage.count,
       limit: DAILY_LIMIT,

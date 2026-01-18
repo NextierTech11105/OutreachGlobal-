@@ -1276,12 +1276,27 @@ export async function POST(request: NextRequest) {
 // GET - Check daily usage and API configuration status
 export async function GET() {
   const usage = getDailyUsage();
-  const isConfigured = !!REALESTATE_API_KEY;
+  // Tracerfy is primary provider, RealEstateAPI is fallback
+  const isConfigured = !!TRACERFY_TOKEN || !!REALESTATE_API_KEY;
+  const activeProvider = TRACERFY_TOKEN ? "tracerfy" : REALESTATE_API_KEY ? "realestateapi" : null;
 
   return NextResponse.json({
     configured: isConfigured,
+    provider: activeProvider,
+    providers: {
+      tracerfy: {
+        configured: !!TRACERFY_TOKEN,
+        cost: "$0.02/lead",
+        status: TRACERFY_TOKEN ? "ACTIVE" : "NOT_CONFIGURED",
+      },
+      realestateapi: {
+        configured: !!REALESTATE_API_KEY,
+        cost: "$0.10-0.25/lead",
+        status: REALESTATE_API_KEY ? "FALLBACK" : "NOT_CONFIGURED",
+      },
+    },
     configError: !isConfigured
-      ? "RealEstateAPI key not configured. Set REAL_ESTATE_API_KEY in environment variables. Get your key at https://realestateapi.com"
+      ? "No skip trace provider configured. Set TRACERFY_API_TOKEN (preferred, $0.02/lead) in environment variables. Get your token at https://tracerfy.com"
       : undefined,
     date: usage.date,
     used: usage.count,
@@ -1290,9 +1305,9 @@ export async function GET() {
     batchSize: BATCH_SIZE,
     bulkBatchSize: BULK_BATCH_SIZE,
     endpoints: {
-      single: "POST /api/skip-trace { id: 'property-id' }",
-      batch: "POST /api/skip-trace { ids: ['id1', 'id2', ...] } - max 250",
-      bulk: "POST /api/skip-trace { ids: ['id1', 'id2', ...], bulk: true } - max 1000, uses SkipTraceBatchAwait",
+      single: "POST /api/skip-trace { firstName, lastName, address, city, state, zip }",
+      batch: "POST /api/skip-trace { people: [...] } - max 250",
+      tracerfy: "POST /api/skip-trace/tracerfy { records: [...] } - Tracerfy direct",
     },
   });
 }

@@ -585,11 +585,20 @@ export default function SkipTracePage() {
                 <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-medium text-red-800 dark:text-red-300">
-                    RealEstateAPI Not Configured
+                    Tracerfy API Not Configured
                   </h4>
                   <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                    Set REAL_ESTATE_API_KEY environment variable to enable skip
-                    tracing.
+                    Set TRACERFY_API_TOKEN environment variable to enable skip
+                    tracing. Get your token at{" "}
+                    <a
+                      href="https://tracerfy.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      tracerfy.com
+                    </a>{" "}
+                    - $0.02/lead
                   </p>
                 </div>
               </div>
