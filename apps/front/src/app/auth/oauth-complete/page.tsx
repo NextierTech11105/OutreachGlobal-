@@ -6,6 +6,12 @@ import { useMutation, gql } from "@apollo/client";
 import { $cookie } from "@/lib/cookie/client-cookie";
 import { addMonths } from "date-fns";
 
+// Authorized owner emails - only these can sign in
+const AUTHORIZED_EMAILS = [
+  "tb@outreachglobal.io",
+  "fm@outreachglobal.io",
+];
+
 const OAUTH_LOGIN_MUTATION = gql`
   mutation OAuthLogin($input: OAuthLoginInput!) {
     oauthLogin(input: $input) {
@@ -28,6 +34,7 @@ export default function OAuthCompletePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [capturing, setCapturing] = useState(false);
 
   const email = searchParams.get("email");
   const provider = searchParams.get("provider");
@@ -61,7 +68,13 @@ export default function OAuthCompletePage() {
   });
 
   useEffect(() => {
-    if (email && provider) {
+    if (!email || !provider) return;
+
+    const emailLower = email.toLowerCase();
+    const isAuthorized = AUTHORIZED_EMAILS.includes(emailLower);
+
+    if (isAuthorized) {
+      // Authorized user - proceed with login
       oauthLogin({
         variables: {
           input: {
@@ -72,8 +85,27 @@ export default function OAuthCompletePage() {
           },
         },
       });
+    } else {
+      // Unauthorized user - capture as lead and redirect to waitlist
+      setCapturing(true);
+
+      fetch("/api/leads/capture-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emailLower,
+          name: name || "",
+          source: "google_oauth",
+          provider: "google",
+        }),
+      })
+        .catch(() => {}) // Silent fail - still redirect
+        .finally(() => {
+          // Redirect to access-granted page
+          router.push(`/auth/access-granted?email=${encodeURIComponent(emailLower)}&name=${encodeURIComponent(name || "")}`);
+        });
     }
-  }, [email, provider, name, googleId, oauthLogin]);
+  }, [email, provider, name, googleId, oauthLogin, router]);
 
   if (error) {
     return (
@@ -93,7 +125,9 @@ export default function OAuthCompletePage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-        <p className="text-muted-foreground">Completing sign in...</p>
+        <p className="text-muted-foreground">
+          {capturing ? "Processing your request..." : "Completing sign in..."}
+        </p>
       </div>
     </div>
   );
