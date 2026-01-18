@@ -17,10 +17,14 @@ const PRICE_PER_RECORD = 0.03; // $0.03 per record (matches Trestle API cost)
 const FREE_TIER_LIMIT = 10_000;
 const MIN_CHARGE = 5.00; // Minimum charge $5
 
-// Stripe setup
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-12-18.acacia",
-});
+// Lazy Stripe initialization to avoid build errors
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY not configured");
+  }
+  return new Stripe(key, { apiVersion: "2024-12-18.acacia" });
+}
 
 interface CSVRecord {
   name?: string;
@@ -150,6 +154,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Create Stripe checkout session
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [

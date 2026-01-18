@@ -8,9 +8,14 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { updateAssessmentJob, getAssessmentJob } from "../assess/route";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-12-18.acacia",
-});
+// Lazy Stripe initialization to avoid build errors
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY not configured");
+  }
+  return new Stripe(key, { apiVersion: "2024-12-18.acacia" });
+}
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
@@ -29,6 +34,7 @@ export async function POST(req: NextRequest) {
     let event: Stripe.Event;
 
     try {
+      const stripe = getStripe();
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error("[Lead Lab Webhook] Signature verification failed:", err);
