@@ -106,31 +106,19 @@ export const GIANNA_PERSONALITY = {
     },
   },
 
-  // Message length presets
+  // Message length presets - CLEAR FOR PRODUCTION DATA
   messageStyles: {
     punchy: {
       brevity: 9,
-      examples: [
-        "Look at your numbers. Then look at the market. Then call me.",
-        "Your competitor closed yesterday. You're still thinking. Call me.",
-        "15 minutes. Free strategy session. No BS. You in?",
-        "The math works or it doesn't. Let's find out.",
-        "Winners move. Which one are you?",
-      ],
+      examples: [], // Add templates via admin panel
     },
     conversational: {
       brevity: 3,
-      examples: [
-        "Hey {firstName}, hope you're having a good week. I was thinking about what you mentioned about {painPoint} and I've got some ideas I think you'd find interesting. Nothing crazy, just some stuff that's working for other {industry} folks. Got 15 minutes this week?",
-        "You know what's funny? I talked to three {industry} owners this week and they all said the same thing about AI - 'sounds great but how does it actually work for MY business?' That's why I do these free strategy sessions. No sales pitch, just a real look at what's possible. Interested?",
-      ],
+      examples: [], // Add templates via admin panel
     },
     balanced: {
       brevity: 5,
-      examples: [
-        "{firstName}, quick thought on {companyName}. The players who figure out AI now own the next decade. 15 min call, no pitch, just strategy. Worth a look?",
-        "Here's the thing - your competition is already asking these questions. I'd rather you be the one with the answers. Free strategy session this week?",
-      ],
+      examples: [], // Add templates via admin panel
     },
   },
 
@@ -152,13 +140,7 @@ export const GIANNA_PERSONALITY = {
         "lease_terms",
         "commercial_financing",
       ],
-      power_phrases: [
-        "Look, in this market, the players who hesitate get left behind.",
-        "I've closed more deals this quarter than most brokers do in a year.",
-        "You want to sit on the sidelines? Your competitor is already moving.",
-        "The cap rate on this property doesn't lie. The numbers work or they don't.",
-        "I don't chase deals. Good deals chase me. But I'm making an exception here.",
-      ],
+      power_phrases: [], // Add via admin panel
     },
 
     blue_collar_business: {
@@ -175,13 +157,7 @@ export const GIANNA_PERSONALITY = {
         "recurring_revenue",
         "key_man_dependency",
       ],
-      power_phrases: [
-        "You've built something real here. Most guys can't say that.",
-        "The question isn't if AI will change your business - it's who's going to help you get there first.",
-        "I talk to business owners every day who wish they'd started this conversation sooner.",
-        "You didn't build this business by playing it safe. Don't start now.",
-        "Here's the thing - your competition is already asking these questions.",
-      ],
+      power_phrases: [], // Add via admin panel
     },
 
     ny_market: {
@@ -199,13 +175,7 @@ export const GIANNA_PERSONALITY = {
         "hudson_yards",
         "meatpacking",
       ],
-      power_phrases: [
-        "This is New York. You either move or you get moved.",
-        "I've seen more deals die from hesitation than from bad numbers.",
-        "Listen, I know you've got 50 people calling you. I'm not one of them.",
-        "In this city, the fast eat the slow. Period.",
-        "You think you have time to figure this out? Your lease is up in 18 months.",
-      ],
+      power_phrases: [], // Add via admin panel
     },
   },
 
@@ -231,60 +201,40 @@ export const GIANNA_PERSONALITY = {
     },
   },
 
-  // Lead magnet: 15-min AI Architecture Strategy Session
+  // Lead magnet - Configure via admin panel
   leadMagnet: {
-    title: "15-Minute AI Architecture Strategy Session",
-    description:
-      "Discover how AI can transform your business operations and increase your company value",
-    hook: "What AI means for YOUR industry and YOUR company",
-    deliverable: "Personalized AI roadmap for your specific business",
-    cta: "Book your free strategy session",
-    urgency: "Limited spots available this week",
+    title: "", // Configure per campaign
+    description: "",
+    hook: "",
+    deliverable: "",
+    cta: "",
+    urgency: "",
   },
 
-  // Conversation starters by context
+  // Conversation starters - CLEAR FOR PRODUCTION DATA
+  // Variables: {firstName}, {companyName}, {industry}, {phone}
   openers: {
-    cold_outreach: [
-      "Hey {firstName}, quick question about {companyName} - you ever think about what your business would look like with AI running the boring stuff?",
-      "{firstName}, I was looking at businesses like yours in {industry} and noticed something interesting. Got 2 minutes?",
-      "Look, I'll be straight with you {firstName} - most {industry} owners I talk to are leaving money on the table. Curious if that's you too.",
-    ],
-    follow_up: [
-      "Hey {firstName}, following up on our last chat. Still thinking about that AI stuff?",
-      "{firstName}, quick thought came to mind about {companyName}. Worth a 5-minute call?",
-    ],
-    warm_lead: [
-      "Great to connect {firstName}! I've helped a lot of {industry} owners figure out this AI thing. What's got you curious?",
-      "{firstName}, love that you're looking into this. Most owners wait too long. What questions you got?",
-    ],
-    voicemail: [
-      "Hey {firstName}, Gianna here from NexTier. Listen, I help {industry} business owners figure out how AI can actually make their companies more valuable - not the hype, the real stuff. Call me back when you get a sec. {phone}",
-      "{firstName}, quick message - I saw {companyName} and thought you'd be interested in what we're doing for other {industry} folks. Nothing salesy, just a 15-minute chat about AI and what it means for your business. Hit me back. {phone}",
-    ],
+    cold_outreach: [], // Add via admin panel
+    follow_up: [], // Add via admin panel
+    warm_lead: [], // Add via admin panel
+    voicemail: [], // Add via admin panel
   },
 
-  // Objection handling
+  // Objection handling - CLEAR FOR PRODUCTION DATA
+  // Configure per campaign via admin panel
   objections: {
-    too_busy:
-      "I get it, you're running a business. That's exactly why AI should be handling the stuff that's eating your time. 15 minutes now could save you 15 hours a week. Worth exploring?",
-    not_interested:
-      "Fair enough. Quick question though - if AI could handle your customer calls, scheduling, or paperwork while you focus on what makes money, would that change anything?",
-    already_have_solution:
-      "Cool, what are you using? Just curious because a lot of owners think they have it covered but they're missing the bigger picture. Mind if I share what I'm seeing in {industry}?",
-    cost_concerns:
-      "Look, I'm not here to sell you expensive software. The strategy session is free. We figure out if AI makes sense for YOUR business, and you decide from there. No pressure.",
-    skeptical_of_ai:
-      "I hear you, there's a lot of BS out there. I focus on practical stuff - not robots taking over, just technology that handles the annoying tasks so you can do what you're actually good at.",
+    too_busy: "",
+    not_interested: "",
+    already_have_solution: "",
+    cost_concerns: "",
+    skeptical_of_ai: "",
   },
 
-  // Closing techniques
+  // Closing techniques - CLEAR FOR PRODUCTION DATA
   closes: {
-    strategy_session:
-      "Here's what I'm thinking - let's do a quick 15-minute call. I'll show you exactly what AI could do for {companyName}, no sales pitch. If it makes sense, great. If not, you got some free insights. Sound fair?",
-    soft_close:
-      "Listen, I know you're busy. But the owners who are figuring this out now are gonna have a serious advantage in 2-3 years. Want to at least see what's possible?",
-    urgency_close:
-      "I'm only doing a handful of these strategy sessions this week. If you're even slightly curious, let's lock in a time before I'm booked up.",
+    strategy_session: "",
+    soft_close: "",
+    urgency_close: "",
   },
 
   // Industry-specific knowledge
@@ -464,58 +414,28 @@ ${additionalContext}`
   );
 }
 
+// TEMPLATE LIBRARY - CLEARED FOR PRODUCTION DATA
+// Variables: {firstName}, {lastName}, {companyName}, {industry}, {date}, {time}, {link}, {phone}
 export const GIANNA_TEMPLATES = {
-  // SMS Templates
+  // SMS Templates - Add via admin panel
   sms: {
-    initial_outreach: `Hey {firstName}, Gianna from NexTier. Quick Q - ever wonder how AI could handle the boring parts of running {companyName}? Got a few ideas if you're curious. Reply STOP to opt out.`,
-
-    follow_up_1: `{firstName}, following up from yesterday. I've been looking at what works for {industry} businesses and there's some interesting AI stuff happening. Worth a quick chat?`,
-
-    follow_up_2: `Last message {firstName} - I don't want to bug you. But if you're even slightly curious how AI could save you 10+ hours a week, let me know. If not, all good. 👍`,
-
-    appointment_confirm: `{firstName}, confirming our call for {date} at {time}. Looking forward to showing you what's possible for {companyName}. Talk soon! - Gianna`,
-
-    post_call: `Great chatting {firstName}! As promised, here's that AI roadmap we discussed: {link}. Any questions, just text me back. - Gianna`,
+    initial_outreach: "",
+    follow_up_1: "",
+    follow_up_2: "",
+    appointment_confirm: "",
+    post_call: "",
   },
 
-  // Email Templates
+  // Email Templates - Add via admin panel
   email: {
-    subject_lines: [
-      "Quick thought about {companyName}",
-      "{firstName}, 15 minutes could change how you run your business",
-      "What {industry} owners are doing with AI (and why you should too)",
-      "Free strategy session for {companyName}?",
-    ],
-
-    initial_outreach: `Hey {firstName},
-
-I'll keep this short because I know you're busy running {companyName}.
-
-I help {industry} business owners figure out how AI can actually make their companies more valuable - not the hype, the real stuff.
-
-The owners who are figuring this out now are gonna have a serious advantage in the next few years. Curious if you want to see what's possible?
-
-I'm offering a free 15-minute strategy session where I'll show you exactly how AI applies to YOUR business. No sales pitch, just insights.
-
-Worth a quick chat?
-
-- Gianna
-NexTier Business Advisors`,
+    subject_lines: [],
+    initial_outreach: "",
   },
 
-  // Voicemail Scripts
+  // Voicemail Scripts - Add via admin panel
   voicemail: {
-    initial: `Hey {firstName}, this is Gianna from NexTier. I work with {industry} business owners on something pretty cool - using AI to handle the stuff that eats up your time so you can focus on what actually makes money.
-
-Not talking about robots taking over, just practical technology that works. I'd love to do a quick 15-minute call to show you what's possible for {companyName}.
-
-Give me a ring back at {phone}. Talk soon.`,
-
-    follow_up: `{firstName}, Gianna again. Quick follow-up - I've been putting together some ideas for {industry} businesses and thought of {companyName}.
-
-If you're curious how AI could save you 10 hours a week while making your business more valuable, let's chat.
-
-{phone} - looking forward to it.`,
+    initial: "",
+    follow_up: "",
   },
 };
 

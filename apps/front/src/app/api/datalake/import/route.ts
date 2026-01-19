@@ -1,6 +1,8 @@
 /**
  * Direct Datalake Import API
  * Upload USBizData CSV and import directly to database
+ *
+ * For large files (>50k records), creates a background job and processes in chunks.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -8,6 +10,7 @@ import { parse } from "csv-parse/sync";
 import { db } from "@/lib/db";
 import { businesses, contacts, importJobs } from "@/lib/db/schema";
 import { requireTenantContext } from "@/lib/api-auth";
+import { eq } from "drizzle-orm";
 
 // Campaign verticals for isolated campaign tracking
 const VALID_VERTICALS = [
@@ -201,7 +204,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const importType = (formData.get("type") as string) || "business"; // business or contact
-    const batchSize = parseInt((formData.get("batchSize") as string) || "100");
+    const batchSize = parseInt((formData.get("batchSize") as string) || "500"); // Increased default
     const vertical = (formData.get("vertical") as string) || "GENERAL"; // Campaign vertical
     const autoEnrich = formData.get("autoEnrich") === "true"; // Auto-enrich with LUCI
 
@@ -236,14 +239,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "CSV is empty" }, { status: 400 });
     }
 
+    // For very large files (>10k), use chunked processing
+    const CHUNK_THRESHOLD = 10000; // Process max 10k per request
+    const isLargeFile = records.length > CHUNK_THRESHOLD;
+    const effectiveBatchSize = 1000; // DB batch size
+
+    // Get offset for chunked processing
+    const offsetParam = formData.get("offset") as string;
+    const jobIdParam = formData.get("jobId") as string;
+    const startOffset = offsetParam ? parseInt(offsetParam) : 0;
+
+    console.log(`[Datalake Import] Processing ${records.length} records (offset: ${startOffset}, large: ${isLargeFile})`);
+
     const headers = Object.keys(records[0]);
     let insertedCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
 
+    // For chunked processing, only process a subset per request
+    const maxRecordsPerRequest = CHUNK_THRESHOLD;
+    const recordsToProcess = isLargeFile
+      ? records.slice(startOffset, startOffset + maxRecordsPerRequest)
+      : records;
+    const hasMoreRecords = startOffset + recordsToProcess.length < records.length;
+
+    // Create or update import job for tracking
+    let jobId = jobIdParam;
+    if (isLargeFile && !jobId) {
+      const [job] = await db.insert(importJobs).values({
+        userId: userId,
+        jobType: "csv_import",
+        status: "running",
+        totalItems: records.length,
+        processedItems: 0,
+        successItems: 0,
+        errorItems: 0,
+        config: {
+          fileName: file.name,
+          vertical: validatedVertical,
+          importType,
+          autoEnrich,
+        },
+        startedAt: new Date(),
+      }).returning();
+      jobId = job.id;
+    }
+
     // Process in batches
-    for (let i = 0; i < records.length; i += batchSize) {
-      const batch = records.slice(i, i + batchSize);
+    for (let i = 0; i < recordsToProcess.length; i += effectiveBatchSize) {
+      const batch = recordsToProcess.slice(i, i + effectiveBatchSize);
 
       if (importType === "business") {
         // Insert into businesses table with decision maker prioritization
@@ -306,7 +350,7 @@ export async function POST(request: NextRequest) {
             insertedCount += businessRecords.length;
           } catch (err) {
             errorCount += businessRecords.length;
-            errors.push(`Batch ${Math.floor(i / batchSize)}: ${String(err)}`);
+            errors.push(`Batch ${Math.floor(i / effectiveBatchSize)}: ${String(err)}`);
           }
         }
       } else {
@@ -353,7 +397,7 @@ export async function POST(request: NextRequest) {
             insertedCount += contactRecords.length;
           } catch (err) {
             errorCount += contactRecords.length;
-            errors.push(`Batch ${Math.floor(i / batchSize)}: ${String(err)}`);
+            errors.push(`Batch ${Math.floor(i / effectiveBatchSize)}: ${String(err)}`);
           }
         }
       }
@@ -379,9 +423,25 @@ export async function POST(request: NextRequest) {
           }
         : undefined;
 
+    // Update job progress if using chunked processing
+    const processedSoFar = startOffset + recordsToProcess.length;
+    if (jobId) {
+      await db.update(importJobs)
+        .set({
+          processedItems: processedSoFar,
+          successItems: insertedCount,
+          errorItems: errorCount,
+          status: hasMoreRecords ? "running" : "completed",
+          completedAt: hasMoreRecords ? undefined : new Date(),
+        })
+        .where(eq(importJobs.id, jobId));
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Imported ${insertedCount} ${importType} records from ${file.name}`,
+      message: hasMoreRecords
+        ? `Processed ${processedSoFar.toLocaleString()} of ${records.length.toLocaleString()} records`
+        : `Imported ${insertedCount.toLocaleString()} ${importType} records from ${file.name}`,
       stats: {
         totalRows: records.length,
         inserted: insertedCount,
@@ -393,10 +453,22 @@ export async function POST(request: NextRequest) {
         autoEnrich: autoEnrich,
         priorityBreakdown,
       },
+      // Chunked processing info
+      chunked: isLargeFile,
+      jobId: jobId || undefined,
+      progress: {
+        processed: processedSoFar,
+        total: records.length,
+        percentComplete: Math.round((processedSoFar / records.length) * 100),
+        hasMore: hasMoreRecords,
+        nextOffset: hasMoreRecords ? processedSoFar : undefined,
+      },
       errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
-      nextSteps: autoEnrich
-        ? "Records queued for LUCI enrichment. Check /lead-lab for progress."
-        : "Records imported. Enable auto-enrich or use Lead Lab to enrich.",
+      nextSteps: hasMoreRecords
+        ? `Continue with offset=${processedSoFar}`
+        : autoEnrich
+          ? "Records queued for LUCI enrichment. Check /lead-lab for progress."
+          : "Records imported. Enable auto-enrich or use Lead Lab to enrich.",
     });
   } catch (error) {
     console.error("[Datalake Import] Error:", error);

@@ -12,7 +12,7 @@ const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   "https://monkfish-app-mb7h3.ondigitalocean.app";
 const CALENDAR_LINK =
-  process.env.CALENDAR_LINK || "https://calendly.com/nextier/15min-strategy";
+  process.env.CALENDAR_LINK || "https://calendly.com/tb-outreachglobal/15min";
 const SPACES_CDN =
   process.env.SPACES_CDN_URL ||
   "https://nextier-assets.nyc3.cdn.digitaloceanspaces.com";

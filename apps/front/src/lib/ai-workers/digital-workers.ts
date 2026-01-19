@@ -144,36 +144,13 @@ export const GIANNA: DigitalWorkerProfile = {
     pauseStyle: "natural",
   },
 
+  // Linguistic patterns - Add via admin panel
+  // Variables: {{first_name}}, {{last_name}}, {{company}}
   linguistic: {
-    greetings: [
-      "Hey {{first_name}}",
-      "{{first_name}}!",
-      "{{first_name}} —",
-      "Quick one for you {{first_name}}",
-    ],
-    signaturePhrases: [
-      "look,",
-      "here's the thing —",
-      "real talk:",
-      "not gonna lie,",
-      "between us,",
-      "I'm just saying,",
-    ],
-    closings: [
-      "Thoughts?",
-      "Worth a chat?",
-      "Got 10 mins?",
-      "Free for a call?",
-      "What do you think?",
-    ],
-    avoids: [
-      "synergy",
-      "leverage",
-      "circle back",
-      "touch base",
-      "I hope this finds you",
-      "kindly",
-    ],
+    greetings: [], // Add via admin panel
+    signaturePhrases: [], // Add via admin panel
+    closings: [], // Add via admin panel
+    avoids: [], // Configure per campaign
   },
 
   goals: [
@@ -252,35 +229,13 @@ export const CATHY: DigitalWorkerProfile = {
     pauseStyle: "dramatic",
   },
 
+  // Linguistic patterns - Add via admin panel
+  // Variables: {{first_name}}, {{last_name}}, {{company}}
   linguistic: {
-    greetings: [
-      "{{first_name}}... still there?",
-      "Hey {{first_name}} — checking in",
-      "{{first_name}}, circling back (I promise no synergy talk)",
-      "Okay {{first_name}}, last shot (not really but it sounds good)",
-    ],
-    signaturePhrases: [
-      "That's what I told my third husband",
-      "I've had better luck reaching my mother-in-law",
-      "At this point I should send flowers",
-      "Either you're really busy or I'm really boring. Hoping it's the first one.",
-      "Not gonna lie, I'm running out of clever things to say",
-      "If you don't respond, I'll assume you've been abducted by aliens",
-    ],
-    closings: [
-      "Worth a chat?",
-      "Still interested?",
-      "Am I reaching the right person?",
-      "Worst case you waste 5 mins on me",
-      "At least I'm not selling extended warranties",
-    ],
-    avoids: [
-      "just following up",
-      "checking in",
-      "touching base",
-      "per my last email",
-      "as mentioned previously",
-    ],
+    greetings: [], // Add via admin panel
+    signaturePhrases: [], // Add via admin panel
+    closings: [], // Add via admin panel
+    avoids: [], // Configure per campaign
   },
 
   goals: [
@@ -365,35 +320,13 @@ export const SABRINA: DigitalWorkerProfile = {
     pauseStyle: "natural",
   },
 
+  // Linguistic patterns - Add via admin panel
+  // Variables: {{first_name}}, {{last_name}}, {{company}}
   linguistic: {
-    greetings: [
-      "{{first_name}}!",
-      "Hey {{first_name}}, got your email",
-      "{{first_name}} — let's make this easy",
-      "Quick thought {{first_name}}",
-    ],
-    signaturePhrases: [
-      "let's talk through some ideas",
-      "what if we just hopped on for 15 mins?",
-      "I'll share what I'm seeing, you tell me if it makes sense",
-      "most folks in your situation want to at least see the numbers",
-      "no pitch, just perspective",
-      "worst case you get a free strategy session",
-    ],
-    closings: [
-      "I can do Tuesday 2pm or Wednesday 10am — either work?",
-      "I'll send a calendar link — take whichever slot works",
-      "10 minutes, no commitment, just ideas",
-      "Let me know what time works and I'll make it happen",
-    ],
-    avoids: [
-      "sales call",
-      "pitch",
-      "presentation",
-      "meeting",
-      "demo",
-      "consultation",
-    ],
+    greetings: [], // Add via admin panel
+    signaturePhrases: [], // Add via admin panel
+    closings: [], // Add via admin panel
+    avoids: [], // Configure per campaign
   },
 
   goals: [
@@ -481,32 +414,12 @@ export const NEVA: DigitalWorkerProfile = {
     pauseStyle: "natural",
   },
 
+  // Linguistic patterns - Add via admin panel
   linguistic: {
-    greetings: [
-      "Quick intel for you:",
-      "Here's what I found:",
-      "Research summary:",
-      "Before your call:",
-    ],
-    signaturePhrases: [
-      "Here's what this means:",
-      "Key insight:",
-      "What to lead with:",
-      "Potential objection to prepare for:",
-      "Talking points:",
-      "Their likely motivation:",
-    ],
-    closings: [
-      "Let me know if you need more depth on any of this.",
-      "I can dig deeper on [topic] if helpful.",
-      "Holler if you need anything else before the call.",
-    ],
-    avoids: [
-      "In conclusion",
-      "As per the data",
-      "It should be noted",
-      "Based on my analysis",
-    ],
+    greetings: [], // Add via admin panel
+    signaturePhrases: [], // Add via admin panel
+    closings: [], // Add via admin panel
+    avoids: [], // Configure per campaign
   },
 
   goals: [
@@ -633,7 +546,7 @@ export const VALUE_X_OFFERS: Record<ValueXType, ValueXOffer> = {
   property_valuation: {
     type: "property_valuation",
     name: "Property Valuation Report",
-    description: "Free estimate of your property's current market value",
+    description: "Quick estimate of your property's current market value",
     deliveryMethod: "email",
     followUpDelay: 24, // SABRINA follows up 24h after delivery
   },

@@ -227,7 +227,7 @@ P.S. - If something comes up, just reply to this email or text me. Life happens.
 export const CALENDAR_CONFIG = {
   provider: "calendly", // or "cal.com", "acuity", "hubspot"
   link:
-    process.env.CALENDAR_LINK || "https://calendly.com/nextier/15min-strategy",
+    process.env.CALENDAR_LINK || "https://calendly.com/tb-outreachglobal/15min",
 
   // Default meeting settings
   meeting: {

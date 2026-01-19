@@ -5,6 +5,7 @@
 
 import nodemailer from "nodemailer";
 import { APP_NAME, COMPANY_NAME } from "@/config/branding";
+import { CALENDLY_CONFIG } from "@/config/constants";
 import { Logger } from "@/lib/logger";
 
 // ============================================================================
@@ -212,7 +213,7 @@ export const EmailTemplates = {
 
       <p>Need help getting started? Book a free onboarding call with our team:</p>
       <p style="text-align: center;">
-        <a href="https://calendly.com/nextier/onboarding" class="button" style="background: #666;">Book Onboarding Call</a>
+        <a href="${CALENDLY_CONFIG.meetingTypes["15min"].url}" class="button" style="background: #666;">Book Onboarding Call</a>
       </p>
 
       <p>If you have any questions, just reply to this email - we're here to help!</p>
@@ -346,7 +347,7 @@ curl -X GET "https://api.nextier.io/v1/leads" \\
         <a href="https://nextier.io/settings/billing/upgrade" class="button">Upgrade to ${data.plan}</a>
       </p>
 
-      <p>Have questions about which plan is right for you? <a href="https://calendly.com/nextier/strategy">Book a quick call</a> with our team.</p>
+      <p>Have questions about which plan is right for you? <a href="${CALENDLY_CONFIG.meetingTypes["15min"].url}">Book a quick call</a> with our team.</p>
 
       <p>Best,<br>The ${APP_NAME} Team</p>
       `,

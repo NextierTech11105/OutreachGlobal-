@@ -102,169 +102,34 @@ export interface AutoResponseTemplate {
 }
 
 // GIANNA's auto-response templates (3 responses before human)
+// CLEARED FOR PRODUCTION DATA - Add via admin panel
 // PERSONALITY: Direct like Lori Greiner, sharp like Candace Owens
 // Authoritative, likeable, conversational, REAL. Calls people by name.
+//
+// AVAILABLE VARIABLES:
+// - {{first_name}} - Lead's first name
+// - {{value_content}} - Name of value content being delivered
+// - {{calendar_link}} - Booking calendar URL
+//
+// CLASSIFICATIONS: interested, question, email-capture, assistance, called-phone-line
+// NEXT_ACTIONS: ask_for_email, send_value_x, book_appointment, escalate
+//
 export const GIANNA_AUTO_RESPONSE_TEMPLATES: AutoResponseTemplate[] = [
-  // ═══════════════════════════════════════════════════════════════
-  // INTERESTED RESPONSES - Direct, authoritative, gets to the point
-  // ═══════════════════════════════════════════════════════════════
-  {
-    id: "gianna_interested_1",
-    classification: "interested",
-    attemptNumber: 1,
-    template: `{{first_name}}, perfect. I've got something that'll actually help you. What's your email? I'll send it right over. - Gianna`,
-    variables: ["first_name"],
-    nextAction: "ask_for_email",
-  },
-  {
-    id: "gianna_interested_2",
-    classification: "interested",
-    attemptNumber: 2,
-    template: `{{first_name}} - still want to get you that info. Drop your email and I'll have it in your inbox in 5 minutes. - Gianna`,
-    variables: ["first_name"],
-    nextAction: "ask_for_email",
-  },
-  {
-    id: "gianna_interested_3",
-    classification: "interested",
-    attemptNumber: 3,
-    template: `{{first_name}}, look - I know you're busy. Email me back or just send your email here and I'll handle the rest. - Gianna`,
-    variables: ["first_name"],
-    nextAction: "escalate",
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // QUESTION RESPONSES - Sharp, confident, knows her stuff
-  // ═══════════════════════════════════════════════════════════════
-  {
-    id: "gianna_question_1",
-    classification: "question",
-    attemptNumber: 1,
-    template: `{{first_name}}, good question. Let me send you the full breakdown - it'll answer that and then some. Email? - Gianna`,
-    variables: ["first_name"],
-    nextAction: "ask_for_email",
-  },
-  {
-    id: "gianna_question_2",
-    classification: "question",
-    attemptNumber: 2,
-    template: `{{first_name}}, I could type it all out but honestly the report explains it better. Just need your email - 2 seconds. - Gianna`,
-    variables: ["first_name"],
-    nextAction: "ask_for_email",
-  },
-  {
-    id: "gianna_question_3",
-    classification: "question",
-    attemptNumber: 3,
-    template: `{{first_name}}, here's the deal - I want to help you but I need somewhere to send it. Email works best. - Gianna`,
-    variables: ["first_name"],
-    nextAction: "escalate",
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // EMAIL CAPTURE - AUTOMATIC RESPONSE (no human needed)
-  // Recipient sends email → GIANNA confirms → Value X delivered
-  // ═══════════════════════════════════════════════════════════════
-  {
-    id: "gianna_email_capture_1",
-    classification: "email-capture",
-    attemptNumber: 1,
-    template: `Great {{first_name}}! I will have that {{value_content}} sent to you shortly. Have a great day! - Gianna`,
-    variables: ["first_name", "value_content"],
-    nextAction: "send_value_x",
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ASSISTANCE REQUESTS - Helpful but direct
-  // ═══════════════════════════════════════════════════════════════
-  {
-    id: "gianna_assistance_1",
-    classification: "assistance",
-    attemptNumber: 1,
-    template: `{{first_name}}, I got you. Tell me what you need and I'll point you in the right direction. - Gianna`,
-    variables: ["first_name"],
-    nextAction: "ask_for_email",
-  },
-  {
-    id: "gianna_assistance_2",
-    classification: "assistance",
-    attemptNumber: 2,
-    template: `{{first_name}}, easiest thing is for me to send you the full rundown. What's your email? - Gianna`,
-    variables: ["first_name"],
-    nextAction: "ask_for_email",
-  },
-  {
-    id: "gianna_assistance_3",
-    classification: "assistance",
-    attemptNumber: 3,
-    template: `{{first_name}}, let's make this simple - email me back or drop your email here. I'll take care of the rest. - Gianna`,
-    variables: ["first_name"],
-    nextAction: "escalate",
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // CALLED BACK - High intent, move fast
-  // ═══════════════════════════════════════════════════════════════
-  {
-    id: "gianna_callback_1",
-    classification: "called-phone-line",
-    attemptNumber: 1,
-    template: `{{first_name}}, saw you called - appreciate that. Let me get you what you need. What's your email? - Gianna`,
-    variables: ["first_name"],
-    nextAction: "ask_for_email",
-  },
+  // Add templates via admin panel
 ];
 
 // SABRINA's auto-response templates (booking focus)
+// CLEARED FOR PRODUCTION DATA - Add via admin panel
+//
+// AVAILABLE VARIABLES:
+// - {{first_name}} - Lead's first name
+// - {{calendar_link}} - Booking calendar URL
+//
+// CLASSIFICATIONS: interested, objection
+// NEXT_ACTIONS: book_appointment, escalate
+//
 export const SABRINA_AUTO_RESPONSE_TEMPLATES: AutoResponseTemplate[] = [
-  {
-    id: "sabrina_interested_1",
-    classification: "interested",
-    attemptNumber: 1,
-    template: `Hi {{first_name}}! Great to hear from you. Would you have 15 mins this week for a quick call? I can work around your schedule. - Sabrina`,
-    variables: ["first_name"],
-    nextAction: "book_appointment",
-  },
-  {
-    id: "sabrina_interested_2",
-    classification: "interested",
-    attemptNumber: 2,
-    template: `{{first_name}}, just circling back - I'm flexible on timing. Morning, afternoon, or evening work best for you? - Sabrina`,
-    variables: ["first_name"],
-    nextAction: "book_appointment",
-  },
-  {
-    id: "sabrina_interested_3",
-    classification: "interested",
-    attemptNumber: 3,
-    template: `Hey {{first_name}}! Really want to connect with you. Here's my calendar link if easier: {{calendar_link}} - Sabrina`,
-    variables: ["first_name", "calendar_link"],
-    nextAction: "escalate",
-  },
-  // Objection handling (3 responses before backing off)
-  {
-    id: "sabrina_objection_1",
-    classification: "objection",
-    attemptNumber: 1,
-    template: `Totally understand {{first_name}}. No pressure at all - just wanted to make sure you have the info when you're ready. - Sabrina`,
-    variables: ["first_name"],
-  },
-  {
-    id: "sabrina_objection_2",
-    classification: "objection",
-    attemptNumber: 2,
-    template: `{{first_name}}, completely get it. Would it help to have a quick no-obligation call just to answer questions? 10 mins max. - Sabrina`,
-    variables: ["first_name"],
-    nextAction: "book_appointment",
-  },
-  {
-    id: "sabrina_objection_3",
-    classification: "objection",
-    attemptNumber: 3,
-    template: `No worries {{first_name}}! I'll check back another time. In the meantime, feel free to reach out if anything changes. - Sabrina`,
-    variables: ["first_name"],
-    nextAction: "escalate", // Back off after 3 objection responses
-  },
+  // Add templates via admin panel
 ];
 
 // ==========================================

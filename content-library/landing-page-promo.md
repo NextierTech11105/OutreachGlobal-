@@ -70,7 +70,7 @@ Book 15 min: [LINK]
 
 ## Link
 **Production:** https://nextier.io/closers
-**Calendly:** https://calendly.com/nextier/discovery
+**Calendly:** https://calendly.com/tb-outreachglobal/15min
 
 ---
 

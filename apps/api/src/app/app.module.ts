@@ -46,6 +46,8 @@ import { CircuitBreakerModule } from "../lib/circuit-breaker";
 import { MetricsModule } from "./metrics";
 import { OutboundModule } from "../lib/outbound";
 import { BillingModule } from "./billing/billing.module";
+import { AiOrchestratorModule } from "./ai-orchestrator/ai-orchestrator.module";
+import { LuciModule } from "./luci/luci.module";
 
 @Module({
   imports: [
@@ -100,6 +102,8 @@ import { BillingModule } from "./billing/billing.module";
     EnrichmentModule,
     MetricsModule,
     OutboundModule,
+    AiOrchestratorModule,
+    LuciModule,
   ],
   providers: [
     AppRunner,

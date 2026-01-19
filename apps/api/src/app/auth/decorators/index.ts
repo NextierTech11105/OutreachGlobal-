@@ -3,3 +3,5 @@ export * from "./jwt-payload.decorator";
 export * from "./use-auth-guard.decorator";
 export * from "./use-token.decorator";
 export * from "./require-scope.decorator";
+export * from "./tenant-context.decorator";
+export * from "./correlation-id.decorator";

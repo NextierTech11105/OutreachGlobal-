@@ -405,7 +405,7 @@ export function TemplateLibrary({
       .replace(/{city}/g, "Brooklyn")
       .replace(/{state}/g, "NY")
       .replace(/{revenueRange}/g, "$1-5M")
-      .replace(/{calendarLink}/g, "calendly.com/nextier");
+      .replace(/{calendarLink}/g, "calendly.com/tb-outreachglobal/15min");
   };
 
   const renderTemplate = (template: SmsTemplate) => {

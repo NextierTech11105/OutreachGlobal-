@@ -31,8 +31,9 @@ import { cn } from "@/lib/utils";
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-// Calendly link
-const CALENDLY_LINK = "https://calendly.com/nextier/demo";
+// Calendly link - centralized config
+import { CALENDLY_CONFIG } from "@/config/constants";
+const CALENDLY_LINK = CALENDLY_CONFIG.meetingTypes["15min"].url;
 
 export default function SuccessPage({
   params,

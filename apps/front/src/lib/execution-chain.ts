@@ -506,7 +506,7 @@ export async function executePreview(
     const message = template
       ? renderTemplate(template, {
           firstName: lead.firstName || "there",
-          link: process.env.CALENDLY_LINK || "https://calendly.com/nextier",
+          link: process.env.CALENDLY_LINK || "https://calendly.com/tb-outreachglobal/15min",
           industry:
             (lead.customFields as Record<string, string>)?.industry ||
             "business",
@@ -603,7 +603,7 @@ export async function executeDeploy(
 
     const message = renderTemplate(template, {
       firstName: lead.firstName || "there",
-      link: process.env.CALENDLY_LINK || "https://calendly.com/nextier",
+      link: process.env.CALENDLY_LINK || "https://calendly.com/tb-outreachglobal/15min",
       industry: (customFields.industry as string) || "business",
     });
 

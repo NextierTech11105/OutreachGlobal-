@@ -10,7 +10,6 @@ import {
   Building2,
   User,
   ArrowRight,
-  Play,
   Database,
   Bot,
   MessageSquare,
@@ -324,7 +323,7 @@ export default function GetStartedPage() {
               industry and use case.
             </p>
 
-            {/* CTA Buttons */}
+            {/* CTA Button */}
             <div className="flex flex-wrap gap-4">
               <Button
                 size="lg"
@@ -337,14 +336,6 @@ export default function GetStartedPage() {
               >
                 Learn More
                 <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-zinc-700 text-white hover:bg-zinc-800 h-14 px-8 text-base"
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Watch Demo
               </Button>
             </div>
           </div>
@@ -619,18 +610,33 @@ export default function GetStartedPage() {
             </p>
           </div>
 
-          {/* Calendly Embed Container */}
-          <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-700 rounded-3xl p-2 lg:p-4 shadow-2xl shadow-blue-500/10 max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl overflow-hidden">
-              {/* Calendly Inline Widget */}
-              <iframe
-                src={`https://calendly.com/${process.env.NEXT_PUBLIC_CALENDLY_USER || "nextier"}/15min?hide_gdpr_banner=1&background_color=ffffff&text_color=1a1a1a&primary_color=3b82f6`}
-                width="100%"
-                height="700"
-                frameBorder="0"
-                title="Book a 15-minute call with Nextier"
-                className="min-h-[600px] lg:min-h-[700px]"
-              />
+          {/* Book a Call - Email tb@outreachglobal.io */}
+          <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-700 rounded-3xl p-8 lg:p-12 shadow-2xl shadow-blue-500/10 max-w-2xl mx-auto text-center">
+            <div className="space-y-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto">
+                <Calendar className="w-10 h-10 text-emerald-400" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Schedule Your 15-Minute Call
+                </h3>
+                <p className="text-zinc-400">
+                  Click below to email Thomas directly and book your discovery call.
+                </p>
+              </div>
+
+              <a
+                href="mailto:tb@outreachglobal.io?subject=Discovery Call Request - NEXTIER&body=Hi Thomas,%0D%0A%0D%0AI'd like to schedule a 15-minute discovery call to learn more about NEXTIER.%0D%0A%0D%0AMy preferred times are:%0D%0A-%20%0D%0A-%20%0D%0A%0D%0ALooking forward to connecting.%0D%0A%0D%0ABest,"
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold text-lg px-8 py-4 rounded-xl transition-all hover:scale-105"
+              >
+                <Mail className="w-5 h-5" />
+                Email tb@outreachglobal.io
+              </a>
+
+              <p className="text-sm text-zinc-500">
+                Or call directly: <span className="text-zinc-300">Available Mon-Fri 9am-6pm ET</span>
+              </p>
             </div>
           </div>
 

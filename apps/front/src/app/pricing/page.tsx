@@ -33,8 +33,9 @@ import {
   Sparkles,
 } from "lucide-react";
 
-// Calendly link for consultative sales
-const CALENDLY_LINK = "https://calendly.com/nextier/demo";
+// Calendly link for consultative sales - use centralized config
+import { CALENDLY_CONFIG } from "@/config/constants";
+const CALENDLY_LINK = CALENDLY_CONFIG.meetingTypes["15min"].url;
 
 const plans = [
   {

@@ -248,3 +248,15 @@ export const usageRecordsTable = usageRecords;
 export const invoicesTable = invoices;
 export const paymentMethodsTable = paymentMethods;
 export const creditsTable = credits;
+
+// LUCI Engine: Data Lake + Enrichment
+import {
+  dataLakeImports,
+  enrichmentJobs,
+  enrichmentBlocks,
+  enrichmentSubBlocks,
+} from "./schema/enrichment-jobs.schema";
+export const dataLakeImportsTable = dataLakeImports;
+export const enrichmentJobsTable = enrichmentJobs;
+export const enrichmentBlocksTable = enrichmentBlocks;
+export const enrichmentSubBlocksTable = enrichmentSubBlocks;

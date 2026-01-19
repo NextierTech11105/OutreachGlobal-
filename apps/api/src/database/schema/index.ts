@@ -124,3 +124,6 @@ export * from "./ai-prompts.schema";
 
 // ===== UNIFIED LEAD MODULE =====
 export * from "./unified-lead.schema";
+
+// ===== LUCI ENGINE: DATA ENRICHMENT =====
+export * from "./enrichment-jobs.schema";

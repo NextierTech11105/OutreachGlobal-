@@ -38,6 +38,7 @@ import {
   Send,
   Handshake,
   TrendingUp,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -401,6 +402,16 @@ export default function AdminDashboard() {
                   >
                     <Cable className="mr-2 h-4 w-4 text-purple-400" />
                     MCP Connections
+                  </Button>
+                </Link>
+
+                <Link href="/admin/domains">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start bg-emerald-900/20 border-emerald-700 hover:bg-emerald-900/40"
+                  >
+                    <Globe className="mr-2 h-4 w-4 text-emerald-400" />
+                    Domain Management
                   </Button>
                 </Link>
 

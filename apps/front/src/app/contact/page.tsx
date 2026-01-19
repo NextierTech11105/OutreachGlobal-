@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { APP_NAME, COMPANY_NAME } from "@/config/branding";
+import { CALENDLY_CONFIG } from "@/config/constants";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -303,7 +304,7 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href="https://calendly.com/nextier/strategy"
+                  href={CALENDLY_CONFIG.meetingTypes["15min"].url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 text-sm hover:text-primary transition-colors"

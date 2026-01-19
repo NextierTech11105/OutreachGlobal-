@@ -422,7 +422,7 @@ export function matchTemplate(
   message = message.replace("{industry}", sector.replace(/-/g, " "));
   message = message.replace(
     "{link}",
-    process.env.CALENDLY_LINK || "calendly.com/nextier/strategy",
+    process.env.CALENDLY_LINK || "calendly.com/tb-outreachglobal/15min",
   );
 
   return {

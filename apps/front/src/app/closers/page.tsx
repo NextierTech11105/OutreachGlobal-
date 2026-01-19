@@ -12,8 +12,9 @@ import {
   Zap,
 } from "lucide-react";
 
-// Your Calendly link - update this
-const CALENDLY_LINK = "https://calendly.com/nextier/discovery";
+// Calendly link - centralized config
+import { CALENDLY_CONFIG } from "@/config/constants";
+const CALENDLY_LINK = CALENDLY_CONFIG.meetingTypes["15min"].url;
 
 const audiences = [
   {

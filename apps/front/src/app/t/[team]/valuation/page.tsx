@@ -1508,7 +1508,7 @@ export default function ValuationPage() {
                       onClick={() =>
                         window.open(
                           process.env.NEXT_PUBLIC_CALENDAR_LINK ||
-                            "https://calendly.com/nextier/15min-strategy",
+                            "https://calendly.com/tb-outreachglobal/15min",
                           "_blank",
                         )
                       }

@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
       <p>If you have any urgent questions, feel free to:</p>
       <ul>
         <li>Call us at <a href="tel:+15164079249">+1 (516) 407-9249</a></li>
-        <li>Book a call at <a href="https://calendly.com/nextier/strategy">calendly.com/nextier</a></li>
+        <li>Book a call at <a href="https://calendly.com/tb-outreachglobal/15min">calendly.com/tb-outreachglobal</a></li>
       </ul>
       <p>Best regards,<br>The Nextier Team</p>
     </div>

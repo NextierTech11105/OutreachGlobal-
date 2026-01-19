@@ -40,53 +40,26 @@ interface QueuedEmail {
 // In-memory queue (would use Redis/DB in production)
 const emailQueue = new Map<string, QueuedEmail>();
 
-// Email templates
+// Email templates - CLEARED FOR PRODUCTION DATA
+// Configure via admin panel or add dynamically
+//
+// Available Variables:
+// - ${data.firstName} - Lead's first name
+// - ${data.propertyAddress} - Property address
+// - ${data.reportLink} - Link to report
+// - ${data.calendarLink} - Booking calendar URL
+// - ${data.date}, ${data.time} - Appointment details
+//
 const EMAIL_TEMPLATES: Record<
   string,
   { subject: string; html: (data: Record<string, unknown>) => string }
 > = {
-  valuation_report: {
-    subject: "{firstName}, your property analysis is ready",
-    html: (data) => `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1>Hey ${data.firstName || "there"},</h1>
-        <p>Here's your property analysis for <strong>${data.propertyAddress || "your property"}</strong>.</p>
-        ${data.reportLink ? `<p><a href="${data.reportLink}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Your Report</a></p>` : ""}
-        <p>When you're ready, book your free strategy session:</p>
-        <p><a href="${data.calendarLink || "https://calendly.com/nextier/15min"}" style="background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Book 15-Min Call</a></p>
-        <p>Talk soon,<br><strong>Gianna</strong><br>NexTier Business Advisors</p>
-      </div>
-    `,
-  },
-  follow_up_1: {
-    subject: "Did you get a chance to look?",
-    html: (data) => `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <p>Hey ${data.firstName || "there"},</p>
-        <p>Just wanted to make sure you got that property analysis I sent over. Any questions come up?</p>
-        ${data.reportLink ? `<p><a href="${data.reportLink}">View Report Again</a></p>` : ""}
-        <p>Also, my calendar is still open if you want to hop on a quick call: <a href="${data.calendarLink || "https://calendly.com/nextier/15min"}">Book Here</a></p>
-        <p>- Gianna</p>
-      </div>
-    `,
-  },
-  appointment_confirmation: {
-    subject: "We're on for {date}!",
-    html: (data) => `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1>${data.firstName}, we're all set!</h1>
-        <p><strong>When:</strong> ${data.date} at ${data.time}</p>
-        <p><strong>What we'll cover:</strong></p>
-        <ul>
-          <li>Your specific situation</li>
-          <li>How AI applies to YOUR business</li>
-          <li>Clear next steps</li>
-        </ul>
-        <p>Come ready to think big.</p>
-        <p>Talk soon,<br><strong>Gianna</strong></p>
-      </div>
-    `,
-  },
+  // Add templates via admin panel
+  // Example structure:
+  // valuation_report: {
+  //   subject: "{firstName}, your analysis is ready",
+  //   html: (data) => `<div>...</div>`,
+  // },
 };
 
 // Send email via SendGrid
