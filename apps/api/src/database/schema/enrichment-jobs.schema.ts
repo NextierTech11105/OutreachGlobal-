@@ -72,6 +72,7 @@ export const dataLakeImports = pgTable(
 
 export const enrichmentJobStatusEnum = pgEnum("enrichment_job_status", [
   "pending",
+  "active",
   "importing",
   "tracing",
   "scoring",
@@ -86,6 +87,8 @@ export const enrichmentJobTypeEnum = pgEnum("enrichment_job_type", [
   "score",
   "qualify",
   "full_pipeline",
+  "block",
+  "sub-block",
 ]);
 
 export const enrichmentJobs = pgTable(

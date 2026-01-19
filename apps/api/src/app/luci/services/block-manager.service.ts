@@ -121,6 +121,7 @@ export class BlockManagerService {
     const [block] = await this.db
       .insert(enrichmentJobs)
       .values({
+        teamId,
         jobType: "block",
         status: "active",
         sourceFile: blockId,
@@ -154,6 +155,7 @@ export class BlockManagerService {
   async createSubBlock(
     blockId: string,
     size: 500 | 1000 | 2000,
+    teamId: string,
   ): Promise<SubBlock> {
     const block = await this.db
       .select()
@@ -178,6 +180,7 @@ export class BlockManagerService {
     const [subBlock] = await this.db
       .insert(enrichmentJobs)
       .values({
+        teamId,
         jobType: "sub-block",
         status: "pending",
         sourceFile: subBlockIdStr,
