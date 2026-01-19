@@ -429,4 +429,61 @@ export class AiOrchestratorController {
       );
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HEALTH CHECK & DASHBOARD
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Health check for all AI providers
+   * Returns circuit breaker state for each provider
+   */
+  @Get("health")
+  async healthCheck() {
+    try {
+      const health = await this.orchestrator.healthCheck();
+      return { success: true, data: health };
+    } catch (error) {
+      this.logger.error(
+        `Health check failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
+      throw new HttpException(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Health check failed",
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Usage dashboard with aggregated stats
+   */
+  @Get("usage/dashboard")
+  async getUsageDashboard(
+    @TenantContext("teamId") teamId: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    try {
+      const dashboard = await this.orchestrator.getUsageDashboard(
+        teamId,
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+      );
+      return { success: true, data: dashboard };
+    } catch (error) {
+      this.logger.error(
+        `Get usage dashboard failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
+      throw new HttpException(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Failed to get usage dashboard",
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

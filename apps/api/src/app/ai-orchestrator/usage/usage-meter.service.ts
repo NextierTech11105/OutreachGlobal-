@@ -302,4 +302,86 @@ export class UsageMeterService {
       byTask: byTask as Record<AiTask, { tokens: number; requests: number; cost: number }>,
     };
   }
+
+  /**
+   * Get usage stats for a date range (for dashboard)
+   */
+  async getUsageStats(
+    teamId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
+    totalTokens: number;
+    totalCostUsd: number;
+    requestCount: number;
+    avgLatencyMs: number;
+    byProvider: Record<string, { tokens: number; cost: number; requests: number }>;
+    byTask: Record<string, number>;
+  }> {
+    const usage = await this.db
+      .select({
+        provider: sql<string>`${usageRecordsTable.metadata}->>'provider'`,
+        task: sql<string>`${usageRecordsTable.metadata}->>'task'`,
+        totalTokens: sql<number>`COALESCE(SUM((${usageRecordsTable.metadata}->>'totalTokens')::int), 0)`,
+        totalRequests: sql<number>`COUNT(*)`,
+        totalCost: sql<number>`COALESCE(SUM(CAST(${usageRecordsTable.totalCost} AS DECIMAL(12,6))), 0)`,
+        avgLatency: sql<number>`COALESCE(AVG((${usageRecordsTable.metadata}->>'latencyMs')::int), 0)`,
+      })
+      .from(usageRecordsTable)
+      .where(
+        and(
+          eq(usageRecordsTable.teamId, teamId),
+          eq(usageRecordsTable.usageType, "ai_call"),
+          gte(usageRecordsTable.createdAt, startDate),
+          sql`${usageRecordsTable.createdAt} <= ${endDate}`,
+        ),
+      )
+      .groupBy(
+        sql`${usageRecordsTable.metadata}->>'provider'`,
+        sql`${usageRecordsTable.metadata}->>'task'`,
+      );
+
+    const byProvider: Record<string, { tokens: number; cost: number; requests: number }> = {};
+    const byTask: Record<string, number> = {};
+    let totalTokens = 0;
+    let totalCostUsd = 0;
+    let requestCount = 0;
+    let totalLatency = 0;
+    let latencyCount = 0;
+
+    for (const row of usage) {
+      const tokens = Number(row.totalTokens) || 0;
+      const requests = Number(row.totalRequests) || 0;
+      const cost = Number(row.totalCost) || 0;
+      const latency = Number(row.avgLatency) || 0;
+
+      totalTokens += tokens;
+      totalCostUsd += cost;
+      requestCount += requests;
+      totalLatency += latency * requests;
+      latencyCount += requests;
+
+      // Aggregate by provider
+      const provider = row.provider || "unknown";
+      if (!byProvider[provider]) {
+        byProvider[provider] = { tokens: 0, cost: 0, requests: 0 };
+      }
+      byProvider[provider].tokens += tokens;
+      byProvider[provider].cost += cost;
+      byProvider[provider].requests += requests;
+
+      // Aggregate by task
+      const task = row.task || "unknown";
+      byTask[task] = (byTask[task] || 0) + requests;
+    }
+
+    return {
+      totalTokens,
+      totalCostUsd,
+      requestCount,
+      avgLatencyMs: latencyCount > 0 ? Math.round(totalLatency / latencyCount) : 0,
+      byProvider,
+      byTask,
+    };
+  }
 }

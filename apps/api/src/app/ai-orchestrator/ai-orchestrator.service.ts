@@ -12,6 +12,9 @@ import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { aiPrompts } from "@/database/schema/ai-prompts.schema";
 import { and, eq, desc } from "drizzle-orm";
+import { CacheService } from "@/lib/cache/cache.service";
+import { CircuitBreakerService } from "@/lib/circuit-breaker/circuit-breaker.service";
+import * as crypto from "crypto";
 import {
   OpenAIClient,
   AnthropicClient,
@@ -43,6 +46,8 @@ export class AiOrchestratorService {
     private anthropic: AnthropicClient,
     private perplexity: PerplexityClient,
     private usageMeter: UsageMeterService,
+    private cache: CacheService,
+    private circuitBreaker: CircuitBreakerService,
   ) {}
 
   /**
@@ -64,6 +69,28 @@ export class AiOrchestratorService {
       const limitCheck = await this.usageMeter.checkLimits(context.teamId);
       if (!limitCheck.allowed) {
         throw new Error(`Usage limit exceeded: ${limitCheck.reason}`);
+      }
+    }
+
+    // Check cache for research tasks (Perplexity)
+    if (task === "research_verify" || task === "research_deep") {
+      const cacheKey = `neva:${task}:${crypto.createHash("md5").update(JSON.stringify(input)).digest("hex")}`;
+      try {
+        const cached = await this.cache.get(cacheKey);
+        if (cached) {
+          this.logger.log(`[AI Orchestrator] Cache HIT for ${task} traceId=${context.traceId}`);
+          return {
+            output: cached as TOutput,
+            provider: "perplexity" as AiProvider,
+            model: "llama-3.1-sonar-small-128k-online",
+            degraded: false,
+            traceId: context.traceId,
+            latencyMs: Date.now() - startTime,
+            cached: true,
+          } as OrchestratorResult<TOutput>;
+        }
+      } catch (err) {
+        this.logger.debug(`Cache check failed: ${err}`);
       }
     }
 
@@ -116,6 +143,17 @@ export class AiOrchestratorService {
 
         // Parse output
         const output = this.parseOutput<TOutput>(response.content, task);
+
+        // Cache research results (1 hour TTL)
+        if (task === "research_verify" || task === "research_deep") {
+          const cacheKey = `neva:${task}:${crypto.createHash("md5").update(JSON.stringify(input)).digest("hex")}`;
+          try {
+            await this.cache.set(cacheKey, output, 3600);
+            this.logger.log(`[AI Orchestrator] Cache MISS - stored result for ${task}`);
+          } catch (err) {
+            this.logger.debug(`Cache set failed: ${err}`);
+          }
+        }
 
         this.logger.log(
           `AI task completed: task=${task} provider=${provider} model=${model} latency=${response.latencyMs}ms degraded=${degraded}`,
@@ -407,5 +445,68 @@ export class AiOrchestratorService {
 
     // Return raw content wrapped in expected structure
     return content as unknown as TOutput;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HEALTH CHECK & DASHBOARD
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Health check for all AI providers
+   * Returns circuit breaker state for each provider
+   */
+  async healthCheck(): Promise<
+    Record<string, { status: string; latencyMs: number }>
+  > {
+    const results: Record<string, { status: string; latencyMs: number }> = {};
+
+    for (const provider of ["openai", "anthropic", "perplexity"] as const) {
+      const start = Date.now();
+      try {
+        const circuitState = this.circuitBreaker?.getState?.(provider);
+        const state = circuitState?.state || "closed";
+        results[provider] = {
+          status:
+            state === "open"
+              ? "down"
+              : state === "half-open"
+                ? "degraded"
+                : "ok",
+          latencyMs: Date.now() - start,
+        };
+      } catch {
+        results[provider] = { status: "unknown", latencyMs: Date.now() - start };
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Usage dashboard for a team
+   * Returns aggregated stats for the specified period
+   */
+  async getUsageDashboard(
+    teamId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<{
+    teamId: string;
+    period: { start: Date; end: Date };
+    totalTokens: number;
+    totalCostUsd: number;
+    requestCount: number;
+    avgLatencyMs: number;
+    byProvider: Record<string, { tokens: number; cost: number; requests: number }>;
+    byTask: Record<string, number>;
+  }> {
+    const start = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const end = endDate || new Date();
+
+    const usage = await this.usageMeter.getUsageStats(teamId, start, end);
+    return {
+      teamId,
+      period: { start, end },
+      ...usage,
+    };
   }
 }
