@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTeam } from "@/features/team/hooks/use-team";
+import { useCurrentTeam } from "@/features/team/team.context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,7 @@ interface CallQueueLead {
 }
 
 export function CallQueueList() {
-  const { team } = useTeam();
+  const { team } = useCurrentTeam();
   const [leads, setLeads] = useState<CallQueueLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
