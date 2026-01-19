@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
 import { getTitle } from "@/config/title";
-import { LeadList } from "@/features/lead/components/lead-list";
 import { TeamTitle } from "@/features/team/layouts/team-title";
 import { Button } from "@/components/ui/button";
 import { TeamLink } from "@/features/team/components/team-link";
+import { LeadsPageClient } from "./leads-page-client";
 
 export const metadata: Metadata = {
   title: getTitle("Leads"),
@@ -39,7 +39,7 @@ export default function LeadsPage() {
             </Button>
           </div>
         </div>
-        <LeadList />
+        <LeadsPageClient />
       </div>
     </TeamSection>
   );

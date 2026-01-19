@@ -796,4 +796,69 @@ export class LuciController {
       );
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TRACERFY WEBHOOK - Async results delivery
+  // Configure in Tracerfy: Account → webhook_url = https://your-domain/api/luci/webhook/tracerfy
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Tracerfy Webhook - Receives completed trace results
+   * No auth guard - Tracerfy calls this directly
+   */
+  @Post("webhook/tracerfy")
+  async handleTracerfyWebhook(
+    @Body() payload: {
+      id: number;
+      created_at: string;
+      pending: boolean;
+      download_url: string;
+      rows_uploaded: number;
+      credit_deducted: number;
+      queue_type: "api" | "app";
+      trace_type: "normal" | "enhanced";
+      credits_per_lead: number;
+    },
+  ) {
+    this.logger.log(`[LUCI] Tracerfy webhook received: queue ${payload.id}, ${payload.rows_uploaded} rows`);
+
+    if (payload.pending) {
+      this.logger.log(`[LUCI] Queue ${payload.id} still pending, ignoring`);
+      return { success: true, message: "Queue still pending" };
+    }
+
+    try {
+      // Download the results CSV
+      const results = await this.tracerfy.downloadResults(payload.download_url);
+
+      // Process the traced results - update leads in DB
+      const processed = await this.luciService.processTracerfyResults(
+        payload.id,
+        results,
+        payload.trace_type,
+      );
+
+      this.logger.log(
+        `[LUCI] Tracerfy webhook processed: ${processed.updated} leads updated, ${processed.phones} phones found`,
+      );
+
+      return {
+        success: true,
+        data: {
+          queueId: payload.id,
+          rowsUploaded: payload.rows_uploaded,
+          leadsUpdated: processed.updated,
+          phonesFound: processed.phones,
+          emailsFound: processed.emails,
+          readyForScoring: processed.updated,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`[LUCI] Tracerfy webhook failed: ${error}`);
+      throw new HttpException(
+        { success: false, error: "Webhook processing failed" },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

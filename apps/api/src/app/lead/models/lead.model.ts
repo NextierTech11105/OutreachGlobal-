@@ -160,6 +160,10 @@ export class Lead extends TimestampModel implements LeadSelect {
   @StringField({ nullable: true })
   email5: MaybeString;
 
+  // Tracerfy Queue ID (for webhook matching)
+  @IntField({ nullable: true })
+  tracerfyQueueId: Maybe<number>;
+
   // TRESTLE: Phone Scoring
   @IntField({ nullable: true })
   phoneActivityScore: Maybe<number>;

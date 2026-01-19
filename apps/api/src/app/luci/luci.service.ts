@@ -1316,4 +1316,158 @@ export class LuciService {
       totalBlocks: blocks.length,
     };
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TRACERFY WEBHOOK PROCESSING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Process Tracerfy webhook results
+   * Called when Tracerfy completes a queue and POSTs to our webhook
+   *
+   * @param queueId - Tracerfy queue ID
+   * @param csvResults - CSV string from Tracerfy download_url
+   * @param traceType - "normal" or "enhanced"
+   */
+  async processTracerfyResults(
+    queueId: number,
+    csvResults: string,
+    traceType: "normal" | "enhanced",
+  ): Promise<{
+    updated: number;
+    phones: number;
+    emails: number;
+  }> {
+    this.logger.log(`[LUCI] Processing Tracerfy results for queue ${queueId}`);
+
+    // Parse CSV results
+    const lines = csvResults.trim().split("\n");
+    if (lines.length < 2) {
+      this.logger.warn(`[LUCI] Empty results from Tracerfy queue ${queueId}`);
+      return { updated: 0, phones: 0, emails: 0 };
+    }
+
+    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+
+    // Column mapping for Tracerfy results
+    const colMap = {
+      address: headers.indexOf("address"),
+      city: headers.indexOf("city"),
+      state: headers.indexOf("state"),
+      firstName: headers.indexOf("first_name"),
+      lastName: headers.indexOf("last_name"),
+      primaryPhone: headers.indexOf("primary_phone"),
+      primaryPhoneType: headers.indexOf("primary_phone_type"),
+      mobile1: headers.indexOf("mobile_1"),
+      mobile2: headers.indexOf("mobile_2"),
+      mobile3: headers.indexOf("mobile_3"),
+      mobile4: headers.indexOf("mobile_4"),
+      mobile5: headers.indexOf("mobile_5"),
+      landline1: headers.indexOf("landline_1"),
+      landline2: headers.indexOf("landline_2"),
+      landline3: headers.indexOf("landline_3"),
+      email1: headers.indexOf("email_1"),
+      email2: headers.indexOf("email_2"),
+      email3: headers.indexOf("email_3"),
+      email4: headers.indexOf("email_4"),
+      email5: headers.indexOf("email_5"),
+    };
+
+    let updated = 0;
+    let totalPhones = 0;
+    let totalEmails = 0;
+
+    // Process each row
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+
+      const address = values[colMap.address] || "";
+      const city = values[colMap.city] || "";
+      const state = values[colMap.state] || "";
+      const firstName = values[colMap.firstName] || "";
+      const lastName = values[colMap.lastName] || "";
+
+      // Collect phones
+      const phones: string[] = [];
+      if (values[colMap.primaryPhone]) phones.push(values[colMap.primaryPhone]);
+      for (let m = 1; m <= 5; m++) {
+        const mobile = values[colMap[`mobile${m}` as keyof typeof colMap] as number];
+        if (mobile && !phones.includes(mobile)) phones.push(mobile);
+      }
+      for (let l = 1; l <= 3; l++) {
+        const landline = values[colMap[`landline${l}` as keyof typeof colMap] as number];
+        if (landline && !phones.includes(landline)) phones.push(landline);
+      }
+
+      // Collect emails
+      const emails: string[] = [];
+      for (let e = 1; e <= 5; e++) {
+        const email = values[colMap[`email${e}` as keyof typeof colMap] as number];
+        if (email && !emails.includes(email)) emails.push(email);
+      }
+
+      totalPhones += phones.length;
+      totalEmails += emails.length;
+
+      // Find and update matching lead by address + name
+      try {
+        const result = await this.db
+          .update(leadsTable)
+          .set({
+            enrichmentStatus: "traced",
+            primaryPhone: values[colMap.primaryPhone] || null,
+            primaryPhoneType: values[colMap.primaryPhoneType] || null,
+            mobile1: values[colMap.mobile1] || null,
+            mobile2: values[colMap.mobile2] || null,
+            mobile3: values[colMap.mobile3] || null,
+            mobile4: values[colMap.mobile4] || null,
+            mobile5: values[colMap.mobile5] || null,
+            landline1: values[colMap.landline1] || null,
+            landline2: values[colMap.landline2] || null,
+            landline3: values[colMap.landline3] || null,
+            email1: values[colMap.email1] || null,
+            email2: values[colMap.email2] || null,
+            email3: values[colMap.email3] || null,
+            email4: values[colMap.email4] || null,
+            email5: values[colMap.email5] || null,
+            // Set primary phone for SMS
+            phone: phones[0] || null,
+            email: emails[0] || null,
+            tracerfyQueueId: queueId,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(leadsTable.address, address),
+              eq(leadsTable.city, city),
+              eq(leadsTable.state, state),
+              eq(leadsTable.firstName, firstName),
+              eq(leadsTable.lastName, lastName),
+            ),
+          )
+          .returning({ id: leadsTable.id });
+
+        if (result.length > 0) {
+          updated++;
+        }
+      } catch (err) {
+        this.logger.debug(`Failed to update lead for row ${i}: ${err}`);
+      }
+    }
+
+    this.logger.log(
+      `[LUCI] Tracerfy webhook processed: ${updated} leads updated, ${totalPhones} phones, ${totalEmails} emails`,
+    );
+
+    return {
+      updated,
+      phones: totalPhones,
+      emails: totalEmails,
+    };
+  }
+
+  /**
+   * Minimum records for Tracerfy skip trace
+   */
+  static readonly TRACERFY_MIN_RECORDS = 10;
 }

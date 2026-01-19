@@ -13,13 +13,13 @@ import {
   Database,
   Bot,
   MessageSquare,
-  Calendar,
   Award,
   Layers,
   Repeat,
   Rocket,
   Shield,
   Target,
+  Phone,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -61,7 +61,7 @@ const FEATURES = [
     desc: "Compound every contact into deeper engagement",
   },
   {
-    icon: Calendar,
+    icon: Phone,
     title: "15-Min Discovery Meetings",
     desc: "Powerful conversations that establish authority",
   },
@@ -243,16 +243,32 @@ export default function GetStartedPage() {
     setLoading(true);
 
     try {
-      // Store lead data
-      const leadData = {
-        ...formData,
-        phone: formData.phone.startsWith("+1")
-          ? formData.phone
-          : `+1${formData.phone.replace(/\D/g, "")}`,
-        smsConsent,
-        createdAt: new Date().toISOString(),
-      };
-      localStorage.setItem("og_user_lead", JSON.stringify(leadData));
+      // Format phone number
+      const phone = formData.phone.startsWith("+1")
+        ? formData.phone
+        : `+1${formData.phone.replace(/\D/g, "")}`;
+
+      // Submit to API
+      const response = await fetch("/api/leads/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          phone,
+          smsConsent,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit");
+      }
+
+      // Store in localStorage for session continuity
+      localStorage.setItem("og_user_lead", JSON.stringify(data.lead));
       localStorage.setItem("og_user_email", formData.email.trim());
 
       setLeadCard({
@@ -264,15 +280,11 @@ export default function GetStartedPage() {
           year: "numeric",
         }),
       });
-    } catch {
-      setErrors({ submit: "Failed to process. Please try again." });
+    } catch (err) {
+      setErrors({ submit: err instanceof Error ? err.message : "Failed to process. Please try again." });
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleContinue = () => {
-    window.location.href = "/auth";
   };
 
   return (
@@ -344,38 +356,38 @@ export default function GetStartedPage() {
           <div id="email-form" className="lg:pl-8">
             {leadCard ? (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700 rounded-2xl p-8 shadow-2xl">
+                <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-emerald-500/30 rounded-2xl p-8 shadow-2xl">
                   <div className="flex items-start justify-between mb-6">
                     <div className="w-14 h-14 bg-emerald-500/20 rounded-xl flex items-center justify-center">
                       <Check className="w-7 h-7 text-emerald-400" />
                     </div>
-                    <span className="text-xs text-zinc-500 uppercase tracking-wider">
-                      Lead Card
+                    <span className="text-xs text-emerald-400 uppercase tracking-wider font-semibold">
+                      Request Received
                     </span>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-5 h-5 text-zinc-500" />
-                      <span className="text-lg text-white font-medium">
-                        {leadCard.email}
-                      </span>
-                    </div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Thanks for reaching out!
+                    </h3>
+                    <p className="text-zinc-400">
+                      I&apos;ll give you a call within 24 hours to discuss your outreach goals. Keep an eye on your phone!
+                    </p>
 
-                    {leadCard.domain && (
+                    <div className="pt-4 space-y-3">
                       <div className="flex items-center gap-3">
-                        <Building2 className="w-5 h-5 text-zinc-500" />
-                        <span className="text-zinc-400 capitalize">
-                          {leadCard.domain}
-                        </span>
+                        <Mail className="w-5 h-5 text-zinc-500" />
+                        <span className="text-white">{leadCard.email}</span>
                       </div>
-                    )}
 
-                    <div className="flex items-center gap-3">
-                      <User className="w-5 h-5 text-zinc-500" />
-                      <span className="text-zinc-500 text-sm">
-                        Added {leadCard.createdAt}
-                      </span>
+                      {leadCard.domain && (
+                        <div className="flex items-center gap-3">
+                          <Building2 className="w-5 h-5 text-zinc-500" />
+                          <span className="text-zinc-400 capitalize">
+                            {leadCard.domain}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -383,19 +395,15 @@ export default function GetStartedPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-zinc-500">Status</span>
                       <span className="text-sm font-medium text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full">
-                        VERIFIED
+                        IN CALL QUEUE
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleContinue}
-                  className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold text-lg"
-                >
-                  Continue to Dashboard
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                <p className="text-center text-zinc-500 text-sm">
+                  Questions? Email <a href="mailto:tb@outreachglobal.io" className="text-zinc-300 hover:text-white">tb@outreachglobal.io</a>
+                </p>
               </div>
             ) : (
               <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
@@ -560,6 +568,12 @@ export default function GetStartedPage() {
                     </p>
                   )}
 
+                  {errors.submit && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                      <p className="text-red-400 text-sm">{errors.submit}</p>
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
                     disabled={loading || !smsConsent}
@@ -583,79 +597,6 @@ export default function GetStartedPage() {
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════════════════════
-            BOOK A 15-MIN MEETING - Big & Inviting Calendly Embed
-        ═══════════════════════════════════════════════════════════════════════════════ */}
-        <div className="mt-24 lg:mt-32 relative">
-          {/* Glow effect behind calendar */}
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 via-purple-500/5 to-transparent blur-3xl -z-10" />
-
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full px-4 py-2 mb-6">
-              <Calendar className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm text-emerald-300 font-semibold tracking-wider">
-                FREE STRATEGY CALL
-              </span>
-            </div>
-            <h2 className="text-3xl lg:text-5xl font-bold text-white mb-4">
-              Book Your 15-Minute
-              <br />
-              <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                Discovery Call
-              </span>
-            </h2>
-            <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-              Let&apos;s talk about your outreach goals. No pitch, no pressure —
-              just 15 minutes to see if we&apos;re a fit.
-            </p>
-          </div>
-
-          {/* Book a Call - Email tb@outreachglobal.io */}
-          <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-700 rounded-3xl p-8 lg:p-12 shadow-2xl shadow-blue-500/10 max-w-2xl mx-auto text-center">
-            <div className="space-y-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto">
-                <Calendar className="w-10 h-10 text-emerald-400" />
-              </div>
-
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Schedule Your 15-Minute Call
-                </h3>
-                <p className="text-zinc-400">
-                  Click below to email Thomas directly and book your discovery call.
-                </p>
-              </div>
-
-              <a
-                href="mailto:tb@outreachglobal.io?subject=Discovery Call Request - NEXTIER&body=Hi Thomas,%0D%0A%0D%0AI'd like to schedule a 15-minute discovery call to learn more about NEXTIER.%0D%0A%0D%0AMy preferred times are:%0D%0A-%20%0D%0A-%20%0D%0A%0D%0ALooking forward to connecting.%0D%0A%0D%0ABest,"
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold text-lg px-8 py-4 rounded-xl transition-all hover:scale-105"
-              >
-                <Mail className="w-5 h-5" />
-                Email tb@outreachglobal.io
-              </a>
-
-              <p className="text-sm text-zinc-500">
-                Or call directly: <span className="text-zinc-300">Available Mon-Fri 9am-6pm ET</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center gap-6 mt-8 text-zinc-500 text-sm">
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-400" />
-              <span>No Credit Card Required</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-400" />
-              <span>No Obligations</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-400" />
-              <span>100% Free</span>
-            </div>
-          </div>
-        </div>
 
         {/* Perfect Fit Section */}
         <div className="mt-24 lg:mt-32">

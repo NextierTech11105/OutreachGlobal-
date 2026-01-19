@@ -109,6 +109,9 @@ export const leads = pgTable(
     email4: varchar({ length: 100 }),
     email5: varchar({ length: 100 }),
 
+    // Tracerfy Queue ID (for webhook matching)
+    tracerfyQueueId: integer(),
+
     // TRESTLE: Phone Scoring
     phoneActivityScore: smallint(), // 0-100
     phoneContactGrade: varchar({ length: 1 }), // A-F
