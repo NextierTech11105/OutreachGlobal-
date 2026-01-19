@@ -21,6 +21,7 @@ import { BlockManagerService } from "./services/block-manager.service";
 import { CampaignExecutorService } from "./services/campaign-executor.service";
 import { SignalHouseModule } from "@/lib/signalhouse/signalhouse.module";
 import { LUCI_QUEUE } from "./constants";
+import { DatabaseModule } from "@/database/database.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { LUCI_QUEUE } from "./constants";
       name: LUCI_QUEUE,
     }),
     SignalHouseModule,
+    DatabaseModule,
   ],
   controllers: [LuciController],
   providers: [
