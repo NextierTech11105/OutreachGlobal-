@@ -6,6 +6,7 @@
 import { CustomModule } from "@/common/decorators";
 import { CircuitBreakerModule } from "@/lib/circuit-breaker";
 import { BullModule } from "@nestjs/bullmq";
+import { ConfigModule } from "@nestjs/config";
 
 // Constants
 import { AI_QUEUE } from "./constants/ai-queue.constants";
@@ -28,6 +29,7 @@ import { AiOrchestratorController } from "./ai-orchestrator.controller";
 
 @CustomModule({
   imports: [
+    ConfigModule,
     CircuitBreakerModule,
     BullModule.registerQueue({
       name: AI_QUEUE,
