@@ -60,10 +60,11 @@ interface SignalHouseConfig {
 export default function SignalHouseSettingsPage() {
   const { team, teamId, isTeamReady } = useCurrentTeam();
 
-  // Fetch current settings
+  // Fetch current settings - skip if teamId not ready
   const { data, loading, refetch } = useQuery(SIGNALHOUSE_SETTINGS_QUERY, {
     variables: { teamId: teamId },
     fetchPolicy: "cache-and-network",
+    skip: !isTeamReady,
   });
 
   // Update mutation
@@ -101,6 +102,11 @@ export default function SignalHouseSettingsPage() {
   const isConfigured = config.subGroupId && config.brandId;
 
   const handleSave = async () => {
+    if (!isTeamReady || !teamId) {
+      toast.error("Team not loaded. Please refresh the page.");
+      return;
+    }
+
     setIsSaving(true);
     try {
       await updateSettings({
@@ -118,8 +124,10 @@ export default function SignalHouseSettingsPage() {
       setIsEditing(false);
       toast.success("SignalHouse configuration saved");
       refetch();
-    } catch (error) {
-      toast.error("Failed to save configuration");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to save configuration";
+      console.error("SignalHouse save error:", error);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -169,7 +177,7 @@ export default function SignalHouseSettingsPage() {
     });
   };
 
-  if (loading && !data) {
+  if (!isTeamReady || (loading && !data)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -497,8 +505,11 @@ export default function SignalHouseSettingsPage() {
                       <span className="font-mono text-sm">{phone}</span>
                       {isEditing && (
                         <button
+                          type="button"
                           onClick={() => removePhone(phone)}
                           className="hover:text-destructive"
+                          title="Remove phone number"
+                          aria-label={`Remove ${phone}`}
                         >
                           <X className="h-4 w-4" />
                         </button>

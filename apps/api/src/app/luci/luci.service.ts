@@ -1336,6 +1336,8 @@ export class LuciService {
   ): Promise<{
     updated: number;
     phones: number;
+    mobiles: number;
+    landlines: number;
     emails: number;
   }> {
     this.logger.log(`[LUCI] Processing Tracerfy results for queue ${queueId}`);
@@ -1344,7 +1346,7 @@ export class LuciService {
     const lines = csvResults.trim().split("\n");
     if (lines.length < 2) {
       this.logger.warn(`[LUCI] Empty results from Tracerfy queue ${queueId}`);
-      return { updated: 0, phones: 0, emails: 0 };
+      return { updated: 0, phones: 0, mobiles: 0, landlines: 0, emails: 0 };
     }
 
     const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
@@ -1375,6 +1377,8 @@ export class LuciService {
 
     let updated = 0;
     let totalPhones = 0;
+    let totalMobiles = 0;
+    let totalLandlines = 0;
     let totalEmails = 0;
 
     // Process each row
@@ -1387,17 +1391,44 @@ export class LuciService {
       const firstName = values[colMap.firstName] || "";
       const lastName = values[colMap.lastName] || "";
 
-      // Collect phones
-      const phones: string[] = [];
-      if (values[colMap.primaryPhone]) phones.push(values[colMap.primaryPhone]);
+      // ═══════════════════════════════════════════════════════════════════════
+      // PHONE HIERARCHY FOR SMS:
+      // 1. Mobiles first (best for SMS) - mobile_1 through mobile_5
+      // 2. Primary phone IF it's mobile type
+      // 3. Landlines as fallback (call only)
+      // ═══════════════════════════════════════════════════════════════════════
+      const mobiles: string[] = [];
+      const landlines: string[] = [];
+
+      // Collect mobiles first (priority for SMS)
       for (let m = 1; m <= 5; m++) {
         const mobile = values[colMap[`mobile${m}` as keyof typeof colMap] as number];
-        if (mobile && !phones.includes(mobile)) phones.push(mobile);
+        if (mobile && !mobiles.includes(mobile)) mobiles.push(mobile);
       }
+
+      // Check if primary phone is mobile type - add to mobiles if so
+      const primaryPhone = values[colMap.primaryPhone] || "";
+      const primaryPhoneType = (values[colMap.primaryPhoneType] || "").toLowerCase();
+      if (primaryPhone && primaryPhoneType.includes("mobile") && !mobiles.includes(primaryPhone)) {
+        mobiles.unshift(primaryPhone); // Put at front if mobile
+      }
+
+      // Collect landlines (fallback for calls)
       for (let l = 1; l <= 3; l++) {
         const landline = values[colMap[`landline${l}` as keyof typeof colMap] as number];
-        if (landline && !phones.includes(landline)) phones.push(landline);
+        if (landline && !landlines.includes(landline)) landlines.push(landline);
       }
+
+      // If primary phone is landline, add to landlines
+      if (primaryPhone && !primaryPhoneType.includes("mobile") && !landlines.includes(primaryPhone)) {
+        landlines.unshift(primaryPhone);
+      }
+
+      // Combined phones: mobiles first, then landlines
+      const phones = [...mobiles, ...landlines];
+
+      // Best phone for SMS = first mobile, fallback to primary, then any phone
+      const bestPhoneForSms = mobiles[0] || (primaryPhoneType.includes("mobile") ? primaryPhone : null) || phones[0] || null;
 
       // Collect emails
       const emails: string[] = [];
@@ -1407,6 +1438,8 @@ export class LuciService {
       }
 
       totalPhones += phones.length;
+      totalMobiles += mobiles.length;
+      totalLandlines += landlines.length;
       totalEmails += emails.length;
 
       // Find and update matching lead by address + name
@@ -1430,8 +1463,8 @@ export class LuciService {
             email3: values[colMap.email3] || null,
             email4: values[colMap.email4] || null,
             email5: values[colMap.email5] || null,
-            // Set primary phone for SMS
-            phone: phones[0] || null,
+            // Set best phone for SMS (mobile-first hierarchy)
+            phone: bestPhoneForSms,
             email: emails[0] || null,
             tracerfyQueueId: queueId,
             updatedAt: new Date(),
@@ -1456,12 +1489,14 @@ export class LuciService {
     }
 
     this.logger.log(
-      `[LUCI] Tracerfy webhook processed: ${updated} leads updated, ${totalPhones} phones, ${totalEmails} emails`,
+      `[LUCI] Tracerfy webhook processed: ${updated} leads updated, ${totalMobiles} mobiles, ${totalLandlines} landlines, ${totalEmails} emails`,
     );
 
     return {
       updated,
       phones: totalPhones,
+      mobiles: totalMobiles,
+      landlines: totalLandlines,
       emails: totalEmails,
     };
   }

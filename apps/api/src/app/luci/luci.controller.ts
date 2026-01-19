@@ -849,6 +849,8 @@ export class LuciController {
           rowsUploaded: payload.rows_uploaded,
           leadsUpdated: processed.updated,
           phonesFound: processed.phones,
+          mobilesFound: processed.mobiles,
+          landlinesFound: processed.landlines,
           emailsFound: processed.emails,
           readyForScoring: processed.updated,
         },

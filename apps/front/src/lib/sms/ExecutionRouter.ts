@@ -44,6 +44,86 @@ export interface SMSExecutionRequest {
   trainingMode?: boolean;
 }
 
+/**
+ * Team SignalHouse settings fetched from database
+ */
+export interface TeamSignalHouseSettings {
+  subGroupId: string | null;
+  brandId: string | null;
+  campaignIds: string[] | null;
+  phonePool: string[] | null;
+}
+
+// Cache for team settings to avoid repeated fetches
+const teamSettingsCache = new Map<string, { settings: TeamSignalHouseSettings; fetchedAt: number }>();
+const CACHE_TTL_MS = 60000; // 1 minute cache
+
+/**
+ * Fetch team's SignalHouse settings from the backend GraphQL API
+ */
+async function fetchTeamSignalHouseSettings(teamId: string): Promise<TeamSignalHouseSettings | null> {
+  // Check cache first
+  const cached = teamSettingsCache.get(teamId);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return cached.settings;
+  }
+
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:4000';
+
+    // GraphQL query to fetch team SignalHouse settings
+    const query = `
+      query GetTeamSignalHouseSettings($teamId: ID!) {
+        signalHouseSettings(teamId: $teamId) {
+          subGroupId
+          brandId
+          campaignIds
+          phonePool
+        }
+      }
+    `;
+
+    const response = await fetch(`${apiUrl}/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { teamId } }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[ExecutionRouter] Failed to fetch team settings: ${response.status}`);
+      return null;
+    }
+
+    const result = await response.json();
+
+    if (result.errors?.length) {
+      console.warn(`[ExecutionRouter] GraphQL errors:`, result.errors);
+      return null;
+    }
+
+    const settings = result.data?.signalHouseSettings as TeamSignalHouseSettings;
+    if (!settings) return null;
+
+    // Cache the result
+    teamSettingsCache.set(teamId, { settings, fetchedAt: Date.now() });
+    return settings;
+  } catch (error) {
+    console.error(`[ExecutionRouter] Error fetching team settings:`, error);
+    return null;
+  }
+}
+
+/**
+ * Select a phone from the pool using round-robin rotation
+ */
+let phonePoolIndex = 0;
+function selectFromPhonePool(phonePool: string[] | null): string | null {
+  if (!phonePool || phonePool.length === 0) return null;
+  const phone = phonePool[phonePoolIndex % phonePool.length];
+  phonePoolIndex++;
+  return phone;
+}
+
 export interface SMSExecutionResult {
   success: boolean;
   messageId?: string;
@@ -271,8 +351,30 @@ export async function executeSMS(
     };
   }
 
-  // Determine from number
-  const fromNumber = request.from || config.defaultFromNumber || "";
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FETCH TEAM SIGNALHOUSE SETTINGS (phone pool, campaign IDs)
+  // ═══════════════════════════════════════════════════════════════════════════
+  let teamSettings: TeamSignalHouseSettings | null = null;
+  if (request.teamId) {
+    teamSettings = await fetchTeamSignalHouseSettings(request.teamId);
+    if (teamSettings) {
+      console.log(`[ExecutionRouter] Loaded team settings for ${request.teamId}:`, {
+        hasPhonePool: !!teamSettings.phonePool?.length,
+        hasCampaignIds: !!teamSettings.campaignIds?.length,
+      });
+    }
+  }
+
+  // Determine from number: request.from > phone pool > config default
+  let fromNumber = request.from;
+  if (!fromNumber && teamSettings?.phonePool?.length) {
+    fromNumber = selectFromPhonePool(teamSettings.phonePool);
+    console.log(`[ExecutionRouter] Selected from phone pool: ${fromNumber}`);
+  }
+  if (!fromNumber) {
+    fromNumber = config.defaultFromNumber || "";
+  }
+
   if (!fromNumber) {
     return {
       success: false,
@@ -287,6 +389,13 @@ export async function executeSMS(
       timestamp,
       error: "No 'from' number configured",
     };
+  }
+
+  // Determine campaign ID: request.campaignId > first from team settings
+  let effectiveCampaignId = request.campaignId;
+  if (!effectiveCampaignId && teamSettings?.campaignIds?.length) {
+    effectiveCampaignId = teamSettings.campaignIds[0];
+    console.log(`[ExecutionRouter] Using team campaign ID: ${effectiveCampaignId}`);
   }
 
   // Log execution details
@@ -349,6 +458,7 @@ export async function executeSMS(
         fromNumber,
         renderedMessage,
         config,
+        effectiveCampaignId,
       );
 
       if (result.success) {
@@ -512,6 +622,7 @@ async function sendViaSignalHouse(
   from: string,
   message: string,
   config: ExecutionRouterConfig,
+  campaignId?: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     // Build headers matching client.ts pattern (apiKey + authToken)
@@ -526,12 +637,18 @@ async function sendViaSignalHouse(
       headers["authToken"] = config.signalhouseAuthToken;
     }
 
+    // Build request body - include campaign_id for 10DLC compliance
+    const body: Record<string, string> = { to, from, message };
+    if (campaignId) {
+      body.campaign_id = campaignId;
+    }
+
     const response = await fetch(
       `${config.signalhouseApiBase}/message/sendSMS`,
       {
         method: "POST",
         headers,
-        body: JSON.stringify({ to, from, message }),
+        body: JSON.stringify(body),
       },
     );
 
