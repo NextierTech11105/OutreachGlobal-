@@ -6,28 +6,28 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
 import { DatabaseService } from "./services/database.service";
 
+const DrizzleConfig = DrizzleModule.registerAsync({
+  imports: [ConfigModule],
+  inject: [ConfigService],
+  useFactory: (configService: ConfigService) => {
+    const pool = new Pool({
+      connectionString: configService.get("DATABASE_URL"),
+    });
+
+    return {
+      client: drizzle({
+        client: pool,
+        casing: "snake_case",
+        schema,
+      }),
+    };
+  },
+});
+
 @Global()
 @Module({
-  imports: [
-    DrizzleModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const pool = new Pool({
-          connectionString: configService.get("DATABASE_URL"),
-        });
-
-        return {
-          client: drizzle({
-            client: pool,
-            casing: "snake_case",
-            schema,
-          }),
-        };
-      },
-    }),
-  ],
+  imports: [DrizzleConfig],
   providers: [DatabaseService],
-  exports: [DatabaseService],
+  exports: [DatabaseService, DrizzleConfig],
 })
 export class DatabaseModule {}
