@@ -138,43 +138,100 @@ export default function SignalHouseSettingsPage() {
     setIsEditing(false);
   };
 
-  const addCampaignId = () => {
-    if (newCampaignId && !editedConfig.campaignIds.includes(newCampaignId)) {
-      setEditedConfig({
-        ...editedConfig,
-        campaignIds: [...editedConfig.campaignIds, newCampaignId],
+  const addCampaignId = async () => {
+    if (!newCampaignId || config.campaignIds.includes(newCampaignId)) return;
+    if (!teamId) {
+      toast.error("Team not loaded");
+      return;
+    }
+
+    const newCampaignIds = [...config.campaignIds, newCampaignId];
+    try {
+      await updateSettings({
+        variables: {
+          teamId,
+          input: { campaignIds: newCampaignIds },
+        },
       });
+      setConfig({ ...config, campaignIds: newCampaignIds });
+      setEditedConfig({ ...editedConfig, campaignIds: newCampaignIds });
       setNewCampaignId("");
+      toast.success("Campaign added");
+      refetch();
+    } catch (error) {
+      toast.error("Failed to add campaign");
     }
   };
 
-  const removeCampaignId = (id: string) => {
-    setEditedConfig({
-      ...editedConfig,
-      campaignIds: editedConfig.campaignIds.filter((c) => c !== id),
-    });
-  };
-
-  const addPhone = () => {
-    if (newPhone && !editedConfig.phonePool.includes(newPhone)) {
-      const cleaned = newPhone.replace(/\D/g, "");
-      if (cleaned.length >= 10) {
-        setEditedConfig({
-          ...editedConfig,
-          phonePool: [...editedConfig.phonePool, `+1${cleaned.slice(-10)}`],
-        });
-        setNewPhone("");
-      } else {
-        toast.error("Please enter a valid phone number");
-      }
+  const removeCampaignId = async (id: string) => {
+    if (!teamId) return;
+    const newCampaignIds = config.campaignIds.filter((c) => c !== id);
+    try {
+      await updateSettings({
+        variables: {
+          teamId,
+          input: { campaignIds: newCampaignIds },
+        },
+      });
+      setConfig({ ...config, campaignIds: newCampaignIds });
+      setEditedConfig({ ...editedConfig, campaignIds: newCampaignIds });
+      toast.success("Campaign removed");
+      refetch();
+    } catch (error) {
+      toast.error("Failed to remove campaign");
     }
   };
 
-  const removePhone = (phone: string) => {
-    setEditedConfig({
-      ...editedConfig,
-      phonePool: editedConfig.phonePool.filter((p) => p !== phone),
-    });
+  const addPhone = async () => {
+    if (!newPhone) return;
+    const cleaned = newPhone.replace(/\D/g, "");
+    if (cleaned.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+    if (!teamId) {
+      toast.error("Team not loaded");
+      return;
+    }
+
+    const formattedPhone = `+1${cleaned.slice(-10)}`;
+    if (config.phonePool.includes(formattedPhone)) return;
+
+    const newPhonePool = [...config.phonePool, formattedPhone];
+    try {
+      await updateSettings({
+        variables: {
+          teamId,
+          input: { phonePool: newPhonePool },
+        },
+      });
+      setConfig({ ...config, phonePool: newPhonePool });
+      setEditedConfig({ ...editedConfig, phonePool: newPhonePool });
+      setNewPhone("");
+      toast.success("Phone added");
+      refetch();
+    } catch (error) {
+      toast.error("Failed to add phone");
+    }
+  };
+
+  const removePhone = async (phone: string) => {
+    if (!teamId) return;
+    const newPhonePool = config.phonePool.filter((p) => p !== phone);
+    try {
+      await updateSettings({
+        variables: {
+          teamId,
+          input: { phonePool: newPhonePool },
+        },
+      });
+      setConfig({ ...config, phonePool: newPhonePool });
+      setEditedConfig({ ...editedConfig, phonePool: newPhonePool });
+      toast.success("Phone removed");
+      refetch();
+    } catch (error) {
+      toast.error("Failed to remove phone");
+    }
   };
 
   if (!isTeamReady || (loading && !data)) {
@@ -362,24 +419,22 @@ export default function SignalHouseSettingsPage() {
                 </div>
               </div>
 
-              {/* Add Campaign Input */}
-              {isEditing && (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter TCR Campaign ID (e.g., CJRCU60)"
-                    value={newCampaignId}
-                    onChange={(e) =>
-                      setNewCampaignId(e.target.value.toUpperCase())
-                    }
-                    onKeyDown={(e) => e.key === "Enter" && addCampaignId()}
-                    className="font-mono"
-                  />
-                  <Button onClick={addCampaignId}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Campaign
-                  </Button>
-                </div>
-              )}
+              {/* Add Campaign Input - Always visible */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter TCR Campaign ID (e.g., CJRCU60)"
+                  value={newCampaignId}
+                  onChange={(e) =>
+                    setNewCampaignId(e.target.value.toUpperCase())
+                  }
+                  onKeyDown={(e) => e.key === "Enter" && addCampaignId()}
+                  className="font-mono"
+                />
+                <Button onClick={addCampaignId}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Campaign
+                </Button>
+              </div>
 
               {/* Campaign List */}
               <div className="space-y-2">
@@ -474,20 +529,19 @@ export default function SignalHouseSettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {isEditing && (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add phone number (e.g., 555-123-4567)"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addPhone()}
-                  />
-                  <Button onClick={addPhone}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Number
-                  </Button>
-                </div>
-              )}
+              {/* Phone Input - Always visible */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add phone number (e.g., 555-123-4567)"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addPhone()}
+                />
+                <Button onClick={addPhone}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Number
+                </Button>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {(isEditing ? editedConfig : config).phonePool.length === 0 ? (
                   <div className="col-span-full text-center py-6 border-2 border-dashed rounded-lg">
