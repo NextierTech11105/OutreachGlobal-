@@ -10,6 +10,7 @@
  */
 
 import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
 import { BullModule } from "@nestjs/bullmq";
 import { LuciService } from "./luci.service";
 import { LuciController } from "./luci.controller";
@@ -23,6 +24,7 @@ import { LUCI_QUEUE } from "./constants";
 
 @Module({
   imports: [
+    ConfigModule,
     BullModule.registerQueue({
       name: LUCI_QUEUE,
     }),
