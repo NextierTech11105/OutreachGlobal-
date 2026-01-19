@@ -217,7 +217,7 @@ export class LuciService {
     });
 
     this.logger.log(
-      `Trestle scoring complete: ${scoreResult.smsReadyCount} SMS-ready of ${scoreResult.totalRecords}`,
+      `Trestle scoring complete: ${scoreResult.summary.smsReadyCount} SMS-ready of ${scoreResult.totalRecords}`,
     );
 
     return scoreResult.results;
@@ -784,7 +784,7 @@ export class LuciService {
           address: values[colMap.address] || null,
           city: values[colMap.city] || null,
           state: values[colMap.state] || null,
-          zip: values[colMap.zip] || null,
+          zipCode: values[colMap.zip] || null,
           county: values[colMap.county] || null,
           website: values[colMap.website] || null,
           employees: values[colMap.employees] || null,
@@ -1063,7 +1063,7 @@ export class LuciService {
           address: values[colMap.address] || null,
           city: values[colMap.city] || null,
           state: values[colMap.state] || null,
-          zip: values[colMap.zip] || null,
+          zipCode: values[colMap.zip] || null,
           county: values[colMap.county] || null,
           website: values[colMap.website] || null,
           employees: values[colMap.employees] || null,

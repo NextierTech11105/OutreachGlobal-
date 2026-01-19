@@ -12,10 +12,12 @@
  *   nextier-data/blocks/block-001/ready/
  */
 
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "@/prisma/prisma.service";
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { enrichmentJobs } from "@/database/schema";
+import { eq, desc, sql, like } from "drizzle-orm";
 
 export interface Block {
   id: string;
@@ -62,7 +64,7 @@ export class BlockManagerService {
 
   constructor(
     private config: ConfigService,
-    private prisma: PrismaService,
+    @Inject("DATABASE") private db: NodePgDatabase<any>,
   ) {
     // DO Spaces uses S3-compatible API
     this.bucket = this.config.get("DO_SPACES_BUCKET") || "nextier-data";
@@ -83,17 +85,15 @@ export class BlockManagerService {
    */
   async getActiveBlock(teamId: string): Promise<Block> {
     // Check for existing active block
-    const existing = await this.prisma.enrichmentJob.findFirst({
-      where: {
-        // Using enrichment_jobs table to track blocks
-        status: "active",
-        // teamId would need to be added to schema
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const existing = await this.db
+      .select()
+      .from(enrichmentJobs)
+      .where(eq(enrichmentJobs.status, "active"))
+      .orderBy(desc(enrichmentJobs.createdAt))
+      .limit(1);
 
-    if (existing) {
-      return this.mapToBlock(existing, teamId);
+    if (existing.length > 0) {
+      return this.mapToBlock(existing[0], teamId);
     }
 
     // Create new block
@@ -105,25 +105,30 @@ export class BlockManagerService {
    */
   async createBlock(teamId: string): Promise<Block> {
     // Get next block number
-    const lastBlock = await this.prisma.enrichmentJob.findFirst({
-      where: { jobType: "block" },
-      orderBy: { createdAt: "desc" },
-    });
+    const lastBlock = await this.db
+      .select()
+      .from(enrichmentJobs)
+      .where(eq(enrichmentJobs.jobType, "block"))
+      .orderBy(desc(enrichmentJobs.createdAt))
+      .limit(1);
 
-    const blockNumber = lastBlock ? parseInt(lastBlock.sourceFile?.split("-")[1] || "0") + 1 : 1;
+    const blockNumber = lastBlock.length > 0
+      ? parseInt(lastBlock[0].sourceFile?.split("-")[1] || "0") + 1
+      : 1;
     const blockId = `block-${String(blockNumber).padStart(3, "0")}`;
 
     // Create block record
-    const block = await this.prisma.enrichmentJob.create({
-      data: {
+    const [block] = await this.db
+      .insert(enrichmentJobs)
+      .values({
         jobType: "block",
         status: "active",
         sourceFile: blockId,
         sectorTag: teamId,
         totalRecords: 10000,
         processedRecords: 0,
-      },
-    });
+      })
+      .returning();
 
     // Create Spaces folders
     await this.createBlockFolders(blockId);
@@ -150,36 +155,38 @@ export class BlockManagerService {
     blockId: string,
     size: 500 | 1000 | 2000,
   ): Promise<SubBlock> {
-    const block = await this.prisma.enrichmentJob.findFirst({
-      where: { sourceFile: blockId },
-    });
+    const block = await this.db
+      .select()
+      .from(enrichmentJobs)
+      .where(eq(enrichmentJobs.sourceFile, blockId))
+      .limit(1);
 
-    if (!block) {
+    if (block.length === 0) {
       throw new Error(`Block ${blockId} not found`);
     }
 
     // Count existing sub-blocks
-    const subBlockCount = await this.prisma.enrichmentJob.count({
-      where: {
-        jobType: "sub-block",
-        sourceFile: { startsWith: blockId },
-      },
-    });
+    const subBlockCountResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(enrichmentJobs)
+      .where(like(enrichmentJobs.sourceFile, `${blockId}%`));
 
+    const subBlockCount = Number(subBlockCountResult[0]?.count || 0);
     const subBlockNumber = subBlockCount + 1;
-    const subBlockId = `${blockId}-sub-${String(subBlockNumber).padStart(2, "0")}`;
+    const subBlockIdStr = `${blockId}-sub-${String(subBlockNumber).padStart(2, "0")}`;
 
-    const subBlock = await this.prisma.enrichmentJob.create({
-      data: {
+    const [subBlock] = await this.db
+      .insert(enrichmentJobs)
+      .values({
         jobType: "sub-block",
         status: "pending",
-        sourceFile: subBlockId,
+        sourceFile: subBlockIdStr,
         totalRecords: size,
         processedRecords: 0,
-      },
-    });
+      })
+      .returning();
 
-    this.logger.log(`[BlockManager] Created sub-block ${subBlockId} (${size} leads)`);
+    this.logger.log(`[BlockManager] Created sub-block ${subBlockIdStr} (${size} leads)`);
 
     return {
       id: subBlock.id.toString(),
@@ -198,19 +205,18 @@ export class BlockManagerService {
    */
   async getBlockCapacity(teamId: string): Promise<BlockCapacity> {
     const block = await this.getActiveBlock(teamId);
+    const blockIdPattern = `block-${String(block.number).padStart(3, "0")}`;
 
-    const subBlocks = await this.prisma.enrichmentJob.findMany({
-      where: {
-        jobType: "sub-block",
-        sourceFile: { startsWith: `block-${String(block.number).padStart(3, "0")}` },
-      },
-    });
+    const subBlocks = await this.db
+      .select()
+      .from(enrichmentJobs)
+      .where(like(enrichmentJobs.sourceFile, `${blockIdPattern}%`));
 
     const used = subBlocks.reduce((sum, sb) => sum + (sb.processedRecords || 0), 0);
     const subBlocksComplete = subBlocks.filter((sb) => sb.status === "completed").length;
 
     return {
-      blockId: `block-${String(block.number).padStart(3, "0")}`,
+      blockId: blockIdPattern,
       blockNumber: block.number,
       capacity: 10000,
       used,
@@ -231,10 +237,10 @@ export class BlockManagerService {
       this.logger.log(`[BlockManager] Block ${capacity.blockId} full, creating next block`);
 
       // Mark current block complete
-      await this.prisma.enrichmentJob.updateMany({
-        where: { sourceFile: capacity.blockId },
-        data: { status: "completed", completedAt: new Date() },
-      });
+      await this.db
+        .update(enrichmentJobs)
+        .set({ status: "completed", completedAt: new Date() })
+        .where(eq(enrichmentJobs.sourceFile, capacity.blockId));
 
       // Create next block
       return this.createBlock(teamId);
@@ -299,19 +305,20 @@ export class BlockManagerService {
   }> {
     const activeBlock = await this.getBlockCapacity(teamId);
 
-    const completedBlocks = await this.prisma.enrichmentJob.count({
-      where: { jobType: "block", status: "completed" },
-    });
+    const completedResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(enrichmentJobs)
+      .where(eq(enrichmentJobs.status, "completed"));
 
-    const totalProcessed = await this.prisma.enrichmentJob.aggregate({
-      where: { jobType: "block" },
-      _sum: { processedRecords: true },
-    });
+    const totalResult = await this.db
+      .select({ sum: sql<number>`sum(processed_records)` })
+      .from(enrichmentJobs)
+      .where(eq(enrichmentJobs.jobType, "block"));
 
     return {
       activeBlock,
-      completedBlocks,
-      totalLeadsProcessed: totalProcessed._sum.processedRecords || 0,
+      completedBlocks: Number(completedResult[0]?.count || 0),
+      totalLeadsProcessed: Number(totalResult[0]?.sum || 0),
     };
   }
 
@@ -334,7 +341,7 @@ export class BlockManagerService {
     }
   }
 
-  private mapToBlock(record: { id: number; sourceFile: string | null; createdAt: Date; completedAt: Date | null; totalRecords: number | null; processedRecords: number | null }, teamId: string): Block {
+  private mapToBlock(record: any, teamId: string): Block {
     const blockId = record.sourceFile || "block-001";
     const blockNumber = parseInt(blockId.split("-")[1] || "1");
 

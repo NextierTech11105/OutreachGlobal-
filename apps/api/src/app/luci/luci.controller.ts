@@ -18,15 +18,11 @@ import {
   Param,
   Query,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
   Logger,
   HttpException,
   HttpStatus,
-  ParseFilePipe,
-  MaxFileSizeValidator,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
+// FileInterceptor would need @nestjs/platform-express - using manual parsing instead
 import { LuciService, PipelineConfig } from "./luci.service";
 import { TracerfyClient } from "./clients/tracerfy.client";
 import { TrestleClient } from "./clients/trestle.client";
@@ -79,20 +75,11 @@ export class LuciController {
    * No Tracerfy/Trestle cost until you pull to enrichment block
    */
   @Post("lake/import")
-  @UseInterceptors(FileInterceptor("file"))
   async importToLake(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 500 * 1024 * 1024 }), // 500MB for large datasets
-        ],
-        fileIsRequired: false,
-      }),
-    )
-    file: Express.Multer.File | undefined,
     @Body()
     body: {
-      filePath?: string; // OR path from DO Spaces
+      filePath?: string; // Path from DO Spaces
+      csvData?: string; // Direct CSV string
       sectorTag: string;
       sicCode?: string;
     },
@@ -106,9 +93,9 @@ export class LuciController {
       let csvData: string;
       let fileName: string;
 
-      if (file) {
-        csvData = file.buffer.toString("utf-8");
-        fileName = file.originalname;
+      if (body.csvData) {
+        csvData = body.csvData;
+        fileName = "direct-upload.csv";
       } else if (body.filePath) {
         const spacesUrl =
           process.env.DO_SPACES_URL ||
@@ -118,7 +105,7 @@ export class LuciController {
         csvData = await res.text();
         fileName = body.filePath.split("/").pop() || "imported.csv";
       } else {
-        throw new Error("Provide file upload or filePath");
+        throw new Error("Provide csvData or filePath");
       }
 
       const result = await this.luciService.importToLake(
@@ -354,7 +341,7 @@ export class LuciController {
         success: true,
         data: {
           scored: result.totalRecords,
-          smsReady: result.smsReadyCount,
+          smsReady: result.summary.smsReadyCount,
           results: result.results.slice(0, 10), // First 10 for preview
           cost: `$${(result.totalRecords * 0.03).toFixed(2)}`,
         },
@@ -372,19 +359,12 @@ export class LuciController {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Upload CSV and start full pipeline (bypasses lake)
+   * Start pipeline with CSV data (bypasses lake)
    * Use for small batches or testing
    */
   @Post("pipeline/start")
-  @UseInterceptors(FileInterceptor("file"))
   async startPipeline(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 })],
-      }),
-    )
-    file: Express.Multer.File,
-    @Body() body: StartPipelineDto,
+    @Body() body: StartPipelineDto & { csvData?: string },
     @TenantContext("teamId") teamId: string,
   ) {
     this.logger.log(
@@ -399,7 +379,7 @@ export class LuciController {
 
       const batch = await this.luciService.startPipeline(
         teamId,
-        file.buffer,
+        Buffer.from(body.csvData || ""),
         USBIZDATA_COLUMNS,
         config,
       );
@@ -409,7 +389,7 @@ export class LuciController {
         data: {
           batchId: batch.id,
           status: batch.status,
-          message: `Pipeline started for ${file.originalname}`,
+          message: `Pipeline started`,
           sectorTag: body.sectorTag,
         },
       };
