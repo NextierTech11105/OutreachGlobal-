@@ -260,7 +260,7 @@ export const unifiedLeads = pgTable(
     index("unified_leads_persona_idx").on(t.personaId),
     index("unified_leads_business_idx").on(t.businessId),
     index("unified_leads_property_idx").on(t.propertyId),
-  ]
+  ],
 );
 
 // ============================================================
@@ -339,7 +339,7 @@ export const leadContacts = pgTable(
     index("lead_contacts_dnc_idx").on(t.isDnc),
     uniqueIndex("lead_contacts_phone_uniq").on(t.leadId, t.normalizedPhone),
     uniqueIndex("lead_contacts_email_uniq").on(t.leadId, t.normalizedEmail),
-  ]
+  ],
 );
 
 // ============================================================
@@ -418,10 +418,10 @@ export const leadCampaignState = pgTable(
     index("lead_campaign_state_paused_idx").on(t.isPaused, t.resumeAt),
     index("lead_campaign_state_worker_idx").on(
       t.assignedWorker,
-      t.assignedPriority
+      t.assignedPriority,
     ),
     uniqueIndex("lead_campaign_state_uniq").on(t.leadId, t.campaignId),
-  ]
+  ],
 );
 
 // ============================================================
@@ -456,7 +456,9 @@ export const leadChangelog = pgTable(
     metadata: jsonb().$type<Record<string, unknown>>(),
 
     // Immutable - no updatedAt
-    createdAt: timestamp().$defaultFn(() => new Date()).notNull(),
+    createdAt: timestamp()
+      .$defaultFn(() => new Date())
+      .notNull(),
   },
   (t) => [
     index("lead_changelog_lead_idx").on(t.leadId),
@@ -467,7 +469,7 @@ export const leadChangelog = pgTable(
     index("lead_changelog_category_idx").on(t.fieldCategory),
     index("lead_changelog_changed_by_idx").on(t.changedBy),
     index("lead_changelog_compliance_idx").on(t.fieldCategory, t.fieldName),
-  ]
+  ],
 );
 
 // ============================================================
@@ -489,7 +491,7 @@ export const leadTagDefinitions = pgTable(
   (t) => [
     index("lead_tag_defs_team_idx").on(t.teamId),
     uniqueIndex("lead_tag_defs_name_uniq").on(t.teamId, t.name),
-  ]
+  ],
 );
 
 export const leadTagAssignments = pgTable(
@@ -502,13 +504,15 @@ export const leadTagAssignments = pgTable(
       .references(() => leadTagDefinitions.id, { onDelete: "cascade" })
       .notNull(),
     assignedBy: varchar({ length: 100 }),
-    assignedAt: timestamp().$defaultFn(() => new Date()).notNull(),
+    assignedAt: timestamp()
+      .$defaultFn(() => new Date())
+      .notNull(),
   },
   (t) => [
     index("lead_tag_assign_lead_idx").on(t.leadId),
     index("lead_tag_assign_tag_idx").on(t.tagId),
     uniqueIndex("lead_tag_assign_uniq").on(t.leadId, t.tagId),
-  ]
+  ],
 );
 
 // ============================================================
@@ -553,7 +557,7 @@ export const sdrActions = pgTable(
     index("sdr_actions_status_idx").on(t.status),
     index("sdr_actions_worker_idx").on(t.executedBy),
     index("sdr_actions_type_idx").on(t.actionType),
-  ]
+  ],
 );
 
 // ============================================================

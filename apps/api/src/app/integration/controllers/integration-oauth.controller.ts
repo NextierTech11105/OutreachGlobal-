@@ -14,10 +14,16 @@ export class IntegrationOauthController {
     try {
       await this.service.authorize(query.state, provider, query);
       // Redirect to success page
-      res.redirect(`${process.env.FRONTEND_URL}/settings/integrations?success=true`, 302);
+      res.redirect(
+        `${process.env.FRONTEND_URL}/settings/integrations?success=true`,
+        302,
+      );
     } catch (error) {
       // Redirect to error page
-      res.redirect(`${process.env.FRONTEND_URL}/settings/integrations?error=true`, 302);
+      res.redirect(
+        `${process.env.FRONTEND_URL}/settings/integrations?error=true`,
+        302,
+      );
     }
   }
 }

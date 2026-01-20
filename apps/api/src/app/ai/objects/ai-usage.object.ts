@@ -5,7 +5,13 @@
  * for dashboard and billing integration.
  */
 
-import { Field, ObjectType, Float, Int, registerEnumType } from "@nestjs/graphql";
+import {
+  Field,
+  ObjectType,
+  Float,
+  Int,
+  registerEnumType,
+} from "@nestjs/graphql";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENUMS

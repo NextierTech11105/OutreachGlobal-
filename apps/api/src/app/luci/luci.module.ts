@@ -41,6 +41,12 @@ import { DatabaseModule } from "@/database/database.module";
     BlockManagerService,
     CampaignExecutorService,
   ],
-  exports: [LuciService, TracerfyClient, TrestleClient, BlockManagerService, CampaignExecutorService],
+  exports: [
+    LuciService,
+    TracerfyClient,
+    TrestleClient,
+    BlockManagerService,
+    CampaignExecutorService,
+  ],
 })
 export class LuciModule {}

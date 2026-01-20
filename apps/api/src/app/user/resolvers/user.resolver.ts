@@ -7,7 +7,12 @@ import {
   UpdateProfilePayload,
   OAuthLoginPayload,
 } from "../objects/user.object";
-import { LoginArgs, RegisterArgs, UpdateProfileArgs, OAuthLoginArgs } from "../args/user.args";
+import {
+  LoginArgs,
+  RegisterArgs,
+  UpdateProfileArgs,
+  OAuthLoginArgs,
+} from "../args/user.args";
 import { UserService } from "../services/user.service";
 import { BaseResolver } from "@/app/apollo/base.resolver";
 import { loginSchema, z } from "@nextier/dto";

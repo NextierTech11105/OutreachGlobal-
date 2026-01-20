@@ -20,7 +20,13 @@ import { BusinessListSettingsResolver } from "./resolvers/business-list-settings
 import { SignalHouseSettingsResolver } from "./resolvers/signalhouse-settings.resolver";
 
 @CustomModule({
-  imports: [CacheModule, ConfigModule, MailModule, forwardRef(() => UserModule), TwilioModule],
+  imports: [
+    CacheModule,
+    ConfigModule,
+    MailModule,
+    forwardRef(() => UserModule),
+    TwilioModule,
+  ],
   providers: [
     TeamService,
     TeamMemberService,

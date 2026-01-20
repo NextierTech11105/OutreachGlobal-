@@ -43,7 +43,10 @@ interface ScoreContactsJobData {
   leadIds: string[];
 }
 
-type LuciJobData = FullPipelineJobData | SkipTraceJobData | ScoreContactsJobData;
+type LuciJobData =
+  | FullPipelineJobData
+  | SkipTraceJobData
+  | ScoreContactsJobData;
 
 @Processor(LUCI_QUEUE, {
   concurrency: 2, // Limit concurrent jobs

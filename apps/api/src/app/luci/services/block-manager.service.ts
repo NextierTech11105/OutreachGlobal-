@@ -14,7 +14,11 @@
 
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { enrichmentJobs } from "@/database/schema";
@@ -69,7 +73,8 @@ export class BlockManagerService {
   ) {
     // DO Spaces uses S3-compatible API
     this.bucket = this.config.get("DO_SPACES_BUCKET") || "nextier-data";
-    this.spacesUrl = this.config.get("DO_SPACES_URL") || "https://nyc3.digitaloceanspaces.com";
+    this.spacesUrl =
+      this.config.get("DO_SPACES_URL") || "https://nyc3.digitaloceanspaces.com";
 
     this.s3 = new S3Client({
       endpoint: this.spacesUrl,
@@ -113,9 +118,10 @@ export class BlockManagerService {
       .orderBy(desc(enrichmentJobs.createdAt))
       .limit(1);
 
-    const blockNumber = lastBlock.length > 0
-      ? parseInt(lastBlock[0].sourceFile?.split("-")[1] || "0") + 1
-      : 1;
+    const blockNumber =
+      lastBlock.length > 0
+        ? parseInt(lastBlock[0].sourceFile?.split("-")[1] || "0") + 1
+        : 1;
     const blockId = `block-${String(blockNumber).padStart(3, "0")}`;
 
     // Create block record
@@ -135,7 +141,9 @@ export class BlockManagerService {
     // Create Spaces folders
     await this.createBlockFolders(blockId);
 
-    this.logger.log(`[BlockManager] Created block ${blockId} for team ${teamId}`);
+    this.logger.log(
+      `[BlockManager] Created block ${blockId} for team ${teamId}`,
+    );
 
     return {
       id: block.id.toString(),
@@ -190,7 +198,9 @@ export class BlockManagerService {
       })
       .returning();
 
-    this.logger.log(`[BlockManager] Created sub-block ${subBlockIdStr} (${size} leads)`);
+    this.logger.log(
+      `[BlockManager] Created sub-block ${subBlockIdStr} (${size} leads)`,
+    );
 
     return {
       id: subBlock.id.toString(),
@@ -216,8 +226,13 @@ export class BlockManagerService {
       .from(enrichmentJobs)
       .where(like(enrichmentJobs.sourceFile, `${blockIdPattern}%`));
 
-    const used = subBlocks.reduce((sum, sb) => sum + (sb.processedRecords || 0), 0);
-    const subBlocksComplete = subBlocks.filter((sb) => sb.status === "completed").length;
+    const used = subBlocks.reduce(
+      (sum, sb) => sum + (sb.processedRecords || 0),
+      0,
+    );
+    const subBlocksComplete = subBlocks.filter(
+      (sb) => sb.status === "completed",
+    ).length;
 
     return {
       blockId: blockIdPattern,
@@ -238,7 +253,9 @@ export class BlockManagerService {
     const capacity = await this.getBlockCapacity(teamId);
 
     if (capacity.remaining <= 0) {
-      this.logger.log(`[BlockManager] Block ${capacity.blockId} full, creating next block`);
+      this.logger.log(
+        `[BlockManager] Block ${capacity.blockId} full, creating next block`,
+      );
 
       // Mark current block complete
       await this.db
@@ -269,7 +286,9 @@ export class BlockManagerService {
         Bucket: this.bucket,
         Key: key,
         Body: typeof data === "string" ? Buffer.from(data) : data,
-        ContentType: filename.endsWith(".csv") ? "text/csv" : "application/json",
+        ContentType: filename.endsWith(".csv")
+          ? "text/csv"
+          : "application/json",
         ACL: "private",
       }),
     );
@@ -296,7 +315,9 @@ export class BlockManagerService {
       }),
     );
 
-    return (response.Contents || []).map((obj) => obj.Key || "").filter(Boolean);
+    return (response.Contents || [])
+      .map((obj) => obj.Key || "")
+      .filter(Boolean);
   }
 
   /**

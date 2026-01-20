@@ -57,7 +57,9 @@ export class AnthropicClient {
 
     // Extract system message from messages array
     const systemMessage = options.messages.find((m) => m.role === "system");
-    const nonSystemMessages = options.messages.filter((m) => m.role !== "system");
+    const nonSystemMessages = options.messages.filter(
+      (m) => m.role !== "system",
+    );
 
     for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
       const controller = new AbortController();
@@ -130,8 +132,7 @@ export class AnthropicClient {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < this.config.maxRetries - 1 && this.isRetryable(error)) {
-          const delayMs =
-            this.config.initialRetryDelay * Math.pow(2, attempt);
+          const delayMs = this.config.initialRetryDelay * Math.pow(2, attempt);
           this.logger.warn(
             `Anthropic call failed, retrying in ${delayMs}ms: ${lastError.message}`,
           );

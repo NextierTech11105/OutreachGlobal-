@@ -123,8 +123,7 @@ export class PerplexityClient {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < this.config.maxRetries - 1 && this.isRetryable(error)) {
-          const delayMs =
-            this.config.initialRetryDelay * Math.pow(2, attempt);
+          const delayMs = this.config.initialRetryDelay * Math.pow(2, attempt);
           this.logger.warn(
             `Perplexity call failed, retrying in ${delayMs}ms: ${lastError.message}`,
           );

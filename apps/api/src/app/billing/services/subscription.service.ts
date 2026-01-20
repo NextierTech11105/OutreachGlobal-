@@ -351,7 +351,8 @@ export class SubscriptionService implements OnModuleInit {
     const canAccessFeatures =
       isActive || (isTrialing && !isExpired) || status === "past_due";
 
-    const needsUpgrade = isExpired || status === "unpaid" || status === "canceled";
+    const needsUpgrade =
+      isExpired || status === "unpaid" || status === "canceled";
 
     return {
       isTrialing,
@@ -457,7 +458,10 @@ export class SubscriptionService implements OnModuleInit {
   /**
    * Update subscription status (from Stripe webhook)
    */
-  async updateStatus(teamId: string, status: SubscriptionStatus): Promise<void> {
+  async updateStatus(
+    teamId: string,
+    status: SubscriptionStatus,
+  ): Promise<void> {
     await this.db
       .update(subscriptionsTable)
       .set({ status })

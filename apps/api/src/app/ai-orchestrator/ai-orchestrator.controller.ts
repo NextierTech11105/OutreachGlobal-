@@ -154,7 +154,9 @@ export class AiOrchestratorController {
         {
           success: false,
           error:
-            error instanceof Error ? error.message : "SMS classification failed",
+            error instanceof Error
+              ? error.message
+              : "SMS classification failed",
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -320,7 +322,8 @@ export class AiOrchestratorController {
       throw new HttpException(
         {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to queue research",
+          error:
+            error instanceof Error ? error.message : "Failed to queue research",
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -367,7 +370,10 @@ export class AiOrchestratorController {
       throw new HttpException(
         {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to queue batch classify",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to queue batch classify",
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -401,7 +407,8 @@ export class AiOrchestratorController {
       throw new HttpException(
         {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to get job status",
+          error:
+            error instanceof Error ? error.message : "Failed to get job status",
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -423,7 +430,10 @@ export class AiOrchestratorController {
       throw new HttpException(
         {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to get queue stats",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to get queue stats",
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -480,7 +490,10 @@ export class AiOrchestratorController {
       throw new HttpException(
         {
           success: false,
-          error: error instanceof Error ? error.message : "Failed to get usage dashboard",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to get usage dashboard",
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );

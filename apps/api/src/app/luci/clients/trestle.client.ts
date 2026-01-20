@@ -353,7 +353,10 @@ export class TrestleClient {
       .filter((r): r is TrestleContactScore => !!r);
   }
 
-  private mapPhoneResult(phone: string, data: TrestleApiResponse): TrestlePhoneResult {
+  private mapPhoneResult(
+    phone: string,
+    data: TrestleApiResponse,
+  ): TrestlePhoneResult {
     // Map Trestle Real Contact API response
     const phoneData = data.phone;
 
@@ -378,10 +381,15 @@ export class TrestleClient {
 
     // Determine phone type from line_type
     let type: PhoneTypeValue = "landline";
-    if (lineType.toLowerCase().includes("mobile") || lineType.toLowerCase().includes("wireless")) {
+    if (
+      lineType.toLowerCase().includes("mobile") ||
+      lineType.toLowerCase().includes("wireless")
+    ) {
       type = "mobile";
     } else if (lineType.toLowerCase().includes("voip")) {
-      type = lineType.toLowerCase().includes("non-fixed") ? "nonFixedVoIP" : "fixedVoIP";
+      type = lineType.toLowerCase().includes("non-fixed")
+        ? "nonFixedVoIP"
+        : "fixedVoIP";
     }
 
     // Use Trestle's contact_grade directly (A-F)
@@ -404,7 +412,9 @@ export class TrestleClient {
     };
   }
 
-  private findBestPhone(phones: TrestlePhoneResult[]): TrestlePhoneResult | null {
+  private findBestPhone(
+    phones: TrestlePhoneResult[],
+  ): TrestlePhoneResult | null {
     if (phones.length === 0) return null;
 
     const gradeOrder = ["A", "B", "C", "D", "F"];
@@ -412,26 +422,24 @@ export class TrestleClient {
     // Priority: Grade A/B mobiles first (then by activity)
     const mobiles = phones.filter((p) => p.type === "mobile" && p.valid);
     if (mobiles.length > 0) {
-      mobiles.sort(
-        (a, b) => {
-          const gradeDelta = gradeOrder.indexOf(a.grade) - gradeOrder.indexOf(b.grade);
-          if (gradeDelta !== 0) return gradeDelta;
-          return b.activityScore - a.activityScore;
-        },
-      );
+      mobiles.sort((a, b) => {
+        const gradeDelta =
+          gradeOrder.indexOf(a.grade) - gradeOrder.indexOf(b.grade);
+        if (gradeDelta !== 0) return gradeDelta;
+        return b.activityScore - a.activityScore;
+      });
       return mobiles[0];
     }
 
     // Then any valid phone by grade (then by activity)
     const valid = phones.filter((p) => p.valid);
     if (valid.length > 0) {
-      valid.sort(
-        (a, b) => {
-          const gradeDelta = gradeOrder.indexOf(a.grade) - gradeOrder.indexOf(b.grade);
-          if (gradeDelta !== 0) return gradeDelta;
-          return b.activityScore - a.activityScore;
-        },
-      );
+      valid.sort((a, b) => {
+        const gradeDelta =
+          gradeOrder.indexOf(a.grade) - gradeOrder.indexOf(b.grade);
+        if (gradeDelta !== 0) return gradeDelta;
+        return b.activityScore - a.activityScore;
+      });
       return valid[0];
     }
 
@@ -511,7 +519,10 @@ export class TrestleClient {
 
     // Check for callable phones
     const hasCallable = phones.some(
-      (p) => p.valid && p.reachable && (p.grade === "A" || p.grade === "B" || p.grade === "C"),
+      (p) =>
+        p.valid &&
+        p.reachable &&
+        (p.grade === "A" || p.grade === "B" || p.grade === "C"),
     );
     if (hasCallable) return "call";
 

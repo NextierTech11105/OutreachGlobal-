@@ -7,7 +7,13 @@
  * - Training data collection
  */
 
-import { Field, ObjectType, Float, Int, registerEnumType } from "@nestjs/graphql";
+import {
+  Field,
+  ObjectType,
+  Float,
+  Int,
+  registerEnumType,
+} from "@nestjs/graphql";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENUMS

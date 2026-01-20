@@ -17,7 +17,9 @@ export class BillingSeeder {
     try {
       const existingPlans = await this.db.query.plans.findMany();
       if (existingPlans.length > 0) {
-        this.logger.log(`Plans table already has ${existingPlans.length} plans, skipping seed`);
+        this.logger.log(
+          `Plans table already has ${existingPlans.length} plans, skipping seed`,
+        );
         return;
       }
     } catch (error: any) {

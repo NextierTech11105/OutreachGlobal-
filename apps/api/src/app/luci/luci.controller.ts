@@ -135,7 +135,10 @@ export class LuciController {
     } catch (error) {
       this.logger.error(`Lake import failed: ${error}`);
       throw new HttpException(
-        { success: false, error: error instanceof Error ? error.message : "Import failed" },
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Import failed",
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -201,7 +204,10 @@ export class LuciController {
       };
     } catch (error) {
       throw new HttpException(
-        { success: false, error: error instanceof Error ? error.message : "Pull failed" },
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Pull failed",
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -253,7 +259,9 @@ export class LuciController {
       const blockStatus = await this.luciService.getBlockStatus(teamId);
 
       if (!blockStatus.activeBlock) {
-        throw new Error("No active block. Pull leads from lake first with POST /luci/block/pull");
+        throw new Error(
+          "No active block. Pull leads from lake first with POST /luci/block/pull",
+        );
       }
 
       // This triggers the BullMQ job for async processing
@@ -288,7 +296,10 @@ export class LuciController {
     } catch (error) {
       this.logger.error(`Enrichment failed: ${error}`);
       throw new HttpException(
-        { success: false, error: error instanceof Error ? error.message : "Enrichment failed" },
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Enrichment failed",
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -396,7 +407,11 @@ export class LuciController {
     } catch (error) {
       this.logger.error(`Pipeline start failed: ${error}`);
       throw new HttpException(
-        { success: false, error: error instanceof Error ? error.message : "Pipeline start failed" },
+        {
+          success: false,
+          error:
+            error instanceof Error ? error.message : "Pipeline start failed",
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -474,7 +489,11 @@ export class LuciController {
       const records = await this.tracerfy.getQueue(parseInt(queueId, 10));
       return {
         success: true,
-        data: { queueId: parseInt(queueId, 10), recordCount: records.length, records },
+        data: {
+          queueId: parseInt(queueId, 10),
+          recordCount: records.length,
+          records,
+        },
       };
     } catch (error) {
       throw new HttpException(
@@ -555,10 +574,30 @@ export class LuciController {
       success: true,
       data: {
         sectors: [
-          { sicCode: "1711", tag: "plumbing-hvac", name: "Plumbing, Heating & AC", records: 338605 },
-          { sicCode: "8742", tag: "business-management-consulting", name: "Business Consulting", records: 250000 },
-          { sicCode: "8748", tag: "business-consulting-nec", name: "Business Consulting NEC", records: 0 },
-          { sicCode: "6531", tag: "realtors", name: "Real Estate Agents", records: 500000 },
+          {
+            sicCode: "1711",
+            tag: "plumbing-hvac",
+            name: "Plumbing, Heating & AC",
+            records: 338605,
+          },
+          {
+            sicCode: "8742",
+            tag: "business-management-consulting",
+            name: "Business Consulting",
+            records: 250000,
+          },
+          {
+            sicCode: "8748",
+            tag: "business-consulting-nec",
+            name: "Business Consulting NEC",
+            records: 0,
+          },
+          {
+            sicCode: "6531",
+            tag: "realtors",
+            name: "Real Estate Agents",
+            records: 500000,
+          },
         ],
         leadIdFormat: "NXT-{sic_code}-{uuid6}",
         example: "NXT-1711-a3f9b2",
@@ -591,10 +630,30 @@ export class LuciController {
           block: blockStatus.activeBlock,
           pipeline: {
             stages: [
-              { name: "LAKE", desc: "Raw Imports", count: lakeStats.rawCount, status: "active" },
-              { name: "TRACED", desc: "Tracerfy", count: blockStatus.activeBlock?.traced || 0, status: "active" },
-              { name: "SCORED", desc: "Trestle", count: blockStatus.activeBlock?.scored || 0, status: "active" },
-              { name: "READY", desc: "Campaign Ready", count: blockStatus.activeBlock?.ready || 0, status: "active" },
+              {
+                name: "LAKE",
+                desc: "Raw Imports",
+                count: lakeStats.rawCount,
+                status: "active",
+              },
+              {
+                name: "TRACED",
+                desc: "Tracerfy",
+                count: blockStatus.activeBlock?.traced || 0,
+                status: "active",
+              },
+              {
+                name: "SCORED",
+                desc: "Trestle",
+                count: blockStatus.activeBlock?.scored || 0,
+                status: "active",
+              },
+              {
+                name: "READY",
+                desc: "Campaign Ready",
+                count: blockStatus.activeBlock?.ready || 0,
+                status: "active",
+              },
             ],
             flow: "LAKE → TRACED → SCORED → READY → CAMPAIGN",
           },
@@ -651,14 +710,24 @@ export class LuciController {
     @TenantContext("teamId") teamId: string,
   ) {
     if (!body.leadIds?.length) {
-      throw new HttpException({ success: false, error: "No leads selected" }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { success: false, error: "No leads selected" },
+        HttpStatus.BAD_REQUEST,
+      );
     }
     if (!body.campaignId) {
-      throw new HttpException({ success: false, error: "Campaign ID required" }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { success: false, error: "Campaign ID required" },
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     try {
-      const result = await this.luciService.pushToCampaign(teamId, body.leadIds, body.campaignId);
+      const result = await this.luciService.pushToCampaign(
+        teamId,
+        body.leadIds,
+        body.campaignId,
+      );
       return { success: true, data: result };
     } catch (error) {
       throw new HttpException(
@@ -683,7 +752,15 @@ export class LuciController {
     @Body()
     body: {
       message: string; // Template with {firstName}, {company} placeholders
-      dealType?: "ai-consulting" | "platform-white-label" | "business-exits" | "capital-connect" | "dataverse" | "terminals" | "blueprints" | "system-mapping";
+      dealType?:
+        | "ai-consulting"
+        | "platform-white-label"
+        | "business-exits"
+        | "capital-connect"
+        | "dataverse"
+        | "terminals"
+        | "blueprints"
+        | "system-mapping";
       sectorTag?: string;
       limit?: number; // Default 500, max 2000
       dryRun?: boolean;
@@ -691,7 +768,10 @@ export class LuciController {
     @TenantContext("teamId") teamId: string,
   ) {
     if (!body.message) {
-      throw new HttpException({ success: false, error: "Message template required" }, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        { success: false, error: "Message template required" },
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     this.logger.log(
@@ -720,7 +800,13 @@ export class LuciController {
       };
     } catch (error) {
       throw new HttpException(
-        { success: false, error: error instanceof Error ? error.message : "Campaign execution failed" },
+        {
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Campaign execution failed",
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -808,7 +894,8 @@ export class LuciController {
    */
   @Post("webhook/tracerfy")
   async handleTracerfyWebhook(
-    @Body() payload: {
+    @Body()
+    payload: {
       id: number;
       created_at: string;
       pending: boolean;
@@ -820,7 +907,9 @@ export class LuciController {
       credits_per_lead: number;
     },
   ) {
-    this.logger.log(`[LUCI] Tracerfy webhook received: queue ${payload.id}, ${payload.rows_uploaded} rows`);
+    this.logger.log(
+      `[LUCI] Tracerfy webhook received: queue ${payload.id}, ${payload.rows_uploaded} rows`,
+    );
 
     if (payload.pending) {
       this.logger.log(`[LUCI] Queue ${payload.id} still pending, ignoring`);

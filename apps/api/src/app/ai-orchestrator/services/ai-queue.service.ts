@@ -60,7 +60,9 @@ export class AiQueueService {
       ...options,
     });
 
-    this.logger.log(`Queued research verify: ${job.id} for team ${data.teamId}`);
+    this.logger.log(
+      `Queued research verify: ${job.id} for team ${data.teamId}`,
+    );
     return job.id!;
   }
 

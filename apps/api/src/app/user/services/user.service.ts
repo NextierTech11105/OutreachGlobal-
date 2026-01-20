@@ -49,7 +49,8 @@ export class UserService {
     const now = new Date();
     const passwordHash = await hashMake(input.password);
     const teamName = input.companyName || `${input.name}'s Team`;
-    const slug = slugify(teamName) + "-" + Math.random().toString(16).slice(2, 8);
+    const slug =
+      slugify(teamName) + "-" + Math.random().toString(16).slice(2, 8);
 
     // Create user
     const [user] = await this.db
@@ -122,7 +123,10 @@ export class UserService {
     let user = await this.db.query.users.findFirst({
       where: (t, { eq, or }) =>
         input.googleId
-          ? or(eq(t.email, input.email.toLowerCase()), eq(t.googleId, input.googleId))
+          ? or(
+              eq(t.email, input.email.toLowerCase()),
+              eq(t.googleId, input.googleId),
+            )
           : eq(t.email, input.email.toLowerCase()),
     });
 
@@ -130,11 +134,14 @@ export class UserService {
 
     if (!user) {
       if (!input.name) {
-        throw new BadRequestException("Name is required for new user registration");
+        throw new BadRequestException(
+          "Name is required for new user registration",
+        );
       }
 
       const teamName = `${input.name}'s Team`;
-      const slug = slugify(teamName) + "-" + Math.random().toString(16).slice(2, 8);
+      const slug =
+        slugify(teamName) + "-" + Math.random().toString(16).slice(2, 8);
 
       [user] = await this.db
         .insert(usersTable)
@@ -276,6 +283,8 @@ export class UserService {
       expiresAt: trialEnd,
     });
 
-    console.log(`[UserService] Created trial for team ${teamId}, expires: ${trialEnd.toISOString()}`);
+    console.log(
+      `[UserService] Created trial for team ${teamId}, expires: ${trialEnd.toISOString()}`,
+    );
   }
 }

@@ -19,7 +19,17 @@ import {
   enrichmentJobsTable,
   enrichmentBlocksTable,
 } from "@/database/schema-alias";
-import { and, count, desc, eq, gte, inArray, isNotNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import { TracerfyClient, TracerfyRecord } from "./clients/tracerfy.client";
 import { TrestleClient, TrestleContactScore } from "./clients/trestle.client";
 import {
@@ -267,7 +277,9 @@ export class LuciService {
     const scored = await this.runScoring(traced, teamId);
 
     // Step 3: Filter SMS-ready up to daily target
-    this.logger.log(`[LUCI] Step 3: Filtering to daily target ${config.dailyTarget}...`);
+    this.logger.log(
+      `[LUCI] Step 3: Filtering to daily target ${config.dailyTarget}...`,
+    );
     const smsReady = this.trestle.getCampaignReady(scored, config.dailyTarget);
 
     // Step 4: Tag and flag
@@ -275,7 +287,13 @@ export class LuciService {
     await this.tagAndFlagLeads(teamId, traced, scored, smsReady);
 
     // Calculate stats
-    const gradeDistribution: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    const gradeDistribution: Record<string, number> = {
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      F: 0,
+    };
     for (const score of scored) {
       gradeDistribution[score.overallGrade]++;
     }
@@ -416,7 +434,13 @@ export class LuciService {
       )
       .groupBy(leadsTable.phoneContactGrade);
 
-    const gradeDistribution: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    const gradeDistribution: Record<string, number> = {
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      F: 0,
+    };
     for (const row of gradeResults) {
       if (row.grade) {
         gradeDistribution[row.grade] = Number(row.count);
@@ -589,7 +613,10 @@ export class LuciService {
       })
       .from(leadsTable)
       .where(and(...conditions))
-      .orderBy(desc(leadsTable.phoneActivityScore), leadsTable.phoneContactGrade)
+      .orderBy(
+        desc(leadsTable.phoneActivityScore),
+        leadsTable.phoneContactGrade,
+      )
       .limit(options?.limit || 100)
       .offset(options?.offset || 0);
 
@@ -603,17 +630,32 @@ export class LuciService {
     const [gradeAResult] = await this.db
       .select({ total: count() })
       .from(leadsTable)
-      .where(and(eq(leadsTable.teamId, teamId), eq(leadsTable.phoneContactGrade, "A")));
+      .where(
+        and(
+          eq(leadsTable.teamId, teamId),
+          eq(leadsTable.phoneContactGrade, "A"),
+        ),
+      );
 
     const [gradeBResult] = await this.db
       .select({ total: count() })
       .from(leadsTable)
-      .where(and(eq(leadsTable.teamId, teamId), eq(leadsTable.phoneContactGrade, "B")));
+      .where(
+        and(
+          eq(leadsTable.teamId, teamId),
+          eq(leadsTable.phoneContactGrade, "B"),
+        ),
+      );
 
     const [gradeCResult] = await this.db
       .select({ total: count() })
       .from(leadsTable)
-      .where(and(eq(leadsTable.teamId, teamId), eq(leadsTable.phoneContactGrade, "C")));
+      .where(
+        and(
+          eq(leadsTable.teamId, teamId),
+          eq(leadsTable.phoneContactGrade, "C"),
+        ),
+      );
 
     const [smsReadyResult] = await this.db
       .select({ total: count() })
@@ -624,13 +666,17 @@ export class LuciService {
       leads: leads.map((lead) => ({
         id: lead.id,
         leadId: lead.leadId || null,
-        name: `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
+        name:
+          `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown",
         company: lead.company,
         phone: lead.phone,
         phoneGrade: lead.phoneGrade || null,
         contactScore: lead.contactScore || null,
         smsReady: lead.smsReady || false,
-        priorityTier: this.calculatePriorityTier(lead.phoneGrade, lead.contactScore),
+        priorityTier: this.calculatePriorityTier(
+          lead.phoneGrade,
+          lead.contactScore,
+        ),
         status: lead.status || "scored",
       })),
       total: Number(totalResult?.total || 0),
@@ -650,7 +696,10 @@ export class LuciService {
    * Tier 3: Grade B, score >= 70
    * Tier 4+: Everything else
    */
-  private calculatePriorityTier(grade: string | null, score: number | null): number {
+  private calculatePriorityTier(
+    grade: string | null,
+    score: number | null,
+  ): number {
     if (!grade || score === null) return 6;
 
     if (grade === "A" && score >= 90) return 1;
@@ -700,11 +749,15 @@ export class LuciService {
         }
       } catch (err) {
         failed++;
-        errors.push(`Lead ${leadId}: ${err instanceof Error ? err.message : "Unknown error"}`);
+        errors.push(
+          `Lead ${leadId}: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
       }
     }
 
-    this.logger.log(`[LUCI] Pushed ${pushed} leads to campaign ${campaignId} (${failed} failed)`);
+    this.logger.log(
+      `[LUCI] Pushed ${pushed} leads to campaign ${campaignId} (${failed} failed)`,
+    );
 
     return { pushed, failed, errors };
   }
@@ -769,7 +822,9 @@ export class LuciService {
     // Process rows
     for (let i = 1; i < lines.length; i++) {
       try {
-        const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+        const values = lines[i]
+          .split(",")
+          .map((v) => v.trim().replace(/^"|"$/g, ""));
 
         const leadIdCode = sicCode || values[colMap.sicCode] || "0000";
         const uuid6 = crypto.randomUUID().slice(0, 6);
@@ -814,7 +869,9 @@ export class LuciService {
       })
       .where(eq(enrichmentJobsTable.id, job.id));
 
-    this.logger.log(`[LUCI] Imported ${imported} leads (${failed} failed) for sector ${sectorTag}`);
+    this.logger.log(
+      `[LUCI] Imported ${imported} leads (${failed} failed) for sector ${sectorTag}`,
+    );
 
     return { imported, failed, jobId: job.id };
   }
@@ -983,7 +1040,12 @@ export class LuciService {
     // ═══════════════════════════════════════════════════════════════════════════
 
     // Helper to create normalized dedup key
-    const makeDedupeKey = (company: string, address: string, city: string, state: string): string => {
+    const makeDedupeKey = (
+      company: string,
+      address: string,
+      city: string,
+      state: string,
+    ): string => {
       return [
         (company || "").toLowerCase().replace(/[^a-z0-9]/g, ""),
         (address || "").toLowerCase().replace(/[^a-z0-9]/g, ""),
@@ -994,11 +1056,17 @@ export class LuciService {
 
     // Step 1: In-file deduplication
     const seenInFile = new Set<string>();
-    const uniqueRows: Array<{ index: number; values: string[]; dedupeKey: string }> = [];
+    const uniqueRows: Array<{
+      index: number;
+      values: string[];
+      dedupeKey: string;
+    }> = [];
     let duplicatesInFile = 0;
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      const values = lines[i]
+        .split(",")
+        .map((v) => v.trim().replace(/^"|"$/g, ""));
       const dedupeKey = makeDedupeKey(
         values[colMap.companyName],
         values[colMap.address],
@@ -1031,10 +1099,19 @@ export class LuciService {
       .where(eq(leadsTable.teamId, teamId));
 
     const existingKeys = new Set(
-      existingLeads.map((l) => makeDedupeKey(l.company || "", l.address || "", l.city || "", l.state || "")),
+      existingLeads.map((l) =>
+        makeDedupeKey(
+          l.company || "",
+          l.address || "",
+          l.city || "",
+          l.state || "",
+        ),
+      ),
     );
 
-    this.logger.log(`[LUCI] DB has ${existingKeys.size} existing records for dedup check`);
+    this.logger.log(
+      `[LUCI] DB has ${existingKeys.size} existing records for dedup check`,
+    );
 
     // Step 3: Import unique, non-duplicate rows
     let imported = 0;
@@ -1129,15 +1206,22 @@ export class LuciService {
       .where(eq(dataLakeImportsTable.teamId, teamId));
 
     const totalImports = imports.length;
-    const totalRecords = imports.reduce((sum, i) => sum + (i.importedRecords || 0), 0);
+    const totalRecords = imports.reduce(
+      (sum, i) => sum + (i.importedRecords || 0),
+      0,
+    );
     const rawCount = imports.reduce((sum, i) => sum + (i.rawCount || 0), 0);
-    const enrichedCount = imports.reduce((sum, i) => sum + (i.enrichedCount || 0), 0);
+    const enrichedCount = imports.reduce(
+      (sum, i) => sum + (i.enrichedCount || 0),
+      0,
+    );
 
     // Group by sector
     const sectorCounts: Record<string, number> = {};
     for (const imp of imports) {
       const sector = imp.sectorTag || "unknown";
-      sectorCounts[sector] = (sectorCounts[sector] || 0) + (imp.importedRecords || 0);
+      sectorCounts[sector] =
+        (sectorCounts[sector] || 0) + (imp.importedRecords || 0);
     }
 
     return {
@@ -1145,7 +1229,10 @@ export class LuciService {
       totalRecords,
       rawCount,
       enrichedCount,
-      bySector: Object.entries(sectorCounts).map(([sector, count]) => ({ sector, count })),
+      bySector: Object.entries(sectorCounts).map(([sector, count]) => ({
+        sector,
+        count,
+      })),
     };
   }
 
@@ -1206,7 +1293,9 @@ export class LuciService {
     const pullCount = Math.min(dailyTarget, remainingCapacity);
 
     if (pullCount <= 0) {
-      this.logger.warn(`[LUCI] Block ${activeBlock.blockId} is full. Create new block.`);
+      this.logger.warn(
+        `[LUCI] Block ${activeBlock.blockId} is full. Create new block.`,
+      );
       return {
         blockId: activeBlock.id,
         pulled: 0,
@@ -1232,7 +1321,9 @@ export class LuciService {
       .limit(pullCount);
 
     if (leadsToEnrich.length === 0) {
-      this.logger.log(`[LUCI] No raw leads available in lake for sector ${sectorTag || "all"}`);
+      this.logger.log(
+        `[LUCI] No raw leads available in lake for sector ${sectorTag || "all"}`,
+      );
       return {
         blockId: activeBlock.id,
         pulled: 0,
@@ -1383,7 +1474,9 @@ export class LuciService {
 
     // Process each row
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      const values = lines[i]
+        .split(",")
+        .map((v) => v.trim().replace(/^"|"$/g, ""));
 
       const address = values[colMap.address] || "";
       const city = values[colMap.city] || "";
@@ -1402,25 +1495,37 @@ export class LuciService {
 
       // Collect mobiles first (priority for SMS)
       for (let m = 1; m <= 5; m++) {
-        const mobile = values[colMap[`mobile${m}` as keyof typeof colMap] as number];
+        const mobile =
+          values[colMap[`mobile${m}` as keyof typeof colMap] as number];
         if (mobile && !mobiles.includes(mobile)) mobiles.push(mobile);
       }
 
       // Check if primary phone is mobile type - add to mobiles if so
       const primaryPhone = values[colMap.primaryPhone] || "";
-      const primaryPhoneType = (values[colMap.primaryPhoneType] || "").toLowerCase();
-      if (primaryPhone && primaryPhoneType.includes("mobile") && !mobiles.includes(primaryPhone)) {
+      const primaryPhoneType = (
+        values[colMap.primaryPhoneType] || ""
+      ).toLowerCase();
+      if (
+        primaryPhone &&
+        primaryPhoneType.includes("mobile") &&
+        !mobiles.includes(primaryPhone)
+      ) {
         mobiles.unshift(primaryPhone); // Put at front if mobile
       }
 
       // Collect landlines (fallback for calls)
       for (let l = 1; l <= 3; l++) {
-        const landline = values[colMap[`landline${l}` as keyof typeof colMap] as number];
+        const landline =
+          values[colMap[`landline${l}` as keyof typeof colMap] as number];
         if (landline && !landlines.includes(landline)) landlines.push(landline);
       }
 
       // If primary phone is landline, add to landlines
-      if (primaryPhone && !primaryPhoneType.includes("mobile") && !landlines.includes(primaryPhone)) {
+      if (
+        primaryPhone &&
+        !primaryPhoneType.includes("mobile") &&
+        !landlines.includes(primaryPhone)
+      ) {
         landlines.unshift(primaryPhone);
       }
 
@@ -1428,12 +1533,17 @@ export class LuciService {
       const phones = [...mobiles, ...landlines];
 
       // Best phone for SMS = first mobile, fallback to primary, then any phone
-      const bestPhoneForSms = mobiles[0] || (primaryPhoneType.includes("mobile") ? primaryPhone : null) || phones[0] || null;
+      const bestPhoneForSms =
+        mobiles[0] ||
+        (primaryPhoneType.includes("mobile") ? primaryPhone : null) ||
+        phones[0] ||
+        null;
 
       // Collect emails
       const emails: string[] = [];
       for (let e = 1; e <= 5; e++) {
-        const email = values[colMap[`email${e}` as keyof typeof colMap] as number];
+        const email =
+          values[colMap[`email${e}` as keyof typeof colMap] as number];
         if (email && !emails.includes(email)) emails.push(email);
       }
 

@@ -92,7 +92,9 @@ export class OpenAIClient {
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+          throw new Error(
+            `OpenAI API error: ${response.status} - ${errorText}`,
+          );
         }
 
         const data = await response.json();
@@ -126,8 +128,7 @@ export class OpenAIClient {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < this.config.maxRetries - 1 && this.isRetryable(error)) {
-          const delayMs =
-            this.config.initialRetryDelay * Math.pow(2, attempt);
+          const delayMs = this.config.initialRetryDelay * Math.pow(2, attempt);
           this.logger.warn(
             `OpenAI call failed, retrying in ${delayMs}ms: ${lastError.message}`,
           );
@@ -135,7 +136,9 @@ export class OpenAIClient {
           continue;
         }
 
-        this.logger.error(`OpenAI call failed after ${attempt + 1} attempts: ${lastError.message}`);
+        this.logger.error(
+          `OpenAI call failed after ${attempt + 1} attempts: ${lastError.message}`,
+        );
         throw lastError;
       }
     }

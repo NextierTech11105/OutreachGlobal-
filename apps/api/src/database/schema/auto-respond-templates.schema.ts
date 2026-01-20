@@ -27,7 +27,10 @@ export const autoRespondTemplates = pgTable("auto_respond_templates", {
   // Template content
   name: varchar({ length: 255 }).notNull(),
   template: text().notNull(),
-  variables: jsonb().$type<Array<{ name: string; required: boolean; default?: string }>>(),
+  variables:
+    jsonb().$type<
+      Array<{ name: string; required: boolean; default?: string }>
+    >(),
 
   // Controls
   isActive: boolean().notNull().default(true),

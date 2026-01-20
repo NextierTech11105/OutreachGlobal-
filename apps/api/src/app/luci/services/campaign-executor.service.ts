@@ -55,8 +55,16 @@ export class CampaignExecutorService {
    * Execute bulk SMS campaign on ready leads
    * Mobiles first, highest scores first
    */
-  async executeCampaign(options: CampaignExecuteOptions): Promise<CampaignExecuteResult> {
-    const { teamId, messageTemplate, sectorTag, limit = 500, dryRun = false } = options;
+  async executeCampaign(
+    options: CampaignExecuteOptions,
+  ): Promise<CampaignExecuteResult> {
+    const {
+      teamId,
+      messageTemplate,
+      sectorTag,
+      limit = 500,
+      dryRun = false,
+    } = options;
 
     this.logger.log(
       `[LUCI] Executing campaign for team ${teamId}, limit: ${limit}, dryRun: ${dryRun}`,
@@ -108,7 +116,9 @@ export class CampaignExecutorService {
 
     // Filter to mobiles only
     const mobileLeads = leads.filter(
-      (l) => l.phoneType?.toLowerCase() === "mobile" || l.phoneType?.toLowerCase() === "wireless",
+      (l) =>
+        l.phoneType?.toLowerCase() === "mobile" ||
+        l.phoneType?.toLowerCase() === "wireless",
     );
 
     this.logger.log(
@@ -129,10 +139,15 @@ export class CampaignExecutorService {
       }
 
       // Personalize message
-      const personalizedMessage = this.personalizeMessage(messageTemplate, lead);
+      const personalizedMessage = this.personalizeMessage(
+        messageTemplate,
+        lead,
+      );
 
       if (dryRun) {
-        this.logger.debug(`[DRY RUN] Would send to ${lead.phone}: ${personalizedMessage}`);
+        this.logger.debug(
+          `[DRY RUN] Would send to ${lead.phone}: ${personalizedMessage}`,
+        );
         sent++;
         sentLeadIds.push(lead.id);
         continue;
@@ -167,7 +182,9 @@ export class CampaignExecutorService {
         await this.delay(SIGNALHOUSE_CONFIG.delayBetweenMs);
       } catch (err) {
         failed++;
-        errors.push(`${lead.leadId}: ${err instanceof Error ? err.message : "Unknown error"}`);
+        errors.push(
+          `${lead.leadId}: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
       }
     }
 

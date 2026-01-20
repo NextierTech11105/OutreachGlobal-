@@ -40,7 +40,9 @@ export class IntegrationService {
 
   // Generic connect - returns OAuth URL for the provider
   connect(teamId: string, provider: string) {
-    this.logger.log(`Connect request for provider: ${provider}, team: ${teamId}`);
+    this.logger.log(
+      `Connect request for provider: ${provider}, team: ${teamId}`,
+    );
     // TODO: Add provider-specific OAuth flows here
     throw new Error(`Provider ${provider} not yet implemented`);
   }
@@ -48,13 +50,20 @@ export class IntegrationService {
   // Generic authorize - handles OAuth callback
   async authorize(teamId: string, provider: string, options: AnyObject) {
     const team = await this.teamService.findById(teamId);
-    this.logger.log(`Authorize request for provider: ${provider}, team: ${team.id}`);
+    this.logger.log(
+      `Authorize request for provider: ${provider}, team: ${team.id}`,
+    );
     // TODO: Add provider-specific token exchange here
     throw new Error(`Provider ${provider} not yet implemented`);
   }
 
   // Upsert integration record
-  async upsertIntegration(teamId: string, name: string, authData: AnyObject, expiresIn?: number) {
+  async upsertIntegration(
+    teamId: string,
+    name: string,
+    authData: AnyObject,
+    expiresIn?: number,
+  ) {
     await this.db
       .insert(integrationsTable)
       .values({
@@ -62,7 +71,9 @@ export class IntegrationService {
         name,
         enabled: true,
         authData,
-        tokenExpiresAt: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null,
+        tokenExpiresAt: expiresIn
+          ? new Date(Date.now() + expiresIn * 1000)
+          : null,
       })
       .onConflictDoUpdate({
         target: [integrationsTable.name, integrationsTable.teamId],

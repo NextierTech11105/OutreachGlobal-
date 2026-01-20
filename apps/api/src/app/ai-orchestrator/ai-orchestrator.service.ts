@@ -78,7 +78,9 @@ export class AiOrchestratorService {
       try {
         const cached = await this.cache.get(cacheKey);
         if (cached) {
-          this.logger.log(`[AI Orchestrator] Cache HIT for ${task} traceId=${context.traceId}`);
+          this.logger.log(
+            `[AI Orchestrator] Cache HIT for ${task} traceId=${context.traceId}`,
+          );
           return {
             output: cached as TOutput,
             provider: "perplexity" as AiProvider,
@@ -149,7 +151,9 @@ export class AiOrchestratorService {
           const cacheKey = `neva:${task}:${crypto.createHash("md5").update(JSON.stringify(input)).digest("hex")}`;
           try {
             await this.cache.set(cacheKey, output, 3600);
-            this.logger.log(`[AI Orchestrator] Cache MISS - stored result for ${task}`);
+            this.logger.log(
+              `[AI Orchestrator] Cache MISS - stored result for ${task}`,
+            );
           } catch (err) {
             this.logger.debug(`Cache set failed: ${err}`);
           }
@@ -475,7 +479,10 @@ export class AiOrchestratorService {
           latencyMs: Date.now() - start,
         };
       } catch {
-        results[provider] = { status: "unknown", latencyMs: Date.now() - start };
+        results[provider] = {
+          status: "unknown",
+          latencyMs: Date.now() - start,
+        };
       }
     }
     return results;
@@ -496,7 +503,10 @@ export class AiOrchestratorService {
     totalCostUsd: number;
     requestCount: number;
     avgLatencyMs: number;
-    byProvider: Record<string, { tokens: number; cost: number; requests: number }>;
+    byProvider: Record<
+      string,
+      { tokens: number; cost: number; requests: number }
+    >;
     byTask: Record<string, number>;
   }> {
     const start = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

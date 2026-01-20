@@ -75,7 +75,9 @@ export function calculatePriorityScore(input: PrioritizationInput): number {
 /**
  * Determine priority tier
  */
-export function getPriorityTier(input: PrioritizationInput): 1 | 2 | 3 | 4 | 5 | 6 {
+export function getPriorityTier(
+  input: PrioritizationInput,
+): 1 | 2 | 3 | 4 | 5 | 6 {
   const isMobile = input.phoneType === "mobile";
 
   // Tier 1: Grade A mobile with 90+ activity
@@ -111,7 +113,9 @@ export function getPriorityTier(input: PrioritizationInput): 1 | 2 | 3 | 4 | 5 |
  * Prioritize a batch of leads
  * Returns sorted array with highest priority first
  */
-export function prioritizeLeads(leads: PrioritizationInput[]): PrioritizedLead[] {
+export function prioritizeLeads(
+  leads: PrioritizationInput[],
+): PrioritizedLead[] {
   const prioritized: PrioritizedLead[] = leads.map((lead) => ({
     ...lead,
     priorityScore: calculatePriorityScore(lead),
@@ -154,7 +158,14 @@ export function getTierBreakdown(
   leads: PrioritizedLead[],
 ): Record<number, { count: number; percentage: number }> {
   const total = leads.length;
-  const tierCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+  const tierCounts: Record<number, number> = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+  };
 
   for (const lead of leads) {
     tierCounts[lead.priorityTier]++;
@@ -208,12 +219,16 @@ export function getPrioritizationStats(leads: PrioritizedLead[]): {
 
   const avgPriority =
     leads.length > 0
-      ? Math.round(leads.reduce((sum, l) => sum + l.priorityScore, 0) / leads.length)
+      ? Math.round(
+          leads.reduce((sum, l) => sum + l.priorityScore, 0) / leads.length,
+        )
       : 0;
 
   const avgActivity =
     leads.length > 0
-      ? Math.round(leads.reduce((sum, l) => sum + l.activityScore, 0) / leads.length)
+      ? Math.round(
+          leads.reduce((sum, l) => sum + l.activityScore, 0) / leads.length,
+        )
       : 0;
 
   return {

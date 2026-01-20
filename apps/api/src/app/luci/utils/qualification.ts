@@ -15,7 +15,12 @@
 
 import { PhoneGradeValue } from "../constants";
 
-export type EnrichmentStatus = "raw" | "traced" | "scored" | "ready" | "rejected";
+export type EnrichmentStatus =
+  | "raw"
+  | "traced"
+  | "scored"
+  | "ready"
+  | "rejected";
 
 export interface QualificationInput {
   primaryPhone: string | null;

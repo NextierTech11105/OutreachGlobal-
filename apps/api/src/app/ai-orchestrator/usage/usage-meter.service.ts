@@ -115,7 +115,11 @@ export class UsageMeterService {
           ),
         );
 
-      const usage = monthlyUsage || { totalRequests: 0, totalTokens: 0, totalCost: 0 };
+      const usage = monthlyUsage || {
+        totalRequests: 0,
+        totalTokens: 0,
+        totalCost: 0,
+      };
       const limits = DEFAULT_LIMITS; // TODO: Get from team subscription
 
       // Check limits
@@ -137,7 +141,10 @@ export class UsageMeterService {
         };
       }
 
-      if (limits.requestsPerMonth && usage.totalRequests >= limits.requestsPerMonth) {
+      if (
+        limits.requestsPerMonth &&
+        usage.totalRequests >= limits.requestsPerMonth
+      ) {
         return {
           allowed: false,
           reason: "Monthly request limit exceeded",
@@ -155,7 +162,10 @@ export class UsageMeterService {
         };
       }
 
-      if (limits.costPerMonth && Number(usage.totalCost) >= limits.costPerMonth) {
+      if (
+        limits.costPerMonth &&
+        Number(usage.totalCost) >= limits.costPerMonth
+      ) {
         return {
           allowed: false,
           reason: "Monthly cost limit exceeded",
@@ -230,13 +240,18 @@ export class UsageMeterService {
     totalTokens: number;
     totalRequests: number;
     totalCostUsd: number;
-    byProvider: Record<AiProvider, { tokens: number; requests: number; cost: number }>;
+    byProvider: Record<
+      AiProvider,
+      { tokens: number; requests: number; cost: number }
+    >;
     byTask: Record<AiTask, { tokens: number; requests: number; cost: number }>;
   }> {
     const now = new Date();
     const start =
       period === "day"
-        ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+        ? new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+          )
         : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
     const usage = await this.db
@@ -260,8 +275,14 @@ export class UsageMeterService {
         sql`${usageRecordsTable.metadata}->>'task'`,
       );
 
-    const byProvider: Record<string, { tokens: number; requests: number; cost: number }> = {};
-    const byTask: Record<string, { tokens: number; requests: number; cost: number }> = {};
+    const byProvider: Record<
+      string,
+      { tokens: number; requests: number; cost: number }
+    > = {};
+    const byTask: Record<
+      string,
+      { tokens: number; requests: number; cost: number }
+    > = {};
     let totalTokens = 0;
     let totalRequests = 0;
     let totalCostUsd = 0;
@@ -298,8 +319,14 @@ export class UsageMeterService {
       totalTokens,
       totalRequests,
       totalCostUsd,
-      byProvider: byProvider as Record<AiProvider, { tokens: number; requests: number; cost: number }>,
-      byTask: byTask as Record<AiTask, { tokens: number; requests: number; cost: number }>,
+      byProvider: byProvider as Record<
+        AiProvider,
+        { tokens: number; requests: number; cost: number }
+      >,
+      byTask: byTask as Record<
+        AiTask,
+        { tokens: number; requests: number; cost: number }
+      >,
     };
   }
 
@@ -315,7 +342,10 @@ export class UsageMeterService {
     totalCostUsd: number;
     requestCount: number;
     avgLatencyMs: number;
-    byProvider: Record<string, { tokens: number; cost: number; requests: number }>;
+    byProvider: Record<
+      string,
+      { tokens: number; cost: number; requests: number }
+    >;
     byTask: Record<string, number>;
   }> {
     const usage = await this.db
@@ -341,7 +371,10 @@ export class UsageMeterService {
         sql`${usageRecordsTable.metadata}->>'task'`,
       );
 
-    const byProvider: Record<string, { tokens: number; cost: number; requests: number }> = {};
+    const byProvider: Record<
+      string,
+      { tokens: number; cost: number; requests: number }
+    > = {};
     const byTask: Record<string, number> = {};
     let totalTokens = 0;
     let totalCostUsd = 0;
@@ -379,7 +412,8 @@ export class UsageMeterService {
       totalTokens,
       totalCostUsd,
       requestCount,
-      avgLatencyMs: latencyCount > 0 ? Math.round(totalLatency / latencyCount) : 0,
+      avgLatencyMs:
+        latencyCount > 0 ? Math.round(totalLatency / latencyCount) : 0,
       byProvider,
       byTask,
     };

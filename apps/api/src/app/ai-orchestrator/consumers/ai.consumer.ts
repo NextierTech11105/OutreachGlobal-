@@ -95,8 +95,15 @@ export class AiConsumer extends WorkerHost {
   }
 
   private async processResearchVerify(job: Job<ResearchVerifyJobData>) {
-    const { teamId, userId, leadId, traceId, businessName, businessAddress, ownerName } =
-      job.data;
+    const {
+      teamId,
+      userId,
+      leadId,
+      traceId,
+      businessName,
+      businessAddress,
+      ownerName,
+    } = job.data;
 
     const context: AiContext = {
       teamId,
@@ -178,10 +185,14 @@ export class AiConsumer extends WorkerHost {
       }
 
       // Update progress
-      await job.updateProgress(Math.round((results.length / messages.length) * 100));
+      await job.updateProgress(
+        Math.round((results.length / messages.length) * 100),
+      );
     }
 
-    this.logger.log(`Batch classify completed: ${job.id} (${results.length} messages)`);
+    this.logger.log(
+      `Batch classify completed: ${job.id} (${results.length} messages)`,
+    );
 
     if (job.data.callbackUrl) {
       await this.sendCallback(job.data.callbackUrl, {
@@ -232,10 +243,14 @@ export class AiConsumer extends WorkerHost {
         });
       }
 
-      await job.updateProgress(Math.round((results.length / requests.length) * 100));
+      await job.updateProgress(
+        Math.round((results.length / requests.length) * 100),
+      );
     }
 
-    this.logger.log(`Batch generate completed: ${job.id} (${results.length} responses)`);
+    this.logger.log(
+      `Batch generate completed: ${job.id} (${results.length} responses)`,
+    );
 
     if (job.data.callbackUrl) {
       await this.sendCallback(job.data.callbackUrl, {
@@ -250,8 +265,15 @@ export class AiConsumer extends WorkerHost {
   }
 
   private async processMeetingBrief(job: Job<MeetingBriefJobData>) {
-    const { teamId, userId, leadId, traceId, meetingTime, attendees, context: meetingContext } =
-      job.data;
+    const {
+      teamId,
+      userId,
+      leadId,
+      traceId,
+      meetingTime,
+      attendees,
+      context: meetingContext,
+    } = job.data;
 
     const aiContext: AiContext = {
       teamId,

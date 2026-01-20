@@ -106,11 +106,20 @@ export const MODEL_PRICING: Record<
 };
 
 // Task -> Default model mapping
-export const TASK_MODEL_MAP: Record<AiTask, { provider: AiProvider; model: string }> = {
+export const TASK_MODEL_MAP: Record<
+  AiTask,
+  { provider: AiProvider; model: string }
+> = {
   sms_classify: { provider: "openai", model: "gpt-4o-mini" },
   sms_generate: { provider: "openai", model: "gpt-4o-mini" },
-  research_verify: { provider: "perplexity", model: "llama-3.1-sonar-small-128k-online" },
-  research_deep: { provider: "perplexity", model: "llama-3.1-sonar-small-128k-online" },
+  research_verify: {
+    provider: "perplexity",
+    model: "llama-3.1-sonar-small-128k-online",
+  },
+  research_deep: {
+    provider: "perplexity",
+    model: "llama-3.1-sonar-small-128k-online",
+  },
   meeting_brief: { provider: "anthropic", model: "claude-3-haiku-20240307" },
 };
 

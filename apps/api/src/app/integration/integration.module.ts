@@ -28,7 +28,11 @@ import { IntegrationTaskConsumer } from "./consumers/integration-task.consumer";
     }),
   ],
   controllers: [IntegrationOauthController],
-  providers: [IntegrationService, IntegrationFieldService, IntegrationTaskService],
+  providers: [
+    IntegrationService,
+    IntegrationFieldService,
+    IntegrationTaskService,
+  ],
   resolvers: [
     IntegrationResolver,
     IntegrationFieldResolver,
