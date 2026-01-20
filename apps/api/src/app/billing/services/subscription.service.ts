@@ -352,7 +352,10 @@ export class SubscriptionService implements OnModuleInit {
       isActive || (isTrialing && !isExpired) || status === "past_due";
 
     const needsUpgrade =
-      isExpired || status === "unpaid" || status === "canceled";
+      isExpired ||
+      status === "expired" ||
+      status === "unpaid" ||
+      status === "canceled";
 
     return {
       isTrialing,
