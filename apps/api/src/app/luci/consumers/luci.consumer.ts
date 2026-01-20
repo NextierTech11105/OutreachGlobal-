@@ -43,10 +43,19 @@ interface ScoreContactsJobData {
   leadIds: string[];
 }
 
+interface EnrichSelectedJobData {
+  jobId: string;
+  teamId: string;
+  leadIds: string[];
+  mode: "full" | "score_only";
+  source: string;
+}
+
 type LuciJobData =
   | FullPipelineJobData
   | SkipTraceJobData
-  | ScoreContactsJobData;
+  | ScoreContactsJobData
+  | EnrichSelectedJobData;
 
 @Processor(LUCI_QUEUE, {
   concurrency: 2, // Limit concurrent jobs
@@ -74,6 +83,9 @@ export class LuciConsumer extends WorkerHost {
 
       case LuciJobs.SCORE_CONTACTS:
         return this.processScoreContacts(job as Job<ScoreContactsJobData>);
+
+      case LuciJobs.ENRICH_SELECTED:
+        return this.processEnrichSelected(job as Job<EnrichSelectedJobData>);
 
       default:
         throw new Error(`Unknown LUCI job type: ${job.name}`);
@@ -162,6 +174,53 @@ export class LuciConsumer extends WorkerHost {
       scoredCount: leadIds.length,
       completedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Enrich selected leads from Lead Lab UI
+   * Full pipeline: Tracerfy → Trestle → DB update
+   */
+  private async processEnrichSelected(job: Job<EnrichSelectedJobData>) {
+    const { jobId, teamId, leadIds, mode, source } = job.data;
+
+    this.logger.log(
+      `[LUCI] Enriching ${leadIds.length} leads for team ${teamId} (mode=${mode}, source=${source})`,
+    );
+
+    try {
+      // Update progress: Starting
+      await job.updateProgress(10);
+
+      // Execute enrichment pipeline via service
+      const result = await this.luciService.executeSelectedLeadEnrichment(
+        jobId,
+        teamId,
+        leadIds,
+        mode,
+      );
+
+      // Update progress: Complete
+      await job.updateProgress(100);
+
+      this.logger.log(
+        `[LUCI] Enrichment complete: ${result.traced} traced, ${result.scored} scored, ${result.smsReady} SMS-ready`,
+      );
+
+      return {
+        jobId,
+        teamId,
+        status: "completed",
+        traced: result.traced,
+        scored: result.scored,
+        smsReady: result.smsReady,
+        completedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(
+        `[LUCI] Enrichment failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
+      throw error;
+    }
   }
 
   @OnWorkerEvent("failed")

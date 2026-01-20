@@ -867,6 +867,111 @@ export class LuciController {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // SELECTED LEAD ENRICHMENT (UI-triggered)
+  // Tracerfy ($0.02) → Trestle ($0.03) = $0.05/lead
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Enrich selected leads from Lead Lab UI
+   * Chains: Tracerfy skip trace → Trestle Real Contact scoring
+   * POST /luci/enrich/selected
+   */
+  @Post("enrich/selected")
+  async enrichSelectedLeads(
+    @Body()
+    body: {
+      leadIds: string[];
+      mode?: "full" | "score_only";
+    },
+    @TenantContext("teamId") teamId: string,
+  ) {
+    if (!body.leadIds?.length) {
+      throw new HttpException(
+        { success: false, error: "No leads selected" },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    this.logger.log(
+      `[LUCI] Enriching ${body.leadIds.length} selected leads, mode=${body.mode || "full"}`,
+    );
+
+    try {
+      const result = await this.luciService.enrichSelectedLeads(
+        teamId,
+        body.leadIds,
+        body.mode || "full",
+      );
+
+      const mode = body.mode || "full";
+      const costPerLead = mode === "full" ? 0.05 : 0.03;
+      const estimatedCost = body.leadIds.length * costPerLead;
+
+      return {
+        success: true,
+        data: {
+          jobId: result.jobId,
+          status: result.status,
+          total: body.leadIds.length,
+          mode,
+          costs: {
+            tracerfy: mode === "full" ? "$0.02/lead" : "N/A",
+            trestle: "$0.03/lead",
+            total: mode === "full" ? "$0.05/lead" : "$0.03/lead",
+            estimated: `$${estimatedCost.toFixed(2)}`,
+          },
+          message: `Started enrichment for ${body.leadIds.length} leads`,
+          pollUrl: `/luci/enrich/job/${result.jobId}`,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Enrichment failed: ${error}`);
+      throw new HttpException(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Enrichment failed",
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get enrichment job status (for polling)
+   * GET /luci/enrich/job/:jobId
+   */
+  @Get("enrich/job/:jobId")
+  async getEnrichmentJobStatus(
+    @Param("jobId") jobId: string,
+    @TenantContext("teamId") teamId: string,
+  ) {
+    try {
+      const status = await this.luciService.getEnrichmentJobStatus(
+        jobId,
+        teamId,
+      );
+
+      if (!status) {
+        throw new HttpException(
+          { success: false, error: "Job not found" },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {
+        success: true,
+        data: status,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        { success: false, error: "Failed to get job status" },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // ENRICHMENT JOBS
   // ═══════════════════════════════════════════════════════════════════════════
 

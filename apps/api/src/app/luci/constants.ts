@@ -13,6 +13,9 @@ export const LuciJobs = {
   // Batch operations
   BATCH_TRACE: "batch-trace",
   BATCH_SCORE: "batch-score",
+
+  // UI-triggered enrichment
+  ENRICH_SELECTED: "enrich-selected",
 } as const;
 
 export type LuciJobType = (typeof LuciJobs)[keyof typeof LuciJobs];

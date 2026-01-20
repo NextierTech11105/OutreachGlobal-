@@ -1615,4 +1615,287 @@ export class LuciService {
    * Minimum records for Tracerfy skip trace
    */
   static readonly TRACERFY_MIN_RECORDS = 10;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SELECTED LEAD ENRICHMENT (UI-triggered)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Enrich selected leads from Lead Lab UI
+   * Chains: Tracerfy skip trace → Trestle scoring
+   *
+   * @param teamId - Team context
+   * @param leadIds - Array of lead ULIDs to enrich
+   * @param mode - 'full' (trace + score) or 'score_only'
+   */
+  async enrichSelectedLeads(
+    teamId: string,
+    leadIds: string[],
+    mode: "full" | "score_only",
+  ): Promise<{ jobId: string; status: string }> {
+    this.logger.log(
+      `[LUCI] Starting enrichment for ${leadIds.length} leads, mode=${mode}`,
+    );
+
+    // Create enrichment job record
+    const [job] = await this.db
+      .insert(enrichmentJobsTable)
+      .values({
+        teamId,
+        jobType: mode === "full" ? "full_pipeline" : "score",
+        status: "active",
+        totalRecords: leadIds.length,
+        processedRecords: 0,
+        successRecords: 0,
+        failedRecords: 0,
+      })
+      .returning();
+
+    // Queue the job for async processing
+    await this.luciQueue.add(
+      LuciJobs.ENRICH_SELECTED,
+      {
+        jobId: job.id,
+        teamId,
+        leadIds,
+        mode,
+        source: "lead_lab_ui",
+      },
+      {
+        jobId: job.id,
+        removeOnComplete: 50,
+        removeOnFail: 20,
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+      },
+    );
+
+    return { jobId: job.id, status: "pending" };
+  }
+
+  /**
+   * Get enrichment job status for polling
+   */
+  async getEnrichmentJobStatus(
+    jobId: string,
+    teamId: string,
+  ): Promise<{
+    jobId: string;
+    status: string;
+    total: number;
+    traced: number;
+    scored: number;
+    smsReady: number;
+    tracerfyQueueId: number | null;
+    startedAt: Date | null;
+    completedAt: Date | null;
+    error: string | null;
+  } | null> {
+    const [job] = await this.db
+      .select()
+      .from(enrichmentJobsTable)
+      .where(
+        and(
+          eq(enrichmentJobsTable.id, jobId),
+          eq(enrichmentJobsTable.teamId, teamId),
+        ),
+      );
+
+    if (!job) return null;
+
+    return {
+      jobId: job.id,
+      status: job.status || "pending",
+      total: job.totalRecords || 0,
+      traced: job.processedRecords || 0,
+      scored: job.successRecords || 0,
+      smsReady: job.successRecords || 0, // Simplified - actual SMS-ready count
+      tracerfyQueueId: job.tracerfyQueueId || null,
+      startedAt: job.startedAt || null,
+      completedAt: job.completedAt || null,
+      error: job.errorMessage || null,
+    };
+  }
+
+  /**
+   * Execute enrichment for selected leads (called by consumer)
+   * Full pipeline: Tracerfy → Trestle → Update DB
+   */
+  async executeSelectedLeadEnrichment(
+    jobId: string,
+    teamId: string,
+    leadIds: string[],
+    mode: "full" | "score_only",
+  ): Promise<{
+    traced: number;
+    scored: number;
+    smsReady: number;
+  }> {
+    this.logger.log(`[LUCI] Executing enrichment job ${jobId}`);
+
+    // Get leads from DB
+    const leads = await this.db
+      .select()
+      .from(leadsTable)
+      .where(
+        and(eq(leadsTable.teamId, teamId), inArray(leadsTable.id, leadIds)),
+      );
+
+    if (leads.length === 0) {
+      throw new Error("No leads found for enrichment");
+    }
+
+    let tracedCount = 0;
+    let scoredCount = 0;
+    let smsReadyCount = 0;
+
+    // Step 1: Tracerfy skip trace (if full mode)
+    if (mode === "full") {
+      await this.db
+        .update(enrichmentJobsTable)
+        .set({ status: "tracing" })
+        .where(eq(enrichmentJobsTable.id, jobId));
+
+      // Prepare data for Tracerfy
+      const traceInput = leads.map((l) => ({
+        first_name: l.firstName || "",
+        last_name: l.lastName || "",
+        address: l.address || "",
+        city: l.city || "",
+        state: l.state || "",
+        zip: l.zipCode || "",
+        mail_address: l.address || "",
+        mail_city: l.city || "",
+        mail_state: l.state || "",
+        mailing_zip: l.zipCode || "",
+      }));
+
+      // Start trace via Tracerfy client
+      const traceResult = await this.tracerfy.beginTraceFromJson(traceInput);
+
+      // Update job with queue ID
+      await this.db
+        .update(enrichmentJobsTable)
+        .set({ tracerfyQueueId: traceResult.queue_id })
+        .where(eq(enrichmentJobsTable.id, jobId));
+
+      this.logger.log(
+        `[LUCI] Tracerfy queue ${traceResult.queue_id} created for job ${jobId}`,
+      );
+
+      // Wait for Tracerfy to complete
+      await this.tracerfy.waitForQueue(traceResult.queue_id);
+
+      // Get results
+      const tracedRecords = await this.tracerfy.getQueue(traceResult.queue_id);
+
+      // Update leads with phone/email data
+      for (const record of tracedRecords) {
+        const phones = this.tracerfy.extractPhones(record);
+        const emails = this.tracerfy.extractEmails(record);
+        const bestPhone = phones[0] || null;
+
+        // Match by address + name
+        await this.db
+          .update(leadsTable)
+          .set({
+            enrichmentStatus: "traced",
+            primaryPhone: record.primary_phone || null,
+            primaryPhoneType: record.primary_phone_type || null,
+            mobile1: record.mobile_1 || null,
+            mobile2: record.mobile_2 || null,
+            mobile3: record.mobile_3 || null,
+            landline1: record.landline_1 || null,
+            landline2: record.landline_2 || null,
+            landline3: record.landline_3 || null,
+            email1: record.email_1 || null,
+            email2: record.email_2 || null,
+            email3: record.email_3 || null,
+            phone: bestPhone,
+            email: emails[0] || null,
+            tracerfyQueueId: traceResult.queue_id,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(leadsTable.teamId, teamId),
+              eq(leadsTable.address, record.address || ""),
+              eq(leadsTable.firstName, record.first_name || ""),
+              eq(leadsTable.lastName, record.last_name || ""),
+            ),
+          );
+
+        tracedCount++;
+      }
+
+      // Update job progress
+      await this.db
+        .update(enrichmentJobsTable)
+        .set({ processedRecords: tracedCount })
+        .where(eq(enrichmentJobsTable.id, jobId));
+    }
+
+    // Step 2: Trestle scoring
+    await this.db
+      .update(enrichmentJobsTable)
+      .set({ status: "scoring" })
+      .where(eq(enrichmentJobsTable.id, jobId));
+
+    // Re-fetch leads to get phone data
+    const leadsToScore = await this.db
+      .select()
+      .from(leadsTable)
+      .where(
+        and(eq(leadsTable.teamId, teamId), inArray(leadsTable.id, leadIds)),
+      );
+
+    // Build phone scoring request
+    const phonesToScore = leadsToScore
+      .filter((l) => l.phone || l.mobile1)
+      .map((l) => ({
+        leadId: l.id,
+        phones: [l.phone, l.mobile1, l.mobile2, l.mobile3].filter(
+          Boolean,
+        ) as string[],
+      }));
+
+    if (phonesToScore.length > 0) {
+      const scoreResult = await this.trestle.batchScore({
+        phones: phonesToScore,
+      });
+
+      // Update leads with scores
+      for (const score of scoreResult.results) {
+        await this.db
+          .update(leadsTable)
+          .set({
+            phoneActivityScore: score.contactabilityScore,
+            phoneContactGrade: score.overallGrade,
+            smsReady: score.smsReady,
+            enrichmentStatus: "scored",
+            updatedAt: new Date(),
+          })
+          .where(eq(leadsTable.id, score.leadId));
+
+        scoredCount++;
+        if (score.smsReady) smsReadyCount++;
+      }
+    }
+
+    // Complete job
+    await this.db
+      .update(enrichmentJobsTable)
+      .set({
+        status: "completed",
+        successRecords: scoredCount,
+        completedAt: new Date(),
+      })
+      .where(eq(enrichmentJobsTable.id, jobId));
+
+    this.logger.log(
+      `[LUCI] Enrichment job ${jobId} complete: ${tracedCount} traced, ${scoredCount} scored, ${smsReadyCount} SMS-ready`,
+    );
+
+    return { traced: tracedCount, scored: scoredCount, smsReady: smsReadyCount };
+  }
 }
