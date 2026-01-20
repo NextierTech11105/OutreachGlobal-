@@ -39,10 +39,10 @@ export function ModuleNavigation({
       href: "/search",
     },
     {
-      title: "Enrichment",
-      description: "Enrich property data with details",
+      title: "Skip Trace & Enrich",
+      description: "Find phones, emails, enrich lead data",
       icon: <Search className="h-5 w-5" />,
-      href: "/enrich",
+      href: "/skip-trace",
     },
     {
       title: "Campaigns",

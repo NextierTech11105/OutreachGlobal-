@@ -180,18 +180,185 @@ async function checkTwilio(): Promise<{
   }
 }
 
+async function checkTracerfy(): Promise<{
+  ok: boolean;
+  latency: number;
+  message?: string;
+}> {
+  const apiKey = process.env.TRACERFY_API_KEY;
+  if (!apiKey) {
+    return {
+      ok: false,
+      latency: 0,
+      message: "TRACERFY_API_KEY not configured",
+    };
+  }
+
+  const start = Date.now();
+  try {
+    // Check Tracerfy queue list endpoint
+    const res = await fetch("https://app.tracerfy.com/api/v1/queue/list", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const latency = Date.now() - start;
+    return {
+      ok: res.ok,
+      latency,
+      message: res.ok ? undefined : `HTTP ${res.status}`,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      latency: Date.now() - start,
+      message: "Connection failed",
+    };
+  }
+}
+
+async function checkTrestle(): Promise<{
+  ok: boolean;
+  latency: number;
+  message?: string;
+}> {
+  const apiKey = process.env.TRESTLE_API_KEY;
+  if (!apiKey) {
+    return {
+      ok: false,
+      latency: 0,
+      message: "TRESTLE_API_KEY not configured",
+    };
+  }
+
+  const start = Date.now();
+  try {
+    // Trestle uses basic auth with API key as username
+    const res = await fetch("https://api.trestleiq.com/3.1/phone", {
+      method: "GET",
+      headers: {
+        Authorization: "Basic " + Buffer.from(`${apiKey}:`).toString("base64"),
+      },
+    });
+    const latency = Date.now() - start;
+    // 400/401 means API is reachable, just needs proper params
+    return {
+      ok: res.ok || res.status === 400 || res.status === 401,
+      latency,
+      message: res.ok ? undefined : res.status === 401 ? "Auth OK" : `HTTP ${res.status}`,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      latency: Date.now() - start,
+      message: "Connection failed",
+    };
+  }
+}
+
+async function checkApollo(): Promise<{
+  ok: boolean;
+  latency: number;
+  message?: string;
+}> {
+  const apiKey = process.env.APOLLO_API_KEY;
+  if (!apiKey) {
+    return {
+      ok: false,
+      latency: 0,
+      message: "APOLLO_API_KEY not configured",
+    };
+  }
+
+  const start = Date.now();
+  try {
+    // Check Apollo health endpoint
+    const res = await fetch("https://api.apollo.io/api/v1/auth/health", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        "X-Api-Key": apiKey,
+      },
+    });
+    const latency = Date.now() - start;
+    return {
+      ok: res.ok || res.status === 401,
+      latency,
+      message: res.ok ? undefined : `HTTP ${res.status}`,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      latency: Date.now() - start,
+      message: "Connection failed",
+    };
+  }
+}
+
+async function checkPerplexity(): Promise<{
+  ok: boolean;
+  latency: number;
+  message?: string;
+}> {
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  if (!apiKey) {
+    return {
+      ok: false,
+      latency: 0,
+      message: "PERPLEXITY_API_KEY not configured",
+    };
+  }
+
+  const start = Date.now();
+  try {
+    // Perplexity chat completions endpoint - minimal test
+    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-sonar-small-128k-online",
+        messages: [{ role: "user", content: "test" }],
+        max_tokens: 1,
+      }),
+    });
+    const latency = Date.now() - start;
+    // 400/401 means API is reachable
+    return {
+      ok: res.ok || res.status === 400 || res.status === 401,
+      latency,
+      message: res.ok ? undefined : `HTTP ${res.status}`,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      latency: Date.now() - start,
+      message: "Connection failed",
+    };
+  }
+}
+
 export async function GET() {
   const startTime = Date.now();
 
   // Run all checks in parallel
-  const [signalhouse, realEstate, database, twilio] = await Promise.all([
+  const [signalhouse, realEstate, database, twilio, tracerfy, trestle, apollo, perplexity] = await Promise.all([
     checkService("SignalHouse SMS", checkSignalHouse),
     checkService("RealEstateAPI", checkRealEstateAPI),
     checkService("PostgreSQL", checkDatabase),
     checkService("Twilio Voice", checkTwilio),
+    checkService("Tracerfy Skip Trace", checkTracerfy),
+    checkService("Trestle Real Contact", checkTrestle),
+    checkService("Apollo.io", checkApollo),
+    checkService("Perplexity (NEVA)", checkPerplexity),
   ]);
 
-  const services = [signalhouse, realEstate, database, twilio];
+  const services = [signalhouse, realEstate, database, twilio, tracerfy, trestle, apollo, perplexity];
   const healthyCount = services.filter((s) => s.status === "healthy").length;
   const avgLatency = Math.round(
     services

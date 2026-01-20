@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 import { Logger } from "@/lib/logger";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
+import { v4 as uuid } from "uuid";
 
 /**
  * CONTACT FORM API
  * ═══════════════════════════════════════════════════════════════════════════
  * POST /api/contact - Handle contact form submissions
+ *
+ * Flow:
+ * 1. Validate input
+ * 2. Save lead to Postgres (for sales/partnership inquiries)
+ * 3. Send email to team
+ * 4. Queue for call follow-up (sales inquiries)
+ * 5. Send confirmation to user
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -172,6 +182,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Save to Postgres for sales/partnership inquiries (these are potential leads)
+    let leadId: string | null = null;
+    if (reason === "sales" || reason === "partnership") {
+      try {
+        leadId = uuid();
+        const nameParts = name.split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+
+        await db.insert(leads).values({
+          id: leadId,
+          teamId: "tm_nextiertech", // Default team for inbound leads
+          firstName,
+          lastName,
+          email,
+          phone: phone ? phone.replace(/\D/g, "") : null,
+          company: company || null,
+          source: "website_contact",
+          stage: "inbound",
+          notes: `Contact reason: ${reason}\n\nMessage:\n${message}`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        Logger.info("Contact", "Lead saved to database", { leadId, email });
+
+        // Queue for call follow-up (sales inquiries with phone number)
+        if (phone && reason === "sales") {
+          try {
+            await fetch(new URL("/api/workflows/queue", request.url).toString(), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                worker: "sabrina",
+                action: "queue_booking",
+                lead: {
+                  id: leadId,
+                  name,
+                  company,
+                  phone,
+                  email,
+                  stage: "inbound",
+                  source: "website_contact",
+                },
+              }),
+            });
+            Logger.info("Contact", "Lead queued for call follow-up", { leadId });
+          } catch (queueError) {
+            Logger.error("Contact", "Failed to queue lead", { error: queueError });
+            // Non-blocking - continue with email flow
+          }
+        }
+      } catch (dbError) {
+        Logger.error("Contact", "Failed to save lead to database", { error: dbError });
+        // Non-blocking - email was sent successfully
+      }
+    }
+
     // Send confirmation email to user
     const confirmationHtml = `
 <!DOCTYPE html>
@@ -224,11 +292,13 @@ export async function POST(request: NextRequest) {
       email,
       reason,
       recipientEmail,
+      leadId,
     });
 
     return NextResponse.json({
       success: true,
       message: "Your message has been sent. We'll get back to you soon!",
+      ...(leadId && { leadId, queued: reason === "sales" && !!phone }),
     });
   } catch (error) {
     Logger.error("Contact", "Error processing contact form", { error });
