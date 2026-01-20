@@ -20,7 +20,7 @@ export class DatabaseService {
     return limit > 100 ? 100 : limit;
   }
 
-  private async getCount<T extends PgSelect>(qb: T) {
+  private async getCount<T extends PgSelect>(qb: T, timeoutMs = 5000) {
     const sq = this.db.$with("pagination_sq").as(qb);
 
     const query = this.db
@@ -28,9 +28,16 @@ export class DatabaseService {
       .select({ total: count().as("total") })
       .from(sq);
 
-    const [{ total }] = await query;
-
-    return { total: Number(total) };
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Count query timeout")), timeoutMs),
+      );
+      const [{ total }] = await Promise.race([query, timeoutPromise]);
+      return { total: Number(total) };
+    } catch (error) {
+      console.warn("[DatabaseService] Count query failed/timeout, returning -1:", error);
+      return { total: -1 };
+    }
   }
 
   async withCursorPagination<T extends PgSelect>(
