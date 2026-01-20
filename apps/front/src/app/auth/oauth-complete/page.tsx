@@ -6,8 +6,8 @@ import { useMutation, gql } from "@apollo/client";
 import { $cookie } from "@/lib/cookie/client-cookie";
 import { addMonths } from "date-fns";
 
-// Authorized owner emails - only these can sign in
-const AUTHORIZED_EMAILS = [
+// Platform owners - Thomas Borruso and Frank Mirando
+const PLATFORM_OWNERS = [
   "tb@outreachglobal.io",
   "fm@outreachglobal.io",
 ];
@@ -71,10 +71,10 @@ export default function OAuthCompletePage() {
     if (!email || !provider) return;
 
     const emailLower = email.toLowerCase();
-    const isAuthorized = AUTHORIZED_EMAILS.includes(emailLower);
+    const isPlatformOwner = PLATFORM_OWNERS.includes(emailLower);
 
-    if (isAuthorized) {
-      // Authorized user - proceed with login
+    if (isPlatformOwner) {
+      // Platform owner - proceed with login
       oauthLogin({
         variables: {
           input: {
@@ -86,7 +86,7 @@ export default function OAuthCompletePage() {
         },
       });
     } else {
-      // Unauthorized user - capture as lead and redirect to waitlist
+      // New user - capture as HOT LEAD and add to nurture queues
       setCapturing(true);
 
       fetch("/api/leads/capture-signup", {
@@ -97,6 +97,12 @@ export default function OAuthCompletePage() {
           name: name || "",
           source: "google_oauth",
           provider: "google",
+          isHotLead: true, // Mark as hot lead - they tried to sign up!
+          leadScore: 90, // High score for sign-up intent
+          // Queue assignments for nurturing
+          addToCallQueue: true, // Add to call queue for follow-up
+          addToDripQueue: true, // Add to drip/nurture campaign
+          tags: ["google_signup", "hot_lead", "nurture"],
         }),
       })
         .catch(() => {}) // Silent fail - still redirect
