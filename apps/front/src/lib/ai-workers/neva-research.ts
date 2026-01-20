@@ -22,6 +22,100 @@ const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const PERPLEXITY_BASE_URL = "https://api.perplexity.ai/chat/completions";
 
 // =============================================================================
+// USAGE TRACKING - Token & Cost Tracking
+// =============================================================================
+
+export interface PerplexityUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  estimatedCost: number; // USD
+  model: string;
+  timestamp: Date;
+}
+
+// Perplexity pricing (approximate)
+const PERPLEXITY_PRICING = {
+  "llama-3.1-sonar-small-128k-online": { input: 0.0002, output: 0.0002 }, // per 1K tokens
+  "llama-3.1-sonar-large-128k-online": { input: 0.001, output: 0.001 },
+  "sonar-deep-research": { input: 0.005, output: 0.005 },
+};
+
+// In-memory usage tracker (persisted to DB on flush)
+let usageBuffer: PerplexityUsage[] = [];
+let totalSessionCost = 0;
+
+export function getUsageStats() {
+  return {
+    sessionCost: totalSessionCost,
+    queryCount: usageBuffer.length,
+    recentQueries: usageBuffer.slice(-10),
+  };
+}
+
+function trackUsage(
+  model: string,
+  promptTokens: number,
+  completionTokens: number,
+) {
+  const pricing = PERPLEXITY_PRICING[model as keyof typeof PERPLEXITY_PRICING] ||
+    PERPLEXITY_PRICING["llama-3.1-sonar-small-128k-online"];
+
+  const cost = (promptTokens / 1000) * pricing.input +
+               (completionTokens / 1000) * pricing.output;
+
+  const usage: PerplexityUsage = {
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens,
+    estimatedCost: Math.round(cost * 10000) / 10000, // 4 decimal places
+    model,
+    timestamp: new Date(),
+  };
+
+  usageBuffer.push(usage);
+  totalSessionCost += usage.estimatedCost;
+
+  return usage;
+}
+
+// =============================================================================
+// COMPETITOR MONITORING TYPES
+// =============================================================================
+
+export interface CompetitorIntelligence {
+  competitor: string;
+  monitoringPeriod: string;
+  changes: CompetitorChange[];
+  alerts: CompetitorAlert[];
+  lastChecked: Date;
+}
+
+export interface CompetitorChange {
+  category: "pricing" | "features" | "marketing" | "leadership" | "funding" | "reviews";
+  description: string;
+  significance: "high" | "medium" | "low";
+  date: string;
+  source: string;
+  sourceUrl?: string;
+}
+
+export interface CompetitorAlert {
+  type: "opportunity" | "threat" | "neutral";
+  title: string;
+  description: string;
+  actionRecommendation: string;
+}
+
+export interface CompetitorMonitoringResult {
+  competitors: CompetitorIntelligence[];
+  summary: string;
+  topAlerts: CompetitorAlert[];
+  monitoredAt: Date;
+  usage: PerplexityUsage;
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -223,12 +317,28 @@ export interface EngagementStrategy {
 // PERPLEXITY CLIENT
 // =============================================================================
 
+interface PerplexityResponse {
+  content: string;
+  usage: PerplexityUsage;
+  citations?: string[];
+}
+
 async function queryPerplexity(
   prompt: string,
   model:
     | "llama-3.1-sonar-small-128k-online"
     | "llama-3.1-sonar-large-128k-online" = "llama-3.1-sonar-small-128k-online",
 ): Promise<string> {
+  const result = await queryPerplexityWithUsage(prompt, model);
+  return result.content;
+}
+
+async function queryPerplexityWithUsage(
+  prompt: string,
+  model:
+    | "llama-3.1-sonar-small-128k-online"
+    | "llama-3.1-sonar-large-128k-online" = "llama-3.1-sonar-small-128k-online",
+): Promise<PerplexityResponse> {
   if (!PERPLEXITY_API_KEY) {
     throw new Error("PERPLEXITY_API_KEY is not configured");
   }
@@ -254,6 +364,7 @@ async function queryPerplexity(
       ],
       temperature: 0.2,
       max_tokens: 1500,
+      return_citations: true,
     }),
   });
 
@@ -263,7 +374,17 @@ async function queryPerplexity(
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+
+  // Track usage
+  const promptTokens = data.usage?.prompt_tokens || Math.ceil(prompt.length / 4);
+  const completionTokens = data.usage?.completion_tokens || Math.ceil(data.choices[0].message.content.length / 4);
+  const usage = trackUsage(model, promptTokens, completionTokens);
+
+  return {
+    content: data.choices[0].message.content,
+    usage,
+    citations: data.citations || [],
+  };
 }
 
 // =============================================================================
@@ -997,4 +1118,225 @@ export async function generateFullResearchReport(
     generatedAt: new Date(),
     executionTimeMs: Date.now() - startTime,
   };
+}
+
+// =============================================================================
+// COMPETITOR MONITORING
+// =============================================================================
+
+/**
+ * Monitor competitors for changes in pricing, features, marketing, leadership, etc.
+ * Use for strategic intelligence and competitive positioning.
+ */
+export async function monitorCompetitors(
+  competitors: string[],
+  focusAreas: ("pricing" | "features" | "marketing" | "leadership" | "funding" | "reviews")[],
+  lookbackDays: number = 30,
+): Promise<CompetitorMonitoringResult> {
+  const focusStr = focusAreas.join(", ");
+  const competitorStr = competitors.join(", ");
+
+  const prompt = `Monitor these competitors for recent changes (last ${lookbackDays} days):
+
+Competitors: ${competitorStr}
+
+Focus areas: ${focusStr}
+
+For EACH competitor, find:
+1. Pricing changes - new plans, price increases/decreases, promotions
+2. New feature announcements - product updates, new capabilities
+3. Marketing shifts - new campaigns, messaging changes, positioning
+4. Leadership changes - new executives, departures, reorgs
+5. Funding/acquisition news - new rounds, M&A activity
+6. Customer sentiment - review changes, NPS shifts, complaints
+
+ONLY report significant, verified changes. Skip if nothing notable found.
+
+Respond in this exact JSON format:
+{
+  "competitors": [
+    {
+      "name": "Competitor Name",
+      "changes": [
+        {
+          "category": "pricing|features|marketing|leadership|funding|reviews",
+          "description": "What changed",
+          "significance": "high|medium|low",
+          "date": "YYYY-MM-DD or approximate",
+          "source": "Source name",
+          "sourceUrl": "URL if available"
+        }
+      ],
+      "alerts": [
+        {
+          "type": "opportunity|threat|neutral",
+          "title": "Alert title",
+          "description": "Details",
+          "actionRecommendation": "What to do about it"
+        }
+      ]
+    }
+  ],
+  "summary": "One paragraph executive summary of key findings",
+  "topAlerts": [
+    {"type": "opportunity|threat", "title": "...", "description": "...", "actionRecommendation": "..."}
+  ]
+}`;
+
+  try {
+    const result = await queryPerplexityWithUsage(
+      prompt,
+      "llama-3.1-sonar-large-128k-online",
+    );
+
+    const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return createEmptyCompetitorMonitoring(competitors, result.usage);
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      competitors: (parsed.competitors || []).map((c: any) => ({
+        competitor: c.name,
+        monitoringPeriod: `Last ${lookbackDays} days`,
+        changes: c.changes || [],
+        alerts: c.alerts || [],
+        lastChecked: new Date(),
+      })),
+      summary: parsed.summary || "No significant changes detected.",
+      topAlerts: parsed.topAlerts || [],
+      monitoredAt: new Date(),
+      usage: result.usage,
+    };
+  } catch (error) {
+    console.error("Competitor monitoring failed:", error);
+    return createEmptyCompetitorMonitoring(competitors, {
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      estimatedCost: 0,
+      model: "llama-3.1-sonar-large-128k-online",
+      timestamp: new Date(),
+    });
+  }
+}
+
+function createEmptyCompetitorMonitoring(
+  competitors: string[],
+  usage: PerplexityUsage,
+): CompetitorMonitoringResult {
+  return {
+    competitors: competitors.map((c) => ({
+      competitor: c,
+      monitoringPeriod: "N/A",
+      changes: [],
+      alerts: [],
+      lastChecked: new Date(),
+    })),
+    summary: "Unable to retrieve competitor intelligence.",
+    topAlerts: [],
+    monitoredAt: new Date(),
+    usage,
+  };
+}
+
+// =============================================================================
+// LEAD ENRICHMENT WITH CACHING
+// =============================================================================
+
+/**
+ * Enrich a lead with company/role research, with optional caching.
+ * Used for personalized outreach.
+ */
+export async function enrichLeadForOutreach(
+  companyName: string,
+  jobTitle: string,
+  industry: string,
+  options?: {
+    skipCache?: boolean;
+    cacheKey?: string;
+  },
+): Promise<{
+  companyIntel: string;
+  roleAnalysis: string;
+  outreachAngle: string;
+  timingSignals: string[];
+  usage: PerplexityUsage;
+}> {
+  const prompt = `Research for personalized B2B outreach:
+
+Company: ${companyName}
+Job Title: ${jobTitle}
+Industry: ${industry}
+
+Provide:
+
+### 1. Company Intelligence (100 words max)
+- Recent news/announcements
+- Size, revenue, growth signals
+- Recent hiring patterns
+
+### 2. Role Analysis (100 words max)
+- Key responsibilities for "${jobTitle}" in ${industry}
+- Pain points specific to this role
+- KPIs they're measured on
+
+### 3. Outreach Angle (75 words max)
+- Personalized messaging recommendation
+- Specific value prop
+- Conversation starter
+
+### 4. Timing Signals
+- Any indicators of buying mode (funding, expansion, hiring)
+- Budget cycle timing
+- Urgency factors
+
+Be concise and actionable. Include 2-3 citations.`;
+
+  try {
+    const result = await queryPerplexityWithUsage(
+      prompt,
+      "llama-3.1-sonar-small-128k-online",
+    );
+
+    // Parse sections from response
+    const sections = result.content.split("###").filter(Boolean);
+
+    const companyIntel = sections.find(s => s.includes("Company Intelligence"))?.replace(/1\.\s*Company Intelligence/i, "").trim() || "";
+    const roleAnalysis = sections.find(s => s.includes("Role Analysis"))?.replace(/2\.\s*Role Analysis/i, "").trim() || "";
+    const outreachAngle = sections.find(s => s.includes("Outreach Angle"))?.replace(/3\.\s*Outreach Angle/i, "").trim() || "";
+
+    // Extract timing signals as bullet points
+    const timingSection = sections.find(s => s.includes("Timing Signals")) || "";
+    const timingSignals = timingSection
+      .split("\n")
+      .filter(line => line.trim().startsWith("-") || line.trim().startsWith("•"))
+      .map(line => line.replace(/^[-•]\s*/, "").trim())
+      .filter(Boolean);
+
+    return {
+      companyIntel,
+      roleAnalysis,
+      outreachAngle,
+      timingSignals,
+      usage: result.usage,
+    };
+  } catch (error) {
+    console.error("Lead enrichment failed:", error);
+    return {
+      companyIntel: "Unable to retrieve company intel",
+      roleAnalysis: "Unable to analyze role",
+      outreachAngle: "Use standard approach",
+      timingSignals: [],
+      usage: {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        estimatedCost: 0,
+        model: "llama-3.1-sonar-small-128k-online",
+        timestamp: new Date(),
+      },
+    };
+  }
 }

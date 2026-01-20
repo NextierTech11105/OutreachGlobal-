@@ -20,7 +20,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, smsQueue } from "@/lib/db/schema";
+import { leads } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
@@ -149,21 +149,17 @@ async function queueForSms(
   lead?: any
 ) {
   try {
-    // Add to SMS queue
-    const queueId = uuid();
-    await db.insert(smsQueue).values({
-      id: queueId,
-      teamId,
-      leadId,
-      phone: lead?.phone || null,
-      status: "pending",
-      worker,
-      priority: worker === "gianna" ? 1 : 2, // Openers get higher priority
-      scheduledAt: new Date(),
-      createdAt: new Date(),
-    });
+    // Update lead stage based on worker
+    const newStage = worker === "gianna" ? "queued_opener" : "queued_nudge";
+    await db
+      .update(leads)
+      .set({
+        stage: newStage,
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, leadId));
 
-    // Also notify backend queue processor
+    // Notify backend queue processor
     try {
       await fetch(`${API_URL}/sms/queue/add`, {
         method: "POST",
@@ -175,16 +171,17 @@ async function queueForSms(
           leadId,
           worker,
           phone: lead?.phone,
+          priority: worker === "gianna" ? 1 : 2,
         }),
       });
     } catch {
-      // Backend notification is optional
+      // Backend notification is optional - lead still marked for processing
     }
 
     return {
-      queueId,
       queueType: "sms",
       worker,
+      stage: newStage,
     };
   } catch (error) {
     console.error("[SMS Queue] Error:", error);
