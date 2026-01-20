@@ -1,17 +1,20 @@
 import { sf, sfd } from "@/lib/utils/safe-format";
 import { NextRequest, NextResponse } from "next/server";
 import { automationService } from "@/lib/services/automation-service";
+import { autoRespondService } from "@/lib/services/auto-respond";
 import { db } from "@/lib/db";
-import { leads } from "@/lib/db/schema";
+import { leads, smsMessages } from "@/lib/db/schema";
 import { eq, or, sql } from "drizzle-orm";
+import { v4 as uuid } from "uuid";
 
 // Twilio SMS Webhook - Handles inbound SMS messages
-// Configure in Twilio Console: Messaging Request URL
-// Integrates with Automation Service for:
-// - Retarget/Nurture drip management
-// - Hot lead flagging
-// - Email capture & auto-send
-// - Opt-out/wrong number handling
+// ═══════════════════════════════════════════════════════════════════════════
+// ARCHITECTURE:
+// - Opt-out/wrong number: Instant TwiML response (critical compliance)
+// - Everything else: No instant reply, auto-respond in 3-5 min (feels human)
+// - All messages stored to sms_messages table
+// - GIANNA personality used for auto-responses
+// ═══════════════════════════════════════════════════════════════════════════
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
@@ -146,7 +149,31 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Twilio SMS] Inbound from ${from}: ${body}`);
 
-    // Store the message
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: Store inbound message to database (ALWAYS)
+    // ═══════════════════════════════════════════════════════════════════════
+    const messageId = uuid();
+    try {
+      await db.insert(smsMessages).values({
+        id: messageId,
+        direction: "inbound",
+        fromNumber: from,
+        toNumber: to,
+        body: body,
+        status: "received",
+        provider: "twilio",
+        leadId: null, // Will update after context lookup
+        campaignId: null,
+        receivedAt: new Date(),
+        sentByAdvisor: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (dbErr) {
+      console.error("[Twilio SMS] Failed to store message:", dbErr);
+    }
+
+    // Store in memory cache too
     recentSmsMessages.unshift({
       messageSid,
       from,
@@ -155,20 +182,27 @@ export async function POST(request: NextRequest) {
       numMedia,
       receivedAt: new Date().toISOString(),
     });
+    if (recentSmsMessages.length > 100) recentSmsMessages.pop();
 
-    if (recentSmsMessages.length > 100) {
-      recentSmsMessages.pop();
-    }
-
-    // Get conversation context for the sender
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 2: Get conversation context (lead lookup, add responded tag)
+    // ═══════════════════════════════════════════════════════════════════════
     const context = await getConversationContext(from);
     const leadId = context.leadId || `lead_${from.replace(/\D/g, "")}`;
 
-    // =========================================================
-    // AUTOMATION SERVICE - Process all incoming messages
-    // Handles: opt-out, wrong number, email capture, interest
-    // ARCHITECTURE: Opt-outs persist to Postgres (source of truth)
-    // =========================================================
+    // Update message with lead ID if found
+    if (context.leadId) {
+      try {
+        await db
+          .update(smsMessages)
+          .set({ leadId: context.leadId })
+          .where(eq(smsMessages.id, messageId));
+      } catch {}
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 3: Classify message via automation service
+    // ═══════════════════════════════════════════════════════════════════════
     const automationResult = await automationService.processIncomingMessage(
       leadId,
       from,
@@ -176,12 +210,33 @@ export async function POST(request: NextRequest) {
       context.propertyId,
     );
 
-    console.log(`[Twilio SMS] Automation result:`, automationResult);
+    console.log(`[Twilio SMS] Classification: ${automationResult.classification}`);
 
-    // Handle based on classification
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 4: Handle based on classification
+    // - opt_out/wrong_number: INSTANT TwiML (compliance required)
+    // - everything else: NO instant reply, schedule 3-5 min auto-respond
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Map automation classification to GIANNA intent
+    const intentMap: Record<string, string> = {
+      opt_out: "opt_out",
+      wrong_number: "hard_no",
+      email_provided: "request_info",
+      appointment_request: "request_call",
+      interested: "interested",
+      valuation_request: "request_info",
+      question: "question",
+      unclear: "confusion",
+    };
+
+    const giannaIntent = intentMap[automationResult.classification] || "confusion";
+
     switch (automationResult.classification) {
+      // ═══════════════════════════════════════════════════════════════════
+      // INSTANT RESPONSES (compliance required)
+      // ═══════════════════════════════════════════════════════════════════
       case "opt_out": {
-        // Automation service already handled opt-out
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>
@@ -195,7 +250,6 @@ export async function POST(request: NextRequest) {
       }
 
       case "wrong_number": {
-        // Automation service already handled wrong number
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>
@@ -208,173 +262,73 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      case "email_provided": {
-        const email = automationResult.extractedEmail;
-        console.log(
-          `[Twilio SMS] Email captured: ${email} - Flagged as HOT LEAD`,
-        );
+      // ═══════════════════════════════════════════════════════════════════
+      // DELAYED RESPONSES (3-5 min via auto-respond, feels human)
+      // ═══════════════════════════════════════════════════════════════════
+      default: {
+        // Get team config (uses default if not set)
+        const config = autoRespondService.getConfig("default");
 
-        // Trigger valuation email in background
-        fetch(`${APP_URL}/api/automation/email-capture`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            smsMessage: body,
-            fromPhone: from,
-            toPhone: to,
-            firstName: context.firstName,
-            propertyId: context.propertyId,
-            propertyAddress: context.propertyAddress,
-            leadId,
-          }),
-        }).catch((err) =>
-          console.error("[Twilio SMS] Email automation failed:", err),
-        );
+        if (config.enabled) {
+          // Schedule auto-respond with 3-5 min delay using GIANNA
+          const scheduled = await autoRespondService.schedule({
+            toPhone: from,
+            fromPhone: to,
+            incomingMessage: body,
+            intent: giannaIntent as any,
+            leadId: context.leadId,
+            teamId: "default",
+            leadContext: {
+              firstName: context.firstName,
+              propertyAddress: context.propertyAddress,
+            },
+          });
 
-        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    Perfect! Sending your property analysis to ${email} now. Check your inbox in about a minute!
-  </Message>
-</Response>`;
-        return new NextResponse(twiml, {
-          status: 200,
-          headers: { "Content-Type": "application/xml" },
-        });
-      }
+          if (scheduled.scheduled) {
+            console.log(
+              `[Twilio SMS] Auto-respond scheduled in 3-5 min → ${from} (${automationResult.classification})`
+            );
+          }
+        }
 
-      case "appointment_request": {
-        console.log(`[Twilio SMS] CALL REQUEST from ${from} - HOT LEAD`);
-        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    Absolutely! I'll give you a call shortly. What time works best for you today?
-  </Message>
-</Response>`;
-        return new NextResponse(twiml, {
-          status: 200,
-          headers: { "Content-Type": "application/xml" },
-        });
-      }
+        // Handle special cases that need background work
+        if (automationResult.classification === "email_provided") {
+          const email = automationResult.extractedEmail;
+          console.log(`[Twilio SMS] Email captured: ${email} - HOT LEAD`);
 
-      case "interested": {
-        console.log(
-          `[Twilio SMS] Interest signal from ${from} - Nurture drip activated`,
-        );
-        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    Great to hear! I'd love to chat more. Would you prefer a quick call or should I send over some info via email?
-  </Message>
-</Response>`;
-        return new NextResponse(twiml, {
-          status: 200,
-          headers: { "Content-Type": "application/xml" },
-        });
-      }
-
-      case "valuation_request": {
-        // Someone asked for a valuation report - run it automatically
-        console.log(
-          `[Twilio SMS] VALUATION REQUEST from ${from} - Running PropertyDetail`,
-        );
-
-        // If we have property context, generate valuation immediately
-        if (context.propertyId || context.propertyAddress) {
-          // Trigger valuation in background
-          fetch(`${APP_URL}/api/property/valuation`, {
+          // Trigger email automation in background
+          fetch(`${APP_URL}/api/automation/email-capture`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              id: context.propertyId,
-              address: context.propertyAddress,
+              email,
+              smsMessage: body,
+              fromPhone: from,
+              toPhone: to,
+              firstName: context.firstName,
+              propertyId: context.propertyId,
+              propertyAddress: context.propertyAddress,
+              leadId,
             }),
-          })
-            .then(async (res) => {
-              if (res.ok) {
-                const data = await res.json();
-                // Send the valuation link via SMS
-                const reportUrl = `${APP_URL}/report/${context.propertyId || "valuation"}`;
-                const estimatedValue = data.valuation?.estimatedValue;
-                const valueStr = estimatedValue
-                  ? `$${sf(estimatedValue)}`
-                  : "your property";
-
-                // Send follow-up SMS with report link
-                fetch(`${APP_URL}/api/sms/send`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    to: from,
-                    message: `Here's your property valuation! Estimated value: ${valueStr}\n\nView full report: ${reportUrl}`,
-                  }),
-                }).catch((err) =>
-                  console.error(
-                    "[Twilio SMS] Failed to send valuation link:",
-                    err,
-                  ),
-                );
-              }
-            })
-            .catch((err) =>
-              console.error("[Twilio SMS] Valuation generation failed:", err),
-            );
-
-          const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    Absolutely! I'm pulling together your property valuation report right now. Give me about 30 seconds and I'll send you the link!
-  </Message>
-</Response>`;
-          return new NextResponse(twiml, {
-            status: 200,
-            headers: { "Content-Type": "application/xml" },
-          });
-        } else {
-          // No property context - ask for address
-          const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    I'd be happy to get you a property valuation! Just send me the address and I'll pull up the report for you.
-  </Message>
-</Response>`;
-          return new NextResponse(twiml, {
-            status: 200,
-            headers: { "Content-Type": "application/xml" },
-          });
+          }).catch((err) =>
+            console.error("[Twilio SMS] Email automation failed:", err),
+          );
         }
-      }
 
-      case "question": {
-        console.log(
-          `[Twilio SMS] Question from ${from} - Needs human response`,
-        );
-        // Queue for human review but acknowledge
-        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    Great question! Let me look into that and get back to you shortly.
-  </Message>
-</Response>`;
-        return new NextResponse(twiml, {
-          status: 200,
-          headers: { "Content-Type": "application/xml" },
-        });
-      }
+        if (automationResult.classification === "appointment_request") {
+          console.log(`[Twilio SMS] CALL REQUEST from ${from} - HOT LEAD`);
+          // Could trigger call queue here
+        }
 
-      default: {
-        // Unclear response - phone is confirmed, needs human review
-        console.log(
-          `[Twilio SMS] Unclear response from ${from} - Phone confirmed`,
-        );
-        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    Thanks for your message! A team member will get back to you shortly.
-  </Message>
-</Response>`;
-        return new NextResponse(twiml, {
+        if (automationResult.classification === "interested") {
+          console.log(`[Twilio SMS] Interest signal from ${from}`);
+        }
+
+        // Return EMPTY TwiML - no instant response
+        // Auto-respond will send in 3-5 minutes
+        const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response></Response>`;
+        return new NextResponse(emptyTwiml, {
           status: 200,
           headers: { "Content-Type": "application/xml" },
         });
@@ -382,8 +336,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: unknown) {
     console.error("[Twilio SMS] Error:", error);
-
-    // Return empty response on error (don't send anything to user)
     return new NextResponse("", { status: 200 });
   }
 }

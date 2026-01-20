@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { isAlreadyProcessed, generateEventId } from "@/lib/webhook/idempotency";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
+import { autoRespondService } from "@/lib/services/auto-respond";
 import { db } from "@/lib/db";
 import { smsMessages, leads } from "@/lib/db/schema";
 import { eq, desc, like, sql } from "drizzle-orm";
@@ -1228,10 +1229,58 @@ export async function POST(request: NextRequest) {
         }
 
         // ─────────────────────────────────────────────────────────────────────
+        // AUTO-RESPOND: Schedule delayed response (3-5 min) if enabled
+        // Uses GIANNA personality system for human-like responses
+        // Toggle: AUTO_RESPOND_ENABLED in config
+        // ─────────────────────────────────────────────────────────────────────
+        if (inboundConfig.AUTO_RESPOND_ENABLED && !isOptOut) {
+          // Map message status to GIANNA intent
+          const intentMap: Record<string, string> = {
+            email_captured: "request_info",
+            mobile_captured: "interested",
+            content_permission: "interested",
+            interested: "interested",
+            received: "confusion", // unclear/default
+          };
+          const giannaIntent = intentMap[messageStatus] || "confusion";
+
+          try {
+            const scheduled = await autoRespondService.schedule({
+              toPhone: fromNumber,
+              fromPhone: toNumber,
+              incomingMessage: messageBody,
+              intent: giannaIntent as any,
+              leadId: lead?.id,
+              teamId: tenantInfo?.teamId || "default",
+              leadContext: {
+                firstName: lead?.firstName || undefined,
+                companyName: lead?.company || undefined,
+              },
+              config: {
+                enabled: true,
+                delayMinSeconds: inboundConfig.AUTO_RESPOND_DELAY_MIN || 180,
+                delayMaxSeconds: inboundConfig.AUTO_RESPOND_DELAY_MAX || 300,
+                humanApprovalRequired: inboundConfig.AUTO_RESPOND_REQUIRE_APPROVAL,
+              },
+            });
+
+            if (scheduled.scheduled) {
+              console.log(
+                `[SignalHouse] ⏰ Auto-respond scheduled in 3-5 min → ${fromNumber} (${messageStatus})`,
+              );
+            }
+          } catch (autoRespondError) {
+            console.error("[SignalHouse] Auto-respond scheduling failed:", autoRespondError);
+            // Don't fail webhook - auto-respond is optional
+          }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
         // FLOW A: EMAIL CAPTURED = MOBILE + EMAIL CAPTURED (100% Lead Score)
         // When lead provides email via SMS, we have BOTH contact methods:
         // - Mobile: confirmed from fromNumber (they're texting from it)
         // - Email: extracted from message body
+        // NOTE: Instant confirmation disabled when AUTO_RESPOND_ENABLED (delayed instead)
         // ─────────────────────────────────────────────────────────────────────
         if (capturedEmail) {
           console.log(
@@ -1244,21 +1293,22 @@ export async function POST(request: NextRequest) {
             `[SignalHouse] 🤖 ${worker.name} handling email capture response`,
           );
 
-          // Use the routed worker for response
-          const firstName = lead?.firstName || "";
+          // Skip instant SMS if auto-respond is enabled (delayed response already scheduled)
+          if (!inboundConfig.AUTO_RESPOND_ENABLED && toNumber) {
+            // Use the routed worker for response
+            const firstName = lead?.firstName || "";
 
-          // Get worker-specific confirmation message
-          const confirmationMessage = formatWorkerResponse(
-            worker,
-            "emailCaptured",
-            {
-              firstName,
-              email: capturedEmail,
-            },
-          );
+            // Get worker-specific confirmation message
+            const confirmationMessage = formatWorkerResponse(
+              worker,
+              "emailCaptured",
+              {
+                firstName,
+                email: capturedEmail,
+              },
+            );
 
-          // Send confirmation SMS from the SAME worker's number
-          if (toNumber) {
+            // Send confirmation SMS from the SAME worker's number
             try {
               const smsResult = await sendSMS({
                 to: fromNumber,
@@ -1268,7 +1318,7 @@ export async function POST(request: NextRequest) {
 
               if (smsResult.success) {
                 console.log(
-                  `[SignalHouse] ✅ ${worker.name} sent confirmation to ${fromNumber}`,
+                  `[SignalHouse] ✅ ${worker.name} sent INSTANT confirmation to ${fromNumber}`,
                 );
 
                 // Log outbound with worker info
@@ -1308,6 +1358,10 @@ export async function POST(request: NextRequest) {
                 smsError,
               );
             }
+          } else {
+            console.log(
+              `[SignalHouse] ⏰ Skipping instant SMS - auto-respond scheduled for 3-5 min`,
+            );
           }
 
           // Push to hot lead campaign with GOLD label (email + mobile = 100% score)

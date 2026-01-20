@@ -107,6 +107,12 @@ export interface InboundProcessingConfig {
   AUTO_ROUTE_TO_CALL_CENTER: boolean;
   AUTO_RESOLVE_THREADS: boolean;
   LOG_LEAD_EVENTS: boolean;
+
+  // Auto-Respond Settings (GIANNA delayed responses)
+  AUTO_RESPOND_ENABLED: boolean;
+  AUTO_RESPOND_DELAY_MIN: number | null; // seconds (default: 180 = 3 min)
+  AUTO_RESPOND_DELAY_MAX: number | null; // seconds (default: 300 = 5 min)
+  AUTO_RESPOND_REQUIRE_APPROVAL: boolean;
 }
 
 /**
@@ -139,6 +145,12 @@ export const CONFIG_KEYS = {
   AUTO_ROUTE_TO_CALL_CENTER: "AUTO_ROUTE_TO_CALL_CENTER",
   AUTO_RESOLVE_THREADS: "AUTO_RESOLVE_THREADS",
   LOG_LEAD_EVENTS: "LOG_LEAD_EVENTS",
+
+  // Auto-Respond Settings
+  AUTO_RESPOND_ENABLED: "AUTO_RESPOND_ENABLED",
+  AUTO_RESPOND_DELAY_MIN: "AUTO_RESPOND_DELAY_MIN",
+  AUTO_RESPOND_DELAY_MAX: "AUTO_RESPOND_DELAY_MAX",
+  AUTO_RESPOND_REQUIRE_APPROVAL: "AUTO_RESPOND_REQUIRE_APPROVAL",
 } as const;
 
 /**
@@ -246,6 +258,22 @@ export async function getInboundConfigAsync(): Promise<InboundProcessingConfig> 
       getConfigValue(dbSettings, CONFIG_KEYS.LOG_LEAD_EVENTS, "false"),
       false,
     ),
+
+    // Auto-Respond Settings (GIANNA delayed responses, default: enabled, 3-5 min)
+    AUTO_RESPOND_ENABLED: parseBool(
+      getConfigValue(dbSettings, CONFIG_KEYS.AUTO_RESPOND_ENABLED, "true"),
+      true,
+    ),
+    AUTO_RESPOND_DELAY_MIN: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.AUTO_RESPOND_DELAY_MIN, "180"),
+    ),
+    AUTO_RESPOND_DELAY_MAX: parseNumber(
+      getConfigValue(dbSettings, CONFIG_KEYS.AUTO_RESPOND_DELAY_MAX, "300"),
+    ),
+    AUTO_RESPOND_REQUIRE_APPROVAL: parseBool(
+      getConfigValue(dbSettings, CONFIG_KEYS.AUTO_RESPOND_REQUIRE_APPROVAL, "false"),
+      false,
+    ),
   };
 }
 
@@ -306,6 +334,22 @@ export function getInboundConfig(): InboundProcessingConfig {
     ),
     LOG_LEAD_EVENTS: parseBool(
       envVal(CONFIG_KEYS.LOG_LEAD_EVENTS, "false"),
+      false,
+    ),
+
+    // Auto-Respond Settings
+    AUTO_RESPOND_ENABLED: parseBool(
+      envVal(CONFIG_KEYS.AUTO_RESPOND_ENABLED, "true"),
+      true,
+    ),
+    AUTO_RESPOND_DELAY_MIN: parseNumber(
+      envVal(CONFIG_KEYS.AUTO_RESPOND_DELAY_MIN, "180"),
+    ),
+    AUTO_RESPOND_DELAY_MAX: parseNumber(
+      envVal(CONFIG_KEYS.AUTO_RESPOND_DELAY_MAX, "300"),
+    ),
+    AUTO_RESPOND_REQUIRE_APPROVAL: parseBool(
+      envVal(CONFIG_KEYS.AUTO_RESPOND_REQUIRE_APPROVAL, "false"),
       false,
     ),
   };

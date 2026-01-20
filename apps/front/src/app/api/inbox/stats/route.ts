@@ -4,22 +4,8 @@ import { sql } from "drizzle-orm";
 
 /**
  * INBOX STATS API
- * Returns label counts and changes for inbox responses
+ * Returns message counts by status/direction from sms_messages table
  */
-
-// Standard inbox labels
-const LABEL_IDS = [
-  "gold-label",
-  "needs-help",
-  "mobile-captured",
-  "wants-call",
-  "positive",
-  "negative",
-  "not-interested",
-  "do-not-contact",
-  "follow-up",
-  "appointment-set",
-];
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,112 +24,124 @@ export async function GET(request: NextRequest) {
     const previousStart = new Date();
     previousStart.setDate(previousStart.getDate() - currentDaysBack * 2);
 
-    // Get current period counts
+    // Get current period counts by status and direction
     const currentResult = await db.execute(sql`
       SELECT
-        label,
+        direction,
+        status,
         COUNT(*) as count
-      FROM inbox_responses
+      FROM sms_messages
       WHERE created_at >= ${currentStart.toISOString()}
-      GROUP BY label
+      GROUP BY direction, status
     `);
 
-    // Get previous period counts for change calculation
+    // Get previous period counts
     const previousResult = await db.execute(sql`
       SELECT
-        label,
+        direction,
+        status,
         COUNT(*) as count
-      FROM inbox_responses
+      FROM sms_messages
       WHERE created_at >= ${previousStart.toISOString()}
         AND created_at < ${currentStart.toISOString()}
-      GROUP BY label
+      GROUP BY direction, status
     `);
 
-    // Build label stats
-    const labels: Record<string, number> = {};
-    const changes: Record<string, number> = {};
-    const previousCounts: Record<string, number> = {};
+    // Build stats
+    let inboundCount = 0;
+    let outboundCount = 0;
+    let deliveredCount = 0;
+    let failedCount = 0;
+    let prevInbound = 0;
+    let prevOutbound = 0;
 
-    // Initialize all labels to 0
-    for (const id of LABEL_IDS) {
-      labels[id] = 0;
-      changes[id] = 0;
-      previousCounts[id] = 0;
-    }
-
-    // Fill in previous period counts
+    // Process previous period
     if (previousResult.rows) {
       for (const row of previousResult.rows) {
-        const label = row.label as string;
-        if (label) {
-          previousCounts[label] = Number(row.count) || 0;
-        }
+        const direction = row.direction as string;
+        const count = Number(row.count) || 0;
+        if (direction === "inbound") prevInbound += count;
+        else prevOutbound += count;
       }
     }
 
-    // Fill in current period counts and calculate changes
+    // Process current period
     if (currentResult.rows) {
       for (const row of currentResult.rows) {
-        const label = row.label as string;
-        if (label) {
-          const current = Number(row.count) || 0;
-          const previous = previousCounts[label] || 0;
-          labels[label] = current;
+        const direction = row.direction as string;
+        const status = row.status as string;
+        const count = Number(row.count) || 0;
 
-          // Calculate percentage change
-          if (previous === 0) {
-            changes[label] = current > 0 ? 100 : 0;
-          } else {
-            changes[label] = Math.round(
-              ((current - previous) / previous) * 100,
-            );
-          }
+        if (direction === "inbound") {
+          inboundCount += count;
+        } else {
+          outboundCount += count;
         }
+
+        if (status === "delivered") deliveredCount += count;
+        if (status === "failed" || status === "undelivered") failedCount += count;
       }
     }
 
-    // Calculate totals
-    const totalResponses = Object.values(labels).reduce((a, b) => a + b, 0);
-    const goldLabels = labels["gold-label"] || 0;
-    const positiveResponses = labels["positive"] || 0;
-    const appointmentsSet = labels["appointment-set"] || 0;
+    // Calculate changes
+    const inboundChange = prevInbound === 0
+      ? (inboundCount > 0 ? 100 : 0)
+      : Math.round(((inboundCount - prevInbound) / prevInbound) * 100);
+
+    const outboundChange = prevOutbound === 0
+      ? (outboundCount > 0 ? 100 : 0)
+      : Math.round(((outboundCount - prevOutbound) / prevOutbound) * 100);
+
+    const totalMessages = inboundCount + outboundCount;
+    const deliveryRate = outboundCount > 0
+      ? Math.round((deliveredCount / outboundCount) * 100)
+      : 0;
 
     return NextResponse.json({
       success: true,
-      labels,
-      changes,
+      stats: {
+        inbound: inboundCount,
+        outbound: outboundCount,
+        delivered: deliveredCount,
+        failed: failedCount,
+        total: totalMessages,
+      },
+      changes: {
+        inbound: inboundChange,
+        outbound: outboundChange,
+      },
       summary: {
-        total: totalResponses,
-        goldLabels,
-        positiveResponses,
-        appointmentsSet,
-        conversionRate:
-          totalResponses > 0
-            ? Math.round((appointmentsSet / totalResponses) * 100)
-            : 0,
+        total: totalMessages,
+        responses: inboundCount,
+        sent: outboundCount,
+        deliveryRate,
+        responseRate: outboundCount > 0
+          ? Math.round((inboundCount / outboundCount) * 100)
+          : 0,
       },
       timeRange,
     });
   } catch (error) {
     console.error("[Inbox Stats] Error:", error);
-    // Return empty data on error (table might not exist yet)
-    const emptyLabels: Record<string, number> = {};
-    const emptyChanges: Record<string, number> = {};
-    for (const id of LABEL_IDS) {
-      emptyLabels[id] = 0;
-      emptyChanges[id] = 0;
-    }
-
     return NextResponse.json({
       success: true,
-      labels: emptyLabels,
-      changes: emptyChanges,
+      stats: {
+        inbound: 0,
+        outbound: 0,
+        delivered: 0,
+        failed: 0,
+        total: 0,
+      },
+      changes: {
+        inbound: 0,
+        outbound: 0,
+      },
       summary: {
         total: 0,
-        goldLabels: 0,
-        positiveResponses: 0,
-        appointmentsSet: 0,
-        conversionRate: 0,
+        responses: 0,
+        sent: 0,
+        deliveryRate: 0,
+        responseRate: 0,
       },
       timeRange: "7d",
     });
