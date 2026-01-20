@@ -1771,7 +1771,22 @@ export class LuciService {
       }));
 
       // Start trace via Tracerfy client
-      const traceResult = await this.tracerfy.beginTraceFromJson(traceInput);
+      const traceResult = await this.tracerfy.beginTrace({
+        jsonData: traceInput,
+        columnMapping: {
+          address: "address",
+          city: "city",
+          state: "state",
+          zip: "zip",
+          firstName: "first_name",
+          lastName: "last_name",
+          mailAddress: "mail_address",
+          mailCity: "mail_city",
+          mailState: "mail_state",
+          mailingZip: "mailing_zip",
+        },
+        traceType: "normal",
+      });
 
       // Update job with queue ID
       await this.db
