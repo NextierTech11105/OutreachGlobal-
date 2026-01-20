@@ -1,4 +1,13 @@
 /**
+ * ⚠️ DEPRECATED: Use /api/luci/import instead
+ *
+ * This endpoint is maintained for backwards compatibility.
+ * New integrations should use POST /api/luci/import which supports
+ * storagePath, bucketId, and legacy filePath parameters.
+ *
+ * Migration: Replace POST /api/luci/lake/import → POST /api/luci/import
+ */
+/**
  * LUCI Lake Import API Proxy
  * POST /api/luci/lake/import
  * Accepts file upload OR file path from DO Spaces

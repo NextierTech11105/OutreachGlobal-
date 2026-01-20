@@ -1,3 +1,12 @@
+/**
+ * ⚠️ DEPRECATED: Use /api/storage/upload instead
+ *
+ * This endpoint is maintained for backwards compatibility.
+ * New integrations should use POST /api/storage/upload which provides
+ * a unified file landing endpoint with folder validation and consistent conventions.
+ *
+ * Migration: Replace POST /api/upload → POST /api/storage/upload
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   S3Client,

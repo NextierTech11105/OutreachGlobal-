@@ -1,3 +1,13 @@
+/**
+ * ⚠️ DEPRECATED: Use /api/storage/upload instead
+ *
+ * This endpoint is maintained for backwards compatibility.
+ * New integrations should use POST /api/storage/upload which provides
+ * a unified file landing endpoint with consistent conventions.
+ *
+ * Migration: Replace POST /api/datalake/upload → POST /api/storage/upload
+ * Use folder: "datalake/{schema}/raw" to maintain same storage structure
+ */
 import { sf, sfd } from "@/lib/utils/safe-format";
 /**
  * Datalake Upload API

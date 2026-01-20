@@ -1,3 +1,12 @@
+/**
+ * ⚠️ DEPRECATED: Use /api/buckets/import instead
+ *
+ * This endpoint is maintained for backwards compatibility.
+ * New integrations should use POST /api/buckets/import which supports
+ * both direct file upload and storagePath references.
+ *
+ * Migration: Replace POST /api/buckets/upload-csv → POST /api/buckets/import
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   S3Client,
