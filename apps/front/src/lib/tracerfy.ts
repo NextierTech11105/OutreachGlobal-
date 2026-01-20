@@ -195,31 +195,41 @@ export class TracerfyClient {
 
   /**
    * Start a trace job from JSON data
+   * NOTE: Tracerfy API requires form-data, not application/json
    */
   async beginTrace(
     records: TraceJobInput[],
     traceType: TraceType = "normal",
   ): Promise<TraceJobResponse> {
-    return this.request<TraceJobResponse>("/trace/", {
+    const formData = new FormData();
+    formData.append("json_data", JSON.stringify(records));
+    formData.append("address_column", "address");
+    formData.append("city_column", "city");
+    formData.append("state_column", "state");
+    formData.append("zip_column", "zip");
+    formData.append("first_name_column", "first_name");
+    formData.append("last_name_column", "last_name");
+    formData.append("mail_address_column", "mail_address");
+    formData.append("mail_city_column", "mail_city");
+    formData.append("mail_state_column", "mail_state");
+    formData.append("mailing_zip_column", "mailing_zip");
+    formData.append("trace_type", traceType);
+
+    const url = `${TRACERFY_BASE_URL}/trace/`;
+    const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiToken}`,
       },
-      body: JSON.stringify({
-        json_data: JSON.stringify(records),
-        address_column: "address",
-        city_column: "city",
-        state_column: "state",
-        zip_column: "zip",
-        first_name_column: "first_name",
-        last_name_column: "last_name",
-        mail_address_column: "mail_address",
-        mail_city_column: "mail_city",
-        mail_state_column: "mail_state",
-        mailing_zip_column: "mailing_zip",
-        trace_type: traceType,
-      }),
+      body: formData,
     });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Tracerfy API error: ${response.status} - ${error}`);
+    }
+
+    return response.json();
   }
 
   /**
