@@ -36,18 +36,34 @@ import {
   Users,
 } from "lucide-react";
 
-// Campaign verticals for isolated campaigns
+// Campaign verticals with SIC codes for auto-detection
 const CAMPAIGN_VERTICALS = [
-  { id: "PLUMBING", name: "Plumbing Companies", icon: "🔧", color: "#3B82F6" },
-  { id: "TRUCKING", name: "Trucking Companies", icon: "🚛", color: "#EF4444" },
-  { id: "CPA", name: "CPAs & Accountants", icon: "📊", color: "#10B981" },
-  { id: "CONSULTANT", name: "Consultants", icon: "💼", color: "#8B5CF6" },
-  { id: "AGENT_BROKER", name: "Agents & Brokers", icon: "🏠", color: "#F59E0B" },
-  { id: "SALES_PRO", name: "Sales Professionals", icon: "📈", color: "#EC4899" },
-  { id: "SOLOPRENEUR", name: "Solopreneurs", icon: "🚀", color: "#06B6D4" },
-  { id: "PE_BOUTIQUE", name: "PE Boutiques", icon: "💎", color: "#6366F1" },
-  { id: "GENERAL", name: "General / Other", icon: "📁", color: "#6B7280" },
+  { id: "PLUMBING", name: "Plumbing & HVAC", icon: "🔧", color: "#3B82F6", sic: ["1711", "1721"], keywords: ["plumb", "hvac", "heating", "cooling", "air condition"] },
+  { id: "TRUCKING", name: "Trucking & Logistics", icon: "🚛", color: "#EF4444", sic: ["4212", "4213", "4214"], keywords: ["truck", "freight", "logistics", "transport", "hauling"] },
+  { id: "CPA", name: "CPAs & Accountants", icon: "📊", color: "#10B981", sic: ["8721"], keywords: ["cpa", "accountant", "accounting", "bookkeep", "tax"] },
+  { id: "CONSULTANT", name: "Business Consultants", icon: "💼", color: "#8B5CF6", sic: ["8742", "8748"], keywords: ["consult", "advisor", "management"] },
+  { id: "AGENT_BROKER", name: "Real Estate Agents", icon: "🏠", color: "#F59E0B", sic: ["6531"], keywords: ["realtor", "real estate", "broker", "realty", "agent"] },
+  { id: "RESTAURANT", name: "Restaurants & Food", icon: "🍽️", color: "#F97316", sic: ["5812", "5813"], keywords: ["restaurant", "food", "dining", "pizz", "cafe", "bar"] },
+  { id: "MEDICAL", name: "Medical & Dental", icon: "🏥", color: "#06B6D4", sic: ["8011", "8021", "8031"], keywords: ["medical", "doctor", "physician", "dental", "dentist", "clinic"] },
+  { id: "AUTO", name: "Auto Services", icon: "🚗", color: "#EAB308", sic: ["7538", "5511", "5521"], keywords: ["auto", "car", "mechanic", "repair", "dealer"] },
+  { id: "BEAUTY", name: "Beauty & Wellness", icon: "💅", color: "#EC4899", sic: ["7231", "7241"], keywords: ["salon", "beauty", "spa", "hair", "nail", "barber"] },
+  { id: "CONSTRUCTION", name: "Construction & Contractors", icon: "🏗️", color: "#78716C", sic: ["1521", "1531", "1541"], keywords: ["construct", "contractor", "builder", "roofing", "electric"] },
+  { id: "PE_BOUTIQUE", name: "PE & Investment", icon: "💎", color: "#6366F1", sic: ["6282", "6211"], keywords: ["private equity", "investment", "fund", "capital", "venture"] },
+  { id: "GENERAL", name: "General / Other", icon: "📁", color: "#6B7280", sic: [], keywords: [] },
 ] as const;
+
+// Auto-detect sector from filename
+function detectSectorFromFilename(filename: string): string {
+  const lower = filename.toLowerCase();
+  for (const v of CAMPAIGN_VERTICALS) {
+    for (const keyword of v.keywords) {
+      if (lower.includes(keyword)) {
+        return v.id;
+      }
+    }
+  }
+  return "GENERAL";
+}
 
 // Enrichment costs
 const COSTS = {
@@ -134,6 +150,10 @@ export default function ImportPage() {
     setFile(selectedFile);
     setError(null);
     setResult(null);
+
+    // Auto-detect sector from filename
+    const detectedSector = detectSectorFromFilename(selectedFile.name);
+    setVertical(detectedSector);
 
     // Parse CSV preview
     try {
