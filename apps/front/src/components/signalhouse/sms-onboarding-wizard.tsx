@@ -176,8 +176,14 @@ export function SMSOnboardingWizard() {
     state: "",
     postalCode: "",
     website: "",
-    vertical: "REAL_ESTATE",
+    vertical: "PROFESSIONAL",
     entityType: "PRIVATE_PROFIT",
+    // Compliance fields required by SignalHouse
+    optinLink: "",
+    privacyPolicyLink: "",
+    termsLink: "",
+    supportEmail: "",
+    supportPhone: "",
   });
 
   // Campaign form state
@@ -527,11 +533,90 @@ export function SMSOnboardingWizard() {
               </div>
             </div>
 
+            {/* 10DLC Compliance URLs */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-medium mb-3">10DLC Compliance (Required)</h4>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="optinLink">Opt-in Link *</Label>
+                  <Input
+                    id="optinLink"
+                    placeholder="https://yoursite.com/sms-signup"
+                    value={brandForm.optinLink}
+                    onChange={(e) =>
+                      setBrandForm({ ...brandForm, optinLink: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Where customers sign up to receive SMS
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="privacyPolicyLink">Privacy Policy Link *</Label>
+                    <Input
+                      id="privacyPolicyLink"
+                      placeholder="https://yoursite.com/privacy"
+                      value={brandForm.privacyPolicyLink}
+                      onChange={(e) =>
+                        setBrandForm({ ...brandForm, privacyPolicyLink: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="termsLink">Terms & Conditions Link *</Label>
+                    <Input
+                      id="termsLink"
+                      placeholder="https://yoursite.com/terms"
+                      value={brandForm.termsLink}
+                      onChange={(e) =>
+                        setBrandForm({ ...brandForm, termsLink: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="supportEmail">Support Email *</Label>
+                    <Input
+                      id="supportEmail"
+                      type="email"
+                      placeholder="support@yourcompany.com"
+                      value={brandForm.supportEmail}
+                      onChange={(e) =>
+                        setBrandForm({ ...brandForm, supportEmail: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="supportPhone">Support Phone *</Label>
+                    <Input
+                      id="supportPhone"
+                      placeholder="(555) 123-4567"
+                      value={brandForm.supportPhone}
+                      onChange={(e) =>
+                        setBrandForm({ ...brandForm, supportPhone: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <Button
               className="w-full"
               onClick={handleRegisterBrand}
               disabled={
-                loading || !brandForm.legalCompanyName || !brandForm.brandName
+                loading ||
+                !brandForm.legalCompanyName ||
+                !brandForm.brandName ||
+                !brandForm.optinLink ||
+                !brandForm.privacyPolicyLink ||
+                !brandForm.termsLink ||
+                !brandForm.supportEmail ||
+                !brandForm.supportPhone
               }
             >
               {loading ? (
