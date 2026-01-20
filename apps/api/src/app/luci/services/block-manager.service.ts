@@ -12,10 +12,11 @@
  *   nextier-data/blocks/block-001/ready/
  */
 
-import { Injectable, Logger, Inject } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { InjectDB } from "@/database/decorators";
+import { DrizzleClient } from "@/database/types";
 import { enrichmentJobs } from "@/database/schema";
 import { eq, desc, sql, like } from "drizzle-orm";
 
@@ -64,7 +65,7 @@ export class BlockManagerService {
 
   constructor(
     private config: ConfigService,
-    @Inject("DATABASE") private db: NodePgDatabase<any>,
+    @InjectDB() private db: DrizzleClient,
   ) {
     // DO Spaces uses S3-compatible API
     this.bucket = this.config.get("DO_SPACES_BUCKET") || "nextier-data";
