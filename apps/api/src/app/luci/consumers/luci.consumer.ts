@@ -47,7 +47,7 @@ interface EnrichSelectedJobData {
   jobId: string;
   teamId: string;
   leadIds: string[];
-  mode: "full" | "score_only";
+  mode: "full" | "validate_only" | "score_only";
   source: string;
 }
 

@@ -1631,7 +1631,7 @@ export class LuciService {
   async enrichSelectedLeads(
     teamId: string,
     leadIds: string[],
-    mode: "full" | "score_only",
+    mode: "full" | "validate_only" | "score_only",
   ): Promise<{ jobId: string; status: string }> {
     this.logger.log(
       `[LUCI] Starting enrichment for ${leadIds.length} leads, mode=${mode}`,
@@ -1642,7 +1642,8 @@ export class LuciService {
       .insert(enrichmentJobsTable)
       .values({
         teamId,
-        jobType: mode === "full" ? "full_pipeline" : "score",
+        jobType:
+          mode === "full" || mode === "validate_only" ? "full_pipeline" : "score",
         status: "active",
         totalRecords: leadIds.length,
         processedRecords: 0,
@@ -1725,7 +1726,7 @@ export class LuciService {
     jobId: string,
     teamId: string,
     leadIds: string[],
-    mode: "full" | "score_only",
+    mode: "full" | "validate_only" | "score_only",
   ): Promise<{
     traced: number;
     scored: number;
@@ -1749,8 +1750,8 @@ export class LuciService {
     let scoredCount = 0;
     let smsReadyCount = 0;
 
-    // Step 1: Tracerfy skip trace (if full mode)
-    if (mode === "full") {
+    // Step 1: Tracerfy skip trace (if full or validate_only mode)
+    if (mode === "full" || mode === "validate_only") {
       await this.db
         .update(enrichmentJobsTable)
         .set({ status: "tracing" })
@@ -1850,7 +1851,7 @@ export class LuciService {
         .where(eq(enrichmentJobsTable.id, jobId));
     }
 
-    // Step 2: Trestle scoring
+    // Step 2: Trestle scoring/validation
     await this.db
       .update(enrichmentJobsTable)
       .set({ status: "scoring" })
@@ -1864,7 +1865,7 @@ export class LuciService {
         and(eq(leadsTable.teamId, teamId), inArray(leadsTable.id, leadIds)),
       );
 
-    // Build phone scoring request
+    // Build phone list
     const phonesToScore = leadsToScore
       .filter((l) => l.phone || l.mobile1)
       .map((l) => ({
@@ -1875,25 +1876,62 @@ export class LuciService {
       }));
 
     if (phonesToScore.length > 0) {
-      const scoreResult = await this.trestle.batchScore({
-        phones: phonesToScore,
-      });
+      if (mode === "validate_only") {
+        // Use cheaper Phone Validation API ($0.015/phone)
+        for (const item of phonesToScore) {
+          const bestPhone = item.phones[0];
+          if (!bestPhone) continue;
 
-      // Update leads with scores
-      for (const score of scoreResult.results) {
-        await this.db
-          .update(leadsTable)
-          .set({
-            phoneActivityScore: score.contactabilityScore,
-            phoneContactGrade: score.overallGrade,
-            smsReady: score.smsReady,
-            enrichmentStatus: "scored",
-            updatedAt: new Date(),
-          })
-          .where(eq(leadsTable.id, score.leadId));
+          try {
+            const validation = await this.trestle.validatePhone(bestPhone);
 
-        scoredCount++;
-        if (score.smsReady) smsReadyCount++;
+            // Determine SMS ready: mobile + valid + activity >= 70
+            const smsReady =
+              validation.valid &&
+              validation.type === "mobile" &&
+              validation.activityScore >= 70;
+
+            await this.db
+              .update(leadsTable)
+              .set({
+                phoneActivityScore: validation.activityScore,
+                primaryPhoneType: validation.lineType,
+                smsReady,
+                enrichmentStatus: "scored",
+                updatedAt: new Date(),
+              })
+              .where(eq(leadsTable.id, item.leadId));
+
+            scoredCount++;
+            if (smsReady) smsReadyCount++;
+          } catch (err) {
+            this.logger.warn(
+              `[LUCI] Failed to validate phone for lead ${item.leadId}: ${err}`,
+            );
+          }
+        }
+      } else {
+        // Use Real Contact API for full scoring ($0.03/phone)
+        const scoreResult = await this.trestle.batchScore({
+          phones: phonesToScore,
+        });
+
+        // Update leads with scores
+        for (const score of scoreResult.results) {
+          await this.db
+            .update(leadsTable)
+            .set({
+              phoneActivityScore: score.contactabilityScore,
+              phoneContactGrade: score.overallGrade,
+              smsReady: score.smsReady,
+              enrichmentStatus: "scored",
+              updatedAt: new Date(),
+            })
+            .where(eq(leadsTable.id, score.leadId));
+
+          scoredCount++;
+          if (score.smsReady) smsReadyCount++;
+        }
       }
     }
 

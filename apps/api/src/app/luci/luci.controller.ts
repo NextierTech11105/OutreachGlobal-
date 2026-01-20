@@ -868,12 +868,14 @@ export class LuciController {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SELECTED LEAD ENRICHMENT (UI-triggered)
-  // Tracerfy ($0.02) → Trestle ($0.03) = $0.05/lead
+  // full: Tracerfy ($0.02) + Trestle Real Contact ($0.03) = $0.05/lead
+  // validate_only: Tracerfy ($0.02) + Trestle Phone Validation ($0.015) = $0.035/lead
+  // score_only: Trestle Real Contact ($0.03) = $0.03/lead
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
    * Enrich selected leads from Lead Lab UI
-   * Chains: Tracerfy skip trace → Trestle Real Contact scoring
+   * Chains: Tracerfy skip trace → Trestle scoring/validation
    * POST /luci/enrich/selected
    */
   @Post("enrich/selected")
@@ -881,7 +883,7 @@ export class LuciController {
     @Body()
     body: {
       leadIds: string[];
-      mode?: "full" | "score_only";
+      mode?: "full" | "validate_only" | "score_only";
     },
     @TenantContext("teamId") teamId: string,
   ) {
@@ -904,8 +906,34 @@ export class LuciController {
       );
 
       const mode = body.mode || "full";
-      const costPerLead = mode === "full" ? 0.05 : 0.03;
+      // Cost per lead by mode
+      const costPerLead =
+        mode === "full" ? 0.05 : mode === "validate_only" ? 0.035 : 0.03;
       const estimatedCost = body.leadIds.length * costPerLead;
+
+      // Build cost breakdown by mode
+      const getCosts = () => {
+        switch (mode) {
+          case "full":
+            return {
+              tracerfy: "$0.02/lead",
+              trestle: "$0.03/lead (Real Contact)",
+              total: "$0.05/lead",
+            };
+          case "validate_only":
+            return {
+              tracerfy: "$0.02/lead",
+              trestle: "$0.015/lead (Phone Validation)",
+              total: "$0.035/lead",
+            };
+          case "score_only":
+            return {
+              tracerfy: "N/A",
+              trestle: "$0.03/lead (Real Contact)",
+              total: "$0.03/lead",
+            };
+        }
+      };
 
       return {
         success: true,
@@ -915,9 +943,7 @@ export class LuciController {
           total: body.leadIds.length,
           mode,
           costs: {
-            tracerfy: mode === "full" ? "$0.02/lead" : "N/A",
-            trestle: "$0.03/lead",
-            total: mode === "full" ? "$0.05/lead" : "$0.03/lead",
+            ...getCosts(),
             estimated: `$${estimatedCost.toFixed(2)}`,
           },
           message: `Started enrichment for ${body.leadIds.length} leads`,

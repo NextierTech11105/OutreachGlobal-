@@ -48,6 +48,17 @@ export interface TrestlePhoneResult {
   nameMatch: boolean;
 }
 
+// Validation result from Phone Validation API ($0.015/phone)
+// Includes activity_score but not contact_grade or name_match
+export interface TrestleValidationResult {
+  phone: string;
+  valid: boolean;
+  type: PhoneTypeValue;
+  lineType: string;
+  carrier?: string;
+  activityScore: number; // 0-100
+}
+
 export interface TrestleContactScore {
   leadId: string;
   phones: TrestlePhoneResult[];
@@ -100,6 +111,56 @@ export class TrestleClient {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       "Content-Type": "application/json",
+    };
+  }
+
+  /**
+   * Validate a phone number via Trestle Phone Validation API (cheaper)
+   * GET https://api.trestleiq.com/3.0/phone_intel?phone=XXX
+   * Cost: $0.015/phone vs $0.03 for Real Contact
+   * Returns: is_valid, activity_score, line_type, carrier, is_prepaid
+   */
+  async validatePhone(phone: string): Promise<TrestleValidationResult> {
+    // Phone Validation uses 3.0 API with x-api-key header
+    const res = await fetch(
+      `https://api.trestleiq.com/3.0/phone_intel?phone=${encodeURIComponent(phone)}`,
+      {
+        method: "GET",
+        headers: {
+          "x-api-key": this.apiKey,
+        },
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error(`Trestle validatePhone failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // Map line_type to our PhoneTypeValue
+    const lineType = data.line_type || "unknown";
+    const valid = data.is_valid === true;
+    const activityScore = data.activity_score || 0;
+
+    let type: PhoneTypeValue = "landline";
+    if (lineType === "Mobile") {
+      type = "mobile";
+    } else if (lineType === "NonFixedVOIP") {
+      type = "nonFixedVoIP";
+    } else if (lineType === "FixedVOIP") {
+      type = "fixedVoIP";
+    } else if (lineType === "Landline") {
+      type = "landline";
+    }
+
+    return {
+      phone,
+      valid,
+      type,
+      lineType,
+      carrier: data.carrier,
+      activityScore,
     };
   }
 

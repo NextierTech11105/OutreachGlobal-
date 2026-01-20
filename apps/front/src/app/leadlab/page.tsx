@@ -223,7 +223,9 @@ export default function LeadLabPage() {
   };
 
   // Start enrichment for selected leads
-  const startEnrichment = async (mode: "full" | "score_only") => {
+  const startEnrichment = async (
+    mode: "full" | "validate_only" | "score_only",
+  ) => {
     if (selectedIds.size === 0) return;
     setEnrichDropdownOpen(false);
     setEnriching(true);
@@ -325,12 +327,18 @@ export default function LeadLabPage() {
   };
 
   // Calculate enrichment cost
-  const getEnrichmentCost = (mode: "full" | "score_only") => {
+  const getEnrichmentCost = (
+    mode: "full" | "validate_only" | "score_only",
+  ) => {
     const count = selectedIds.size;
-    if (mode === "full") {
-      return (count * 0.05).toFixed(2); // $0.02 Tracerfy + $0.03 Trestle
+    switch (mode) {
+      case "full":
+        return (count * 0.05).toFixed(2); // $0.02 Tracerfy + $0.03 Trestle Real Contact
+      case "validate_only":
+        return (count * 0.035).toFixed(2); // $0.02 Tracerfy + $0.015 Phone Validation
+      case "score_only":
+        return (count * 0.03).toFixed(2); // $0.03 Trestle Real Contact only
     }
-    return (count * 0.03).toFixed(2); // $0.03 Trestle only
   };
 
   if (loading) {
@@ -476,13 +484,27 @@ export default function LeadLabPage() {
                     className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Skip Trace + Score</span>
+                      <span className="font-medium">Skip Trace + Full Score</span>
                       <span className="text-emerald-500 text-sm">
                         ${getEnrichmentCost("full")}
                       </span>
                     </div>
                     <p className="text-xs text-zinc-500 mt-1">
-                      Tracerfy + Trestle Real Contact
+                      Tracerfy + Trestle Real Contact (Recommended)
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => startEnrichment("validate_only")}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors mt-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Skip Trace + Validate</span>
+                      <span className="text-emerald-500 text-sm">
+                        ${getEnrichmentCost("validate_only")}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Tracerfy + Phone Validation (no contact grade)
                     </p>
                   </button>
                   <button
@@ -496,7 +518,7 @@ export default function LeadLabPage() {
                       </span>
                     </div>
                     <p className="text-xs text-zinc-500 mt-1">
-                      Trestle Real Contact only
+                      Trestle Real Contact only (has phones)
                     </p>
                   </button>
                 </div>
