@@ -17,7 +17,7 @@
  *    URL: https://your-domain/api/cron/cathy-nudges
  *    Method: GET
  *    Header: Authorization: Bearer YOUR_CRON_SECRET
- *    Schedule: */1 * * * * (every minute)
+ *    Schedule: every minute (cron: * * * * *)
  *
  * 2. GitHub Actions (if using GitHub):
  *    .github/workflows/cathy-cron.yml

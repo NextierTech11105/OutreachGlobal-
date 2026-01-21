@@ -137,3 +137,43 @@ export interface LuciApprovalResult {
   reason?: string;
   approved_lead?: LuciApprovedLead;
 }
+
+// =============================================================================
+// CAMPAIGN MANIFEST & EXECUTION BLOCKS (Data Pipeline)
+// =============================================================================
+
+export interface ExecutionBlock {
+  id: string;
+  index: number;
+  records: RawIngestRecord[];
+  status: "pending" | "processing" | "completed" | "failed";
+  startedAt?: Date;
+  completedAt?: Date;
+}
+
+export interface RawIngestRecord {
+  name: string;
+  company?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  sicCode?: string;
+}
+
+export interface CampaignManifest {
+  id: string;
+  name: string;
+  sourceFile: string;
+  totalRecords: number;
+  blocks: ExecutionBlock[];
+  estimatedCost: {
+    tracerfy: number;
+    trestle: number;
+    total: number;
+  };
+  createdAt: Date;
+  status: "building" | "processing" | "completed" | "failed";
+}

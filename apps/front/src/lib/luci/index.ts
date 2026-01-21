@@ -11,4 +11,4 @@
 
 export * from "./types";
 export * from "./constants";
-export { luciService, default } from "./service";
+export { luciService, LUCI, default } from "./service";

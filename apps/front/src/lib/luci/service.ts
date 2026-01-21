@@ -11,7 +11,7 @@
  */
 
 import { db } from "@/lib/db";
-import { leads, leadSignals } from "@/lib/schema";
+import { leads, leadSignals } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import type {
   LuciApprovedLead,
@@ -21,6 +21,9 @@ import type {
   LuciStatus,
   LuciContactability,
   SuppressionReason,
+  CampaignManifest,
+  ExecutionBlock,
+  RawIngestRecord,
 } from "./types";
 import { LUCI_THRESHOLDS, PERMANENT_SUPPRESSIONS, TCPA_CALLING_HOURS } from "./constants";
 
@@ -345,6 +348,107 @@ function calculateContactability(
     litigator: lead.litigator || false,
     score,
   };
+}
+
+// =============================================================================
+// LUCI CLASS - Data Pipeline Orchestration
+// =============================================================================
+
+/**
+ * LUCI Class - Handles data ingestion and block processing for pipelines
+ * Used by DataToSMSPipeline for structured batch processing
+ */
+export class LUCI {
+  private manifests: Map<string, CampaignManifest> = new Map();
+  private blockQueues: Map<string, ExecutionBlock[]> = new Map();
+
+  /**
+   * Ingest raw records and structure into execution blocks
+   */
+  ingest(
+    records: RawIngestRecord[],
+    options: { name: string; sourceFile: string; blockSize?: number }
+  ): CampaignManifest {
+    const blockSize = options.blockSize || 2000;
+    const manifestId = `manifest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Split into blocks
+    const blocks: ExecutionBlock[] = [];
+    for (let i = 0; i < records.length; i += blockSize) {
+      const blockRecords = records.slice(i, i + blockSize);
+      blocks.push({
+        id: `block_${manifestId}_${blocks.length}`,
+        index: blocks.length,
+        records: blockRecords,
+        status: "pending",
+      });
+    }
+
+    // Calculate estimated costs
+    const estimatedCost = {
+      tracerfy: records.length * 0.02,
+      trestle: records.length * 0.09, // avg 3 phones @ $0.03
+      total: records.length * 0.11,
+    };
+
+    const manifest: CampaignManifest = {
+      id: manifestId,
+      name: options.name,
+      sourceFile: options.sourceFile,
+      totalRecords: records.length,
+      blocks,
+      estimatedCost,
+      createdAt: new Date(),
+      status: "building",
+    };
+
+    this.manifests.set(manifestId, manifest);
+    this.blockQueues.set(manifestId, [...blocks]);
+
+    return manifest;
+  }
+
+  /**
+   * Get next pending block for processing
+   */
+  getNextBlock(manifestId: string): ExecutionBlock | null {
+    const queue = this.blockQueues.get(manifestId);
+    if (!queue || queue.length === 0) return null;
+
+    const block = queue.find(b => b.status === "pending");
+    if (block) {
+      block.status = "processing";
+      block.startedAt = new Date();
+    }
+    return block || null;
+  }
+
+  /**
+   * Mark block as completed
+   */
+  completeBlock(manifestId: string, blockId: string): void {
+    const queue = this.blockQueues.get(manifestId);
+    if (!queue) return;
+
+    const block = queue.find(b => b.id === blockId);
+    if (block) {
+      block.status = "completed";
+      block.completedAt = new Date();
+    }
+
+    // Check if all blocks completed
+    const manifest = this.manifests.get(manifestId);
+    if (manifest && queue.every(b => b.status === "completed")) {
+      manifest.status = "completed";
+    }
+  }
+
+  /**
+   * Get manifest by ID
+   */
+  getManifest(manifestId: string): CampaignManifest | null {
+    return this.manifests.get(manifestId) || null;
+  }
 }
 
 // =============================================================================
