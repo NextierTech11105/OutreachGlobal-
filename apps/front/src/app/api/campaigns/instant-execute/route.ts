@@ -4,6 +4,7 @@ import { leads } from "@/lib/db/schema";
 import { eq, and, isNotNull, notInArray, sql } from "drizzle-orm";
 import { sendSMS } from "@/lib/signalhouse/client";
 import { gianna } from "@/lib/gianna/gianna-service";
+import { luciService } from "@/lib/luci";
 import {
   CAMPAIGN_MACROS,
   INSTANT_EXECUTION,
@@ -211,6 +212,16 @@ export async function POST(request: NextRequest) {
       const batchResults = await Promise.all(
         batch.map(async (preview) => {
           try {
+            // LUCI GATE - Hard block for suppressed leads
+            const luciCheck = await luciService.canContact(preview.leadId, teamId);
+            if (!luciCheck.allowed) {
+              return {
+                ...preview,
+                status: "failed" as const,
+                error: `LUCI blocked: ${luciCheck.reason}`,
+              };
+            }
+
             const smsResult = await sendSMS({
               from: GIANNA_NUMBER,
               to: preview.phone,
