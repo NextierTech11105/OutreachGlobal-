@@ -29,7 +29,7 @@ export default function GetStartedPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button size="lg" className="px-8 py-6 text-lg bg-blue-600 hover:bg-blue-700" asChild>
-              <Link href="/login">
+              <Link href="/auth/login">
                 Sign In
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
