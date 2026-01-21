@@ -28,6 +28,10 @@ import {
 import { TemplateLifecycle } from "./template-cartridges";
 import crypto from "crypto";
 
+// NOTE: LUCI compliance gates are enforced at the API route level
+// (sms-queue-service, gianna/send-batch, signalhouse/bulk-send, instant-execute, auto-respond)
+// ExecutionRouter focuses on template resolution and provider routing
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -323,6 +327,10 @@ export async function executeSMS(
       errorCode: resolutionError.code,
     };
   }
+
+  // NOTE: LUCI compliance gates are enforced at the API route level
+  // (sms-queue-service, gianna/send-batch, signalhouse/bulk-send, instant-execute, auto-respond)
+  // This keeps ExecutionRouter free of server-only dependencies for client-side bundling
 
   // Resolve and render template (with tenant guard via teamId)
   const {

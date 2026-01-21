@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { luciService } from "@/lib/luci";
 
 // SignalHouse Bulk SMS API
 // Based on https://api.signalhouse.io/message/sendSMS
 // Headers: apiKey + authToken (from SignalHouse dashboard)
+// NOTE: Prefer ExecutionRouter for template-based sends with LUCI gates
 
 const SIGNALHOUSE_SMS_URL = "https://api.signalhouse.io/message/sendSMS";
 const SIGNALHOUSE_MMS_URL = "https://api.signalhouse.io/message/sendMMS";
@@ -20,6 +22,7 @@ const WEBHOOK_BASE_URL =
 interface PhoneWithType {
   number: string;
   type?: string; // 'mobile' | 'landline' | 'voip' | 'unknown'
+  leadId?: string; // Lead ID for LUCI gate check
 }
 
 interface BulkSmsRequest {
@@ -28,6 +31,7 @@ interface BulkSmsRequest {
   from?: string; // Your 10DLC number
   mediaUrl?: string; // Optional MMS image URL
   campaignId?: string; // For tracking
+  teamId?: string; // Team ID for LUCI compliance check
   shortLink?: boolean; // Enable link shortening
   statusCallbackUrl?: string; // Override default webhook
   skipLandlineValidation?: boolean; // Override landline check (not recommended)
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest) {
       from,
       mediaUrl,
       campaignId,
+      teamId,
       shortLink = false,
       statusCallbackUrl,
       skipLandlineValidation = false,
@@ -153,11 +158,32 @@ export async function POST(request: NextRequest) {
       return item;
     });
 
-    // Filter out landlines - they cannot receive SMS
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // LUCI GATE - Filter out suppressed leads BEFORE sending
+    // ═══════════════════════════════════════════════════════════════════════════════
+    const luciBlockedNumbers: string[] = [];
+    if (teamId) {
+      // Check each phone with a leadId against LUCI
+      for (const phone of phoneList) {
+        if (phone.leadId) {
+          const luciCheck = await luciService.canContact(phone.leadId, teamId);
+          if (!luciCheck.allowed) {
+            luciBlockedNumbers.push(phone.number);
+            console.log(`[SignalHouse Bulk] LUCI blocked ${phone.number} (${phone.leadId}): ${luciCheck.reason}`);
+          }
+        }
+      }
+    }
+
+    // Filter out landlines and LUCI-blocked - they cannot receive SMS
     const landlineNumbers: string[] = [];
     const smsablePhones: PhoneWithType[] = [];
 
     for (const phone of phoneList) {
+      // Skip LUCI-blocked numbers
+      if (luciBlockedNumbers.includes(phone.number)) {
+        continue;
+      }
       const phoneType = phone.type?.toLowerCase() || "unknown";
       if (phoneType === "landline" && !skipLandlineValidation) {
         landlineNumbers.push(phone.number);
@@ -352,6 +378,7 @@ export async function POST(request: NextRequest) {
       failed: failedCount,
       skippedInvalid: invalidNumbers.length,
       skippedLandlines: landlineNumbers.length,
+      skippedLuciBlocked: luciBlockedNumbers.length,
       // Batch progress info
       batchInfo: {
         totalBatches,
@@ -363,6 +390,8 @@ export async function POST(request: NextRequest) {
       invalidNumbers: invalidNumbers.length > 0 ? invalidNumbers : undefined,
       landlineNumbers:
         landlineNumbers.length > 0 ? landlineNumbers.slice(0, 10) : undefined,
+      luciBlockedNumbers:
+        luciBlockedNumbers.length > 0 ? luciBlockedNumbers.slice(0, 10) : undefined,
       campaignId,
       dailyUsed: dailySendCount,
       dailyRemaining: DAILY_LIMIT - dailySendCount,

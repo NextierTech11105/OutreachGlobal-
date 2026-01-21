@@ -4,6 +4,7 @@ import { leads } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { sendSMS } from "@/lib/signalhouse/client";
 import { gianna } from "@/lib/gianna/gianna-service";
+import { luciService } from "@/lib/luci";
 
 /**
  * GIANNA SEND BATCH API
@@ -100,6 +101,21 @@ export async function POST(request: NextRequest) {
           leadId: lead.id,
           success: false,
           error: "No phone number",
+        });
+        failCount++;
+        continue;
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════════
+      // LUCI GATE - Compliance check BEFORE any send
+      // ═══════════════════════════════════════════════════════════════════════════
+      const luciCheck = await luciService.canContact(lead.id, teamId);
+      if (!luciCheck.allowed) {
+        console.log(`[GIANNA] LUCI blocked ${lead.id}: ${luciCheck.reason}`);
+        results.push({
+          leadId: lead.id,
+          success: false,
+          error: `LUCI blocked: ${luciCheck.reason}`,
         });
         failCount++;
         continue;

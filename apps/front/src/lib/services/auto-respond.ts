@@ -13,6 +13,7 @@
 import { db } from "@/lib/db";
 import { smsMessages } from "@/lib/db/schema";
 import { v4 as uuid } from "uuid";
+import { luciService } from "@/lib/luci";
 
 // Import GIANNA's existing systems
 import { GIANNA_PRESETS, type GiannaPersonality } from "@/lib/gianna/knowledge-base";
@@ -265,6 +266,18 @@ async function executeScheduledResponse(responseId: string): Promise<void> {
   if (scheduled.status !== "pending") {
     console.log(`[AutoRespond] Response ${responseId} already ${scheduled.status}`);
     return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LUCI GATE - Compliance check BEFORE any send
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (scheduled.leadId && scheduled.teamId) {
+    const luciCheck = await luciService.canContact(scheduled.leadId, scheduled.teamId);
+    if (!luciCheck.allowed) {
+      console.log(`[AutoRespond] LUCI blocked ${scheduled.leadId}: ${luciCheck.reason}`);
+      scheduled.status = "cancelled";
+      return;
+    }
   }
 
   try {
