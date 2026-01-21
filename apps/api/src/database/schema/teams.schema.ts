@@ -93,7 +93,16 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   invitations: many(teamInvitations),
 }));
 
-export const teamInvitationsRelations = relations(teamInvitations, ({ one }) => ({
-  team: one(teams, { fields: [teamInvitations.teamId], references: [teams.id] }),
-  inviter: one(users, { fields: [teamInvitations.invitedBy], references: [users.id] }),
-}));
+export const teamInvitationsRelations = relations(
+  teamInvitations,
+  ({ one }) => ({
+    team: one(teams, {
+      fields: [teamInvitations.teamId],
+      references: [teams.id],
+    }),
+    inviter: one(users, {
+      fields: [teamInvitations.invitedBy],
+      references: [users.id],
+    }),
+  }),
+);

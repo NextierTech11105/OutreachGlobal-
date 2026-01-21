@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -24,10 +24,34 @@ import {
 } from "@/components/ui/card";
 import { Filter, Search, X } from "lucide-react";
 
-export function CampaignTargetingOptions() {
-  const [targetingMethod, setTargetingMethod] = useState("score");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [scoreRange, setScoreRange] = useState([30, 100]);
+interface CampaignTargetingOptionsProps {
+  initialData?: any;
+  onChange?: (targetingData: any) => void;
+}
+
+export function CampaignTargetingOptions({
+  initialData,
+  onChange,
+}: CampaignTargetingOptionsProps) {
+  const [targetingMethod, setTargetingMethod] = useState(
+    initialData?.targetingMethod || "score",
+  );
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    initialData?.selectedTags || [],
+  );
+  const [scoreRange, setScoreRange] = useState(
+    initialData?.scoreRange || [30, 100],
+  );
+
+  useEffect(() => {
+    if (onChange) {
+      onChange({
+        targetingMethod,
+        selectedTags,
+        scoreRange,
+      });
+    }
+  }, [targetingMethod, selectedTags, scoreRange, onChange]);
 
   const availableTags = [
     "HighEquity",
@@ -131,9 +155,7 @@ export function CampaignTargetingOptions() {
                 {availableTags.map((tag) => (
                   <Badge
                     key={tag}
-                    variant={
-                      selectedTags.includes(tag) ? "default" : "outline-solid"
-                    }
+                    variant={selectedTags.includes(tag) ? "default" : "outline"}
                     className="cursor-pointer"
                     onClick={() => handleTagToggle(tag)}
                   >

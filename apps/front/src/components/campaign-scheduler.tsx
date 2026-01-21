@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -23,10 +23,34 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-export function CampaignScheduler() {
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const [scheduleType, setScheduleType] = useState("immediate");
+interface CampaignSchedulerProps {
+  initialData?: any;
+  onChange?: (scheduleData: any) => void;
+}
+
+export function CampaignScheduler({
+  initialData,
+  onChange,
+}: CampaignSchedulerProps) {
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    initialData?.startDate ? new Date(initialData.startDate) : new Date(),
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    initialData?.endDate ? new Date(initialData.endDate) : undefined,
+  );
+  const [scheduleType, setScheduleType] = useState(
+    initialData?.scheduleType || "immediate",
+  );
+
+  useEffect(() => {
+    if (onChange) {
+      onChange({
+        startDate,
+        endDate,
+        scheduleType,
+      });
+    }
+  }, [startDate, endDate, scheduleType, onChange]);
 
   return (
     <div className="space-y-6">

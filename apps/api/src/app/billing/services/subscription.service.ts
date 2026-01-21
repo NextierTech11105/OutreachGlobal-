@@ -155,7 +155,7 @@ export class SubscriptionService implements OnModuleInit {
     try {
       // Use raw SQL to check if plan exists (more reliable than query API during init)
       const result = await this.db.execute(
-        sql`SELECT id FROM plans WHERE slug = ${DEFAULT_PLAN_SLUG} LIMIT 1`
+        sql`SELECT id FROM plans WHERE slug = ${DEFAULT_PLAN_SLUG} LIMIT 1`,
       );
       const existing = result.rows?.[0];
 
@@ -192,7 +192,7 @@ export class SubscriptionService implements OnModuleInit {
     } catch (error: any) {
       this.logger.error(
         `Error ensuring starter plan: ${error?.message || error}`,
-        error?.stack
+        error?.stack,
       );
     }
   }

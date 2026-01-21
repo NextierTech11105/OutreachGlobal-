@@ -35,7 +35,10 @@ export class DatabaseService {
       const [{ total }] = await Promise.race([query, timeoutPromise]);
       return { total: Number(total) };
     } catch (error) {
-      console.warn("[DatabaseService] Count query failed/timeout, returning -1:", error);
+      console.warn(
+        "[DatabaseService] Count query failed/timeout, returning -1:",
+        error,
+      );
       return { total: -1 };
     }
   }

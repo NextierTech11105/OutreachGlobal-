@@ -1643,7 +1643,9 @@ export class LuciService {
       .values({
         teamId,
         jobType:
-          mode === "full" || mode === "validate_only" ? "full_pipeline" : "score",
+          mode === "full" || mode === "validate_only"
+            ? "full_pipeline"
+            : "score",
         status: "active",
         totalRecords: leadIds.length,
         processedRecords: 0,
@@ -1949,6 +1951,10 @@ export class LuciService {
       `[LUCI] Enrichment job ${jobId} complete: ${tracedCount} traced, ${scoredCount} scored, ${smsReadyCount} SMS-ready`,
     );
 
-    return { traced: tracedCount, scored: scoredCount, smsReady: smsReadyCount };
+    return {
+      traced: tracedCount,
+      scored: scoredCount,
+      smsReady: smsReadyCount,
+    };
   }
 }

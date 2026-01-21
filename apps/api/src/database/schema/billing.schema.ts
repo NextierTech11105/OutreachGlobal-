@@ -366,19 +366,22 @@ export const plansRelations = relations(plans, ({ many }) => ({
   subscriptions: many(subscriptions),
 }));
 
-export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
-  plan: one(plans, {
-    fields: [subscriptions.planId],
-    references: [plans.id],
+export const subscriptionsRelations = relations(
+  subscriptions,
+  ({ one, many }) => ({
+    plan: one(plans, {
+      fields: [subscriptions.planId],
+      references: [plans.id],
+    }),
+    team: one(teams, {
+      fields: [subscriptions.teamId],
+      references: [teams.id],
+    }),
+    payments: many(payments),
+    usageRecords: many(usageRecords),
+    invoices: many(invoices),
   }),
-  team: one(teams, {
-    fields: [subscriptions.teamId],
-    references: [teams.id],
-  }),
-  payments: many(payments),
-  usageRecords: many(usageRecords),
-  invoices: many(invoices),
-}));
+);
 
 export const paymentsRelations = relations(payments, ({ one, many }) => ({
   team: one(teams, {

@@ -228,7 +228,7 @@ export default function SectorsPage() {
     fetchRealData();
   }, []);
 
-  // Handle CSV upload
+  // Handle CSV upload (two-step: storage upload -> import)
   const handleUpload = async () => {
     if (!uploadFile || !uploadName) {
       toast.error("Please select a file and enter a name");
@@ -239,31 +239,65 @@ export default function SectorsPage() {
     setUploadResult(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", uploadFile);
-      formData.append("name", uploadName);
-      formData.append("description", uploadDescription);
-      formData.append("tags", uploadTags);
+      // Step 1: Upload to storage (DO Spaces) via /api/storage/upload
+      const folder = `sectors/usbizdata/${uploadName.replace(/\s+/g, "-").toLowerCase()}`;
+      const storageForm = new FormData();
+      storageForm.append("file", uploadFile);
+      storageForm.append("folder", folder);
+      storageForm.append("filename", uploadFile.name);
+      storageForm.append("tags", uploadTags);
 
-      const response = await fetch("/api/buckets/upload-csv", {
+      const storageRes = await fetch("/api/storage/upload", {
         method: "POST",
-        body: formData,
+        body: storageForm,
       });
 
-      const data = await response.json();
-
-      if (data.error) {
-        setUploadResult({ success: false, message: data.error });
-        toast.error(data.error);
-        return;
+      if (!storageRes.ok) {
+        const text = await storageRes.text().catch(() => "");
+        const isHtml = text.trim().startsWith("<");
+        const msg = isHtml
+          ? `Storage upload failed: server returned HTML (status ${storageRes.status})`
+          : text || `Storage upload failed: HTTP ${storageRes.status}`;
+        throw new Error(msg);
       }
+
+      const storageData = await storageRes.json().catch(async () => {
+        const txt = await storageRes.text().catch(() => "");
+        throw new Error(txt || "Invalid JSON from storage upload");
+      });
+
+      const storagePath = storageData.storagePath;
+      if (!storagePath) throw new Error("No storagePath returned from storage upload");
+
+      // Step 2: Trigger import (async processing) using /api/buckets/import
+      const importRes = await fetch("/api/buckets/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storagePath }),
+      });
+
+      if (!importRes.ok) {
+        const text = await importRes.text().catch(() => "");
+        const isHtml = text.trim().startsWith("<");
+        const msg = isHtml
+          ? `Import failed: server returned HTML (status ${importRes.status})`
+          : text || `Import failed: HTTP ${importRes.status}`;
+        throw new Error(msg);
+      }
+
+      const importData = await importRes.json().catch(async () => {
+        const txt = await importRes.text().catch(() => "");
+        throw new Error(txt || "Invalid JSON from import");
+      });
+
+      if (importData.error) throw new Error(importData.error);
 
       setUploadResult({
         success: true,
-        message: data.message,
-        stats: data.bucket.stats,
+        message: importData.success ? "CSV uploaded and import started" : importData.message || "Import started",
+        stats: importData.stats || importData.bucket?.stats,
       });
-      toast.success("CSV uploaded successfully!");
+      toast.success("CSV uploaded and import started!");
 
       // Refresh data lakes
       const refreshResponse = await fetch("/api/buckets?perPage=100");
@@ -283,8 +317,9 @@ export default function SectorsPage() {
       }, 2000);
     } catch (error) {
       console.error("Upload failed:", error);
-      setUploadResult({ success: false, message: "Upload failed" });
-      toast.error("Upload failed");
+      const msg = error instanceof Error ? error.message : "Upload failed";
+      setUploadResult({ success: false, message: msg });
+      toast.error(msg);
     } finally {
       setIsUploading(false);
     }
