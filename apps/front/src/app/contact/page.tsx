@@ -304,18 +304,18 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href={CALENDLY_CONFIG.meetingTypes["15min"].url}
+                  href={CALENDLY_CONFIG.bookingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 text-sm hover:text-primary transition-colors"
                 >
-                  <div className="p-2 rounded-lg bg-muted">
-                    <Calendar className="h-4 w-4" />
+                  <div className="p-2 rounded-lg bg-primary">
+                    <Calendar className="h-4 w-4 text-primary-foreground" />
                   </div>
                   <div>
-                    <p className="font-medium">Book a Call</p>
+                    <p className="font-medium">Book with Founder</p>
                     <p className="text-muted-foreground">
-                      Free Strategy Session
+                      15-min Discovery Call
                     </p>
                   </div>
                 </a>

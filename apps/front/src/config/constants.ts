@@ -554,53 +554,36 @@ export const SABRINA_CONFIG = {
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CALENDLY CONFIGURATION - tb@outreachglobal.io
+// BOOKING CONFIGURATION - Google Calendar (FREE)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const CALENDLY_CONFIG = {
-  // Owner email
+  // Owner
   ownerEmail: "tb@outreachglobal.io",
+  ownerName: "Thomas Borruso",
+  ownerTitle: "Founder",
 
-  // Base URL
-  baseUrl: process.env.CALENDLY_BASE_URL || "https://calendly.com/tb-outreachglobal",
+  // Google Calendar Appointment Scheduling (FREE)
+  bookingUrl: "https://calendar.app.google/PXxgzwiVjZt9Eq1n9",
 
-  // Meeting types with durations
+  // Meeting types
   meetingTypes: {
     QUICK_CALL: {
-      name: "15-Minute Quick Call",
-      slug: "15min",
+      name: "15-Minute Discovery Call",
       duration: 15,
-      url: process.env.CALENDLY_15MIN_URL || "https://calendly.com/tb-outreachglobal/15min",
-      description: "Quick intro call - perfect for initial discovery",
+      url: process.env.BOOKING_15MIN_LINK || "https://calendar.app.google/PXxgzwiVjZt9Eq1n9",
+      description: "Quick intro call - see if we can help",
     },
     STRATEGY_CALL: {
       name: "30-Minute Strategy Call",
-      slug: "30min",
       duration: 30,
-      url: process.env.CALENDLY_30MIN_URL || "https://calendly.com/tb-outreachglobal/30min",
+      url: process.env.BOOKING_30MIN_LINK || "https://calendar.app.google/PXxgzwiVjZt9Eq1n9",
       description: "In-depth strategy discussion",
-    },
-    DEEP_DIVE: {
-      name: "60-Minute Deep Dive",
-      slug: "60min",
-      duration: 60,
-      url: process.env.CALENDLY_60MIN_URL || "https://calendly.com/tb-outreachglobal/60min",
-      description: "Full consultation and demo",
     },
   },
 
-  // Default meeting for THE LOOP (15-min discovery)
+  // Default meeting for THE LOOP
   defaultMeeting: "QUICK_CALL",
-
-  // Webhook endpoint
-  webhookUrl: "/api/calendly/webhook",
-
-  // Events we listen for
-  events: [
-    "invitee.created",
-    "invitee.canceled",
-    "invitee.rescheduled",
-  ],
 } as const;
 
 export type CalendlyMeetingType = keyof typeof CALENDLY_CONFIG.meetingTypes;

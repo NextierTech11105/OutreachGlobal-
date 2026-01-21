@@ -36,12 +36,13 @@ const BUSINESS_HOURS = {
 // We dictate the pace. They come to us. We control perception.
 //
 const BOOKING_CONFIG = {
-  // 15-min strategy calls (30-min available for qualified)
-  CALENDLY_15MIN:
-    process.env.CALENDLY_15MIN_LINK ||
-    "https://calendly.com/tb-outreachglobal/15min",
-  CALENDLY_30MIN:
-    process.env.CALENDLY_LINK || "https://calendly.com/tb-outreachglobal/30min",
+  // 15-min strategy calls - Google Calendar (FREE)
+  BOOKING_15MIN:
+    process.env.BOOKING_15MIN_LINK ||
+    "https://calendar.app.google/PXxgzwiVjZt9Eq1n9",
+  BOOKING_30MIN:
+    process.env.BOOKING_30MIN_LINK ||
+    "https://calendar.app.google/PXxgzwiVjZt9Eq1n9",
 
   // Stripe Payment Links - $500 One-Time Special (with feedback deal)
   PAYMENT_LINKS: {
