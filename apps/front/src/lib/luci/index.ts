@@ -13,3 +13,4 @@ export * from "./types";
 export * from "./constants";
 export { luciService, LUCI, default } from "./service";
 export { trestleClient, verifyPhone, verifyContact, batchVerifyPhones } from "./trestle-client";
+export { tracerfyClient, startTrace, getQueues, getQueueResults, waitForQueue, parseWebhook as parseTracerfyWebhook } from "./tracerfy-client";
