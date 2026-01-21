@@ -1,161 +1,170 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  quickValidationScan,
-  deepResearch,
-  calculateMarketSizing,
-  buildPersonaIntelligence,
-  generateDealIntelligence,
-  generateFullResearchReport,
-} from "@/lib/ai-workers/neva-research";
-
 /**
- * POST /api/neva/research
+ * NEVA Research API
  *
- * NEVA Deep Research API - Internal Copilot
- * Uses Perplexity API for comprehensive business intelligence.
- *
- * Research Types:
- * - quick_validation: Apollo-style business validation
- * - deep_research: Pre-appointment intel
- * - market_sizing: TAM/SAM/SOM calculations
- * - persona: ICP and buyer personas
- * - deal_intelligence: Competitive positioning
- * - full_report: All modules combined
+ * Provides deep business research using Perplexity AI.
+ * Used by Inbox for pre-call research and discovery prep.
  */
 
-const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
+import { NextRequest, NextResponse } from "next/server";
+import { nevaService } from "@/lib/neva";
+import type { NevaEnrichRequest } from "@/lib/neva/types";
 
 export async function POST(request: NextRequest) {
   try {
-    if (!PERPLEXITY_API_KEY) {
-      return NextResponse.json(
-        { success: false, error: "PERPLEXITY_API_KEY not configured" },
-        { status: 500 },
-      );
-    }
-
     const body = await request.json();
-    const { type, companyName, contactName, address, industry, leadId } = body;
+    const {
+      companyName,
+      contactName,
+      phone,
+      email,
+      address,
+      industry,
+      teamId,
+      leadId,
+    } = body;
 
-    if (!type) {
+    if (!companyName) {
       return NextResponse.json(
-        { success: false, error: "Research type is required" },
-        { status: 400 },
+        { error: "companyName is required" },
+        { status: 400 }
       );
     }
 
-    let result: any;
+    // Build NEVA enrich request
+    const enrichRequest: NevaEnrichRequest = {
+      lead_id: leadId || `temp-${Date.now()}`,
+      team_id: teamId || "default",
 
-    switch (type) {
-      case "quick_validation":
-        if (!companyName || !address) {
-          return NextResponse.json(
-            { success: false, error: "Company name and address required" },
-            { status: 400 },
-          );
-        }
-        result = await quickValidationScan(companyName, address);
-        break;
+      business: {
+        name: companyName,
+        address: address?.street,
+        city: address?.city,
+        state: address?.state,
+        phone,
+        industry,
+      },
 
-      case "deep_research":
-        if (!companyName) {
-          return NextResponse.json(
-            { success: false, error: "Company name required" },
-            { status: 400 },
-          );
-        }
-        result = await deepResearch(
-          companyName,
-          contactName,
-          address,
-          industry,
-        );
-        break;
+      owner: contactName
+        ? {
+            name: contactName,
+            email,
+          }
+        : undefined,
 
-      case "market_sizing":
-        if (!industry) {
-          return NextResponse.json(
-            { success: false, error: "Industry required" },
-            { status: 400 },
-          );
-        }
-        result = await calculateMarketSizing(industry, address?.state);
-        break;
+      context: {
+        campaign_type: "cold_outreach",
+        intent: "discovery_call",
+        prior_interactions: 0,
+      },
 
-      case "persona":
-        if (!industry) {
-          return NextResponse.json(
-            { success: false, error: "Industry required" },
-            { status: 400 },
-          );
-        }
-        result = await buildPersonaIntelligence(industry);
-        break;
+      options: {
+        max_depth: "normal",
+        timeout_ms: 15000,
+      },
+    };
 
-      case "deal_intelligence":
-        if (!companyName) {
-          return NextResponse.json(
-            { success: false, error: "Company name required" },
-            { status: 400 },
-          );
-        }
-        result = await generateDealIntelligence(companyName, industry, address);
-        break;
+    // Call NEVA enrich
+    const packet = await nevaService.enrich(enrichRequest);
 
-      case "full_report":
-        if (!companyName || !address || !industry) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "Company, address, and industry required",
-            },
-            { status: 400 },
-          );
-        }
-        result = await generateFullResearchReport(
-          companyName,
-          address,
-          industry,
-          contactName,
-        );
-        break;
-
-      default:
-        return NextResponse.json(
-          { success: false, error: "Unknown research type: " + type },
-          { status: 400 },
-        );
+    if (!packet) {
+      // Return minimal response if research failed
+      return NextResponse.json({
+        success: true,
+        confidence: 0,
+        summary: {
+          company: companyName,
+          overview: "Research unavailable. Proceed with general approach.",
+        },
+        signals: [],
+        recommendations: {
+          tone: "professional",
+          discovery_questions: [
+            "What's the biggest challenge you're facing right now?",
+            "How are you currently handling lead follow-up?",
+            "What would make your day-to-day easier?",
+          ],
+        },
+        risk_flags: null,
+      });
     }
 
-    console.log("[NEVA Research]", { type, companyName, leadId });
+    // Prepare discovery questions
+    const discoveryPrep = await nevaService.prepareDiscovery(packet);
+
+    // Evaluate confidence
+    const confidenceResult = nevaService.evaluateConfidence(packet);
 
     return NextResponse.json({
       success: true,
-      type,
-      result,
-      executedAt: new Date().toISOString(),
+      confidence: packet.confidence,
+      confidence_level: confidenceResult.level,
+      use_personalization: confidenceResult.use_personalization,
+
+      summary: {
+        company: packet.summary.company,
+        size: packet.summary.size_signal,
+        years_in_business: packet.summary.years_in_business,
+        employees: packet.summary.employee_estimate,
+        overview: discoveryPrep.context_summary,
+      },
+
+      signals: {
+        recent_activity: packet.signals.recent_activity,
+        negative: packet.signals.negative_signals,
+        timing: packet.signals.timing_signals,
+      },
+
+      personalization: packet.personalization,
+
+      recommendations: {
+        best_worker: packet.recommendations.best_worker,
+        tone: packet.recommendations.tone,
+        cta: packet.recommendations.cta,
+        discovery_questions: discoveryPrep.opening_questions.map((q) => q.question),
+      },
+
+      discovery_prep: {
+        questions: discoveryPrep.opening_questions,
+        pain_points: discoveryPrep.pain_points,
+        objection_handlers: discoveryPrep.likely_objections,
+        value_props: discoveryPrep.value_props,
+      },
+
+      risk_flags: packet.risk_flags,
+      requires_luci_recheck:
+        packet.risk_flags.reputation ||
+        packet.risk_flags.legal ||
+        packet.risk_flags.financial_distress,
+
+      sources: packet.sources,
+      researched_at: packet.researched_at,
     });
-  } catch (error: any) {
-    console.error("NEVA research error:", error);
+  } catch (error) {
+    console.error("[NEVA] Research error:", error);
+    const message = error instanceof Error ? error.message : "Research failed";
+
     return NextResponse.json(
-      { success: false, error: error.message || "Research failed" },
-      { status: 500 },
+      {
+        error: message,
+        success: false,
+      },
+      { status: 500 }
     );
   }
 }
 
+// GET - Check NEVA status and Perplexity config
 export async function GET() {
+  const hasPerplexity = !!process.env.PERPLEXITY_API_KEY;
+
   return NextResponse.json({
-    success: true,
-    status: "active",
-    configured: !!PERPLEXITY_API_KEY,
+    status: "operational",
+    perplexity_configured: hasPerplexity,
     capabilities: [
-      "quick_validation",
-      "deep_research",
-      "market_sizing",
-      "persona",
-      "deal_intelligence",
-      "full_report",
+      "business_research",
+      "discovery_prep",
+      "risk_detection",
+      "personalization",
     ],
   });
 }
