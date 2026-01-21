@@ -20,8 +20,8 @@ import { LuciConsumer } from "./consumers/luci.consumer";
 import { BlockManagerService } from "./services/block-manager.service";
 import { CampaignExecutorService } from "./services/campaign-executor.service";
 import { SignalHouseModule } from "@/lib/signalhouse/signalhouse.module";
-import { LUCI_QUEUE } from "./constants";
 import { DatabaseModule } from "@/database/database.module";
+import { LUCI_QUEUE } from "./constants";
 
 @Module({
   imports: [
