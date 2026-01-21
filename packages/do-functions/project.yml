@@ -1,0 +1,19 @@
+packages:
+  - name: cron
+    functions:
+      - name: cathy-nudges
+        runtime: nodejs:18
+        main: index.js
+        web: true
+        timeout: 30000
+        memory: 256
+        environment:
+          API_URL: ${API_URL}
+          CRON_SECRET: ${CRON_SECRET}
+    triggers:
+      - name: cathy-nudges-trigger
+        sourceType: scheduler
+        sourceDetails:
+          cron: "* * * * *"
+          body: {}
+        function: cathy-nudges

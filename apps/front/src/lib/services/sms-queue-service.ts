@@ -17,6 +17,7 @@ import {
   checkComplianceBeforeSend,
   logComplianceFailure,
 } from "@/lib/sms/compliance";
+import { luciService } from "@/lib/luci";
 import {
   generateVariantMessage,
   calculateOptimalSendTime,
@@ -635,6 +636,22 @@ export class SMSQueueService {
         message.attempts++;
 
         try {
+          // LUCI GATE - Hard block for suppressed leads
+          // This is NOT advisory - LUCI has final authority
+          const teamId = message.campaignId?.split("_")[0] || "default";
+          const luciCheck = await luciService.canContact(message.leadId, teamId);
+          if (!luciCheck.allowed) {
+            message.status = "cancelled";
+            message.errorMessage = `LUCI blocked: ${luciCheck.reason}`;
+            results.push({
+              id: message.id,
+              to: message.to,
+              status: "failed",
+              error: `LUCI: ${luciCheck.reason}`,
+            });
+            continue; // Skip to next message
+          }
+
           // Compliance check before sending
           const fromNumber =
             process.env.SIGNALHOUSE_FROM_NUMBER || "15164079249";
