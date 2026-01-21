@@ -11,8 +11,8 @@
  */
 
 import { db } from "@/lib/db";
-import { leads, leadSignals } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { leads, leadTags, tags } from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import type {
   LuciApprovedLead,
   LuciApprovalResult,
@@ -26,6 +26,33 @@ import type {
   RawIngestRecord,
 } from "./types";
 import { LUCI_THRESHOLDS, PERMANENT_SUPPRESSIONS, TCPA_CALLING_HOURS } from "./constants";
+
+// Suppression tag slugs
+const SUPPRESSION_TAG_SLUGS = {
+  OPTED_OUT: "opted-out",
+  DNC: "dnc",
+  WRONG_NUMBER: "wrong-number",
+  LITIGATOR: "litigator",
+  COMPLIANCE_HOLD: "compliance-hold",
+};
+
+// =============================================================================
+// HELPER: Get suppression tags for a lead
+// =============================================================================
+
+async function getLeadSuppressionTags(leadId: string): Promise<string[]> {
+  const result = await db
+    .select({ slug: tags.slug })
+    .from(leadTags)
+    .innerJoin(tags, eq(leadTags.tagId, tags.id))
+    .where(
+      and(
+        eq(leadTags.leadId, leadId),
+        inArray(tags.slug, Object.values(SUPPRESSION_TAG_SLUGS))
+      )
+    );
+  return result.map(r => r.slug);
+}
 
 // =============================================================================
 // CORE FUNCTIONS
@@ -57,20 +84,12 @@ export async function approve(
       };
     }
 
-    // 2. Check for suppression signals (append-only, never deleted)
-    const suppressionSignals = await db
-      .select()
-      .from(leadSignals)
-      .where(
-        and(
-          eq(leadSignals.leadId, leadId),
-          eq(leadSignals.teamId, teamId)
-        )
-      );
+    // 2. Check for suppression tags
+    const suppressionTags = await getLeadSuppressionTags(leadId);
 
-    const hasOptOut = suppressionSignals.some(s => s.signalType === "OPTED_OUT");
-    const hasDNC = suppressionSignals.some(s => s.signalType === "DO_NOT_CONTACT");
-    const hasWrongNumber = suppressionSignals.some(s => s.signalType === "WRONG_NUMBER");
+    const hasOptOut = suppressionTags.includes(SUPPRESSION_TAG_SLUGS.OPTED_OUT);
+    const hasDNC = suppressionTags.includes(SUPPRESSION_TAG_SLUGS.DNC);
+    const hasWrongNumber = suppressionTags.includes(SUPPRESSION_TAG_SLUGS.WRONG_NUMBER);
 
     if (hasOptOut || hasDNC) {
       return {
@@ -115,7 +134,9 @@ export async function approve(
       };
     }
 
-    // 4. Build approved lead
+    // 4. Build approved lead (metadata may contain enrichment data)
+    const meta = (lead.metadata || {}) as Record<string, unknown>;
+
     const approvedLead: LuciApprovedLead = {
       lead_id: leadId,
       team_id: teamId,
@@ -123,13 +144,13 @@ export async function approve(
       source: lead.source || "import",
 
       business: {
-        name: lead.businessName || "",
+        name: lead.company || (meta.businessName as string) || "",
         address: lead.address || "",
         city: lead.city || "",
         state: lead.state || "",
-        zip: lead.zip || "",
-        sic_code: lead.sicCode || null,
-        industry: lead.industry || null,
+        zip: lead.zipCode || "",
+        sic_code: (meta.sicCode as string) || null,
+        industry: (meta.industry as string) || null,
       },
 
       owner: {
@@ -156,8 +177,8 @@ export async function approve(
       },
 
       status: "CAMPAIGN_READY",
-      traced_at: lead.enrichedAt || null,
-      verified_at: lead.verifiedAt || null,
+      traced_at: meta.enrichedAt ? new Date(meta.enrichedAt as string) : null,
+      verified_at: meta.verifiedAt ? new Date(meta.verifiedAt as string) : null,
       approved_at: new Date(),
     };
 
@@ -234,28 +255,55 @@ export async function suppress(
   teamId: string,
   reason: SuppressionReason
 ): Promise<void> {
-  // Map reason to signal type
-  const signalType = reason === "OPT_OUT" ? "OPTED_OUT" :
-                     reason === "DNC" ? "DO_NOT_CONTACT" :
-                     reason === "WRONG_NUMBER" ? "WRONG_NUMBER" :
-                     "DO_NOT_CONTACT";
+  // Map reason to tag slug
+  const tagSlug = reason === "OPT_OUT" ? SUPPRESSION_TAG_SLUGS.OPTED_OUT :
+                  reason === "DNC" ? SUPPRESSION_TAG_SLUGS.DNC :
+                  reason === "WRONG_NUMBER" ? SUPPRESSION_TAG_SLUGS.WRONG_NUMBER :
+                  reason === "LITIGATOR" ? SUPPRESSION_TAG_SLUGS.LITIGATOR :
+                  SUPPRESSION_TAG_SLUGS.COMPLIANCE_HOLD;
 
-  // Insert suppression signal (append-only)
-  await db.insert(leadSignals).values({
-    teamId,
-    leadId,
-    signalType,
-    signalValue: reason,
-    confidence: 1.0,
-    source: "LUCI",
-    createdAt: new Date(),
-  });
+  // Find or create the suppression tag
+  let [existingTag] = await db
+    .select()
+    .from(tags)
+    .where(eq(tags.slug, tagSlug))
+    .limit(1);
 
-  // Update lead state to suppressed
+  if (!existingTag) {
+    // Create the system tag if it doesn't exist
+    const [newTag] = await db.insert(tags).values({
+      name: reason.replace(/_/g, " ").toLowerCase(),
+      slug: tagSlug,
+      color: "#EF4444", // Red for suppression
+      description: `Suppression: ${reason}`,
+      isSystem: true,
+      isActive: true,
+    }).returning();
+    existingTag = newTag;
+  }
+
+  // Check if tag already applied
+  const [existingLeadTag] = await db
+    .select()
+    .from(leadTags)
+    .where(and(eq(leadTags.leadId, leadId), eq(leadTags.tagId, existingTag.id)))
+    .limit(1);
+
+  if (!existingLeadTag) {
+    // Apply suppression tag to lead
+    await db.insert(leadTags).values({
+      leadId,
+      tagId: existingTag.id,
+      isAutoTag: true,
+      appliedBy: "LUCI",
+    });
+  }
+
+  // Update lead status to suppressed
   await db
     .update(leads)
     .set({
-      state: "suppressed",
+      status: "suppressed",
       updatedAt: new Date(),
     })
     .where(and(eq(leads.id, leadId), eq(leads.teamId, teamId)));
@@ -282,26 +330,23 @@ export async function canContact(
   leadId: string,
   teamId: string
 ): Promise<{ allowed: boolean; reason?: string }> {
-  // Check for suppression signals
-  const suppressionSignals = await db
-    .select()
-    .from(leadSignals)
-    .where(
-      and(
-        eq(leadSignals.leadId, leadId),
-        eq(leadSignals.teamId, teamId)
-      )
-    );
+  // Check for suppression tags
+  const suppressionTags = await getLeadSuppressionTags(leadId);
 
-  const hasOptOut = suppressionSignals.some(s => s.signalType === "OPTED_OUT");
-  const hasDNC = suppressionSignals.some(s => s.signalType === "DO_NOT_CONTACT");
-
-  if (hasOptOut) {
+  if (suppressionTags.includes(SUPPRESSION_TAG_SLUGS.OPTED_OUT)) {
     return { allowed: false, reason: "Lead opted out" };
   }
 
-  if (hasDNC) {
+  if (suppressionTags.includes(SUPPRESSION_TAG_SLUGS.DNC)) {
     return { allowed: false, reason: "Do not contact" };
+  }
+
+  if (suppressionTags.includes(SUPPRESSION_TAG_SLUGS.LITIGATOR)) {
+    return { allowed: false, reason: "Known litigator" };
+  }
+
+  if (suppressionTags.includes(SUPPRESSION_TAG_SLUGS.COMPLIANCE_HOLD)) {
+    return { allowed: false, reason: "Compliance hold" };
   }
 
   return { allowed: true };
@@ -317,8 +362,11 @@ function calculateContactability(
 ): LuciContactability {
   let score = 50; // Base score
 
-  // Line type assessment
-  const lineType = lead.lineType || "unknown";
+  // Get enrichment data from metadata
+  const meta = (lead.metadata || {}) as Record<string, unknown>;
+
+  // Line type assessment (from enrichment metadata)
+  const lineType = (meta.lineType as string) || "unknown";
   if (lineType === "mobile") {
     score += LUCI_THRESHOLDS.MOBILE_BONUS;
   } else if (lineType === "landline") {
@@ -327,8 +375,8 @@ function calculateContactability(
     score += LUCI_THRESHOLDS.VOIP_PENALTY;
   }
 
-  // Verification status
-  if (lead.verifiedAt) {
+  // Verification status (from enrichment metadata)
+  if (meta.verifiedAt) {
     score += 15;
   }
 
@@ -342,10 +390,10 @@ function calculateContactability(
 
   return {
     line_type: lineType as "mobile" | "landline" | "voip" | "unknown",
-    carrier: lead.carrier || null,
+    carrier: (meta.carrier as string) || null,
     is_valid: score > 20 && !hasWrongNumber,
-    dnc: lead.dnc || false,
-    litigator: lead.litigator || false,
+    dnc: Boolean(meta.dnc),
+    litigator: Boolean(meta.litigator),
     score,
   };
 }
