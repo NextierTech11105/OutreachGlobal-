@@ -8,9 +8,10 @@ import {
   boolean,
   numeric,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { primaryUlid, ulidColumn } from "../columns/ulid";
 import { createdAt, updatedAt } from "../columns/timestamps";
-import { teamsRef } from "./teams.schema";
+import { teamsRef, teams } from "./teams.schema";
 import { users } from "./users.schema";
 
 /**
@@ -356,3 +357,77 @@ export const credits = pgTable(
   },
   (t) => [index().on(t.teamId), index("credits_type_idx").on(t.creditType)],
 );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RELATIONS - Required for Drizzle query API (db.query.*)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const plansRelations = relations(plans, ({ many }) => ({
+  subscriptions: many(subscriptions),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
+  plan: one(plans, {
+    fields: [subscriptions.planId],
+    references: [plans.id],
+  }),
+  team: one(teams, {
+    fields: [subscriptions.teamId],
+    references: [teams.id],
+  }),
+  payments: many(payments),
+  usageRecords: many(usageRecords),
+  invoices: many(invoices),
+}));
+
+export const paymentsRelations = relations(payments, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [payments.teamId],
+    references: [teams.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [payments.subscriptionId],
+    references: [subscriptions.id],
+  }),
+  credits: many(credits),
+}));
+
+export const usageRecordsRelations = relations(usageRecords, ({ one }) => ({
+  team: one(teams, {
+    fields: [usageRecords.teamId],
+    references: [teams.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [usageRecords.subscriptionId],
+    references: [subscriptions.id],
+  }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one }) => ({
+  team: one(teams, {
+    fields: [invoices.teamId],
+    references: [teams.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [invoices.subscriptionId],
+    references: [subscriptions.id],
+  }),
+}));
+
+export const paymentMethodsRelations = relations(paymentMethods, ({ one }) => ({
+  team: one(teams, {
+    fields: [paymentMethods.teamId],
+    references: [teams.id],
+  }),
+}));
+
+export const creditsRelations = relations(credits, ({ one }) => ({
+  team: one(teams, {
+    fields: [credits.teamId],
+    references: [teams.id],
+  }),
+  payment: one(payments, {
+    fields: [credits.paymentId],
+    references: [payments.id],
+  }),
+}));

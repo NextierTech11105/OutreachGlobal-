@@ -153,9 +153,11 @@ export class SubscriptionService implements OnModuleInit {
    */
   private async ensureStarterPlanExists() {
     try {
-      const existing = await this.db.query.plans.findFirst({
-        where: (t, { eq }) => eq(t.slug, DEFAULT_PLAN_SLUG),
-      });
+      // Use raw SQL to check if plan exists (more reliable than query API during init)
+      const result = await this.db.execute(
+        sql`SELECT id FROM plans WHERE slug = ${DEFAULT_PLAN_SLUG} LIMIT 1`
+      );
+      const existing = result.rows?.[0];
 
       if (!existing) {
         await this.db.insert(plansTable).values({
@@ -184,9 +186,14 @@ export class SubscriptionService implements OnModuleInit {
           sortOrder: 1,
         });
         this.logger.log("Created starter plan");
+      } else {
+        this.logger.log("Starter plan already exists");
       }
     } catch (error: any) {
-      this.logger.error("Error ensuring starter plan:", error.message);
+      this.logger.error(
+        `Error ensuring starter plan: ${error?.message || error}`,
+        error?.stack
+      );
     }
   }
 

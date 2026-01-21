@@ -7,9 +7,57 @@
 
 ---
 
-## 🎯 EXECUTIVE SUMMARY
+## 🎯 PROSPECTIVE USAGE HEATMAP
 
-### Navigation Mental Map Assessment: ✅ EXCELLENT
+Based on code complexity, file volume, async processing load, and database schema relationships, these are the **High-Impact Zones** where users should spend 80% of their time:
+
+| Feature Area | Complexity Score (1-10) | Business Value | Why It Matters |
+|--------------|------------------------|----------------|----------------|
+| **Lead Management** | 10 | CRITICAL | 40 backend files, 24 frontend files, 3 async queues (content-nurture, auto-trigger, lead). 520-line state machine schema. Primary data entity driving all workflows. |
+| **Campaign Orchestration** | 9 | CRITICAL | 28 backend files, campaign saga for distributed workflows, sequence builder with multi-step execution. Revenue-generating outbound engine. |
+| **Inbox/Communications** | 8 | CRITICAL | Sabrina SDR AI integration, response bucket prioritization, suppression management. Human-in-loop for high-value conversations. |
+| **Message Templates** | 8 | HIGH | 17 frontend files with multi-channel editor (SMS/Email/Voice), AI message generator, dynamic variable system. Content creation hub. |
+| **Integration Ecosystem** | 7 | HIGH | 27 backend files, Zoho CRM sync, Apollo enrichment, SignalHouse data. External data pipeline enabling lead intelligence. |
+| **Power Dialer** | 7 | HIGH | 23 frontend files, 20 backend files. Call center operations for high-touch outreach. |
+| **Workflow Automation** | 6 | MEDIUM | 254-line workflow schema, conditional branching. Automation layer reducing manual work. |
+| **SDR/AI Agent (Avatar)** | 6 | MEDIUM | FAQ knowledge base, personality-driven responses. Emerging AI capability. |
+| **Enrichment Pipeline** | 6 | MEDIUM | B2B data enrichment, skiptrace integration. Data quality improvement. |
+
+### The "Happy Path" Theory - Perfect User Session
+
+Based on routing structure (`/t/[team]/...`), the ideal user flow is:
+
+```
+1. Login/API Key Entry (/get-started)
+   ↓
+2. Team Dashboard (/t/[team])
+   ↓
+3. Inbox Review (/t/[team]/inbox)
+   → Prioritize responses by bucket/score
+   → Review AI-suggested replies
+   → Approve/Edit/Send
+   ↓
+4. Lead Pipeline (/t/[team]/leads)
+   → Kanban view of lead stages
+   → Drag-drop to progress deals
+   → Click into lead details
+   ↓
+5. Campaign Management (/t/[team]/campaigns)
+   → Create/Edit sequences
+   → Enroll leads
+   → Monitor execution
+   ↓
+6. Settings/Integrations (/t/[team]/settings)
+   → Connect CRM (Zoho)
+   → Configure phone/email channels
+```
+
+---
+
+## 🧭 NAVIGATION MENTAL MAP ASSESSMENT
+
+### Overall Grade: ✅ EXCELLENT (A+)
+
 The navigation structure follows a logical sales funnel progression:
 1. **HOME** → Dashboard & Command Center
 2. **DATA** → Acquisition & Enrichment
@@ -23,20 +71,9 @@ The navigation structure follows a logical sales funnel progression:
 
 **Grade: A+** - Intuitive grouping, clear hierarchy, role-based filtering.
 
-### Button Consistency: ✅ VERY GOOD
-- **Design System:** shadcn/ui components with consistent styling
-- **Loading States:** Proper loading indicators on async actions
-- **Accessibility:** ARIA labels, keyboard navigation, focus management
-- **Visual Hierarchy:** Primary/secondary/destructive variants used appropriately
-
-### UX Issues Found: ⚠️ MINOR
-- Some pages show mock data instead of real API connections
-- Inconsistent error handling across features
-- Missing empty states for some data tables
-
 ---
 
-## 📊 DETAILED FINDINGS BY GROUP
+## 🎨 DETAILED GROUP ANALYSIS
 
 ### 🏠 HOME GROUP (Dashboard, Command Center, Getting Started)
 **Status:** ✅ Excellent
