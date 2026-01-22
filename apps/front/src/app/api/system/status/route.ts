@@ -196,8 +196,8 @@ async function checkTracerfy(): Promise<{
 
   const start = Date.now();
   try {
-    // Check Tracerfy queue list endpoint
-    const res = await fetch("https://app.tracerfy.com/api/v1/queue/list", {
+    // Check Tracerfy queues endpoint (matches client URL)
+    const res = await fetch("https://tracerfy.com/v1/api/queues/", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -235,19 +235,20 @@ async function checkTrestle(): Promise<{
 
   const start = Date.now();
   try {
-    // Trestle uses basic auth with API key as username
-    const res = await fetch("https://api.trestleiq.com/3.1/phone", {
+    // Trestle uses x-api-key header (matching client)
+    const res = await fetch("https://api.trestleiq.com/3.0/phone_intel?phone=5551234567", {
       method: "GET",
       headers: {
-        Authorization: "Basic " + Buffer.from(`${apiKey}:`).toString("base64"),
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
       },
     });
     const latency = Date.now() - start;
-    // 400/401 means API is reachable, just needs proper params
+    // 400/401/402 means API is reachable (402 = no credits)
     return {
-      ok: res.ok || res.status === 400 || res.status === 401,
+      ok: res.ok || res.status === 400 || res.status === 401 || res.status === 402,
       latency,
-      message: res.ok ? undefined : res.status === 401 ? "Auth OK" : `HTTP ${res.status}`,
+      message: res.ok ? undefined : `HTTP ${res.status}`,
     };
   } catch (e) {
     return {
