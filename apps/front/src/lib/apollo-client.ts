@@ -14,14 +14,14 @@ const httpLink = createHttpLink({
   uri: graphqlUrl,
 });
 
-// Auth link using setContext helper - reads from cookie (nextier_session) or API key
+// Auth link using setContext helper - reads from cookie (session) or API key
 const authLink = setContext((_, { headers }) => {
   if (typeof window === "undefined") {
     return { headers };
   }
 
   // Check for JWT token first
-  const token = Cookies.get("nextier_session");
+  const token = Cookies.get("session");
   if (token) {
     return {
       headers: {
