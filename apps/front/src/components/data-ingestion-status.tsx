@@ -19,7 +19,7 @@ import {
   Database,
   FileCheck,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface DataIngestionStatusProps {
   leadId: string;
@@ -30,6 +30,7 @@ export function DataIngestionStatus({
   leadId,
   onComplete,
 }: DataIngestionStatusProps) {
+  const { toast } = useToast();
   const [status, setStatus] = useState<
     "idle" | "processing" | "completed" | "error"
   >("idle");
@@ -178,7 +179,7 @@ export function DataIngestionStatus({
                 ? "default"
                 : status === "processing"
                   ? "secondary"
-                  : "outline-solid"
+                  : "outline"
             }
           >
             {status === "idle"
@@ -235,45 +236,44 @@ export function DataIngestionStatus({
           ))}
         </div>
 
-        {(step) =>
-          step.id === "phone" &&
-          step.status === "completed" && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <div className="flex items-start gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-green-800">
-                    Phone Line Types Detected
-                  </p>
-                  <p className="text-xs text-green-700">
-                    Successfully verified 3 phone numbers with Twilio Line Type
-                    Intelligence
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <Badge
-                      variant="outline"
-                      className="bg-green-100 text-green-800"
-                    >
-                      1 Mobile
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-100 text-blue-800"
-                    >
-                      1 Landline
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="bg-purple-100 text-purple-800"
-                    >
-                      1 VoIP
-                    </Badge>
-                  </div>
+        {steps.find(
+          (step) => step.id === "phone" && step.status === "completed",
+        ) && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+            <div className="flex items-start gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-green-800">
+                  Phone Line Types Detected
+                </p>
+                <p className="text-xs text-green-700">
+                  Successfully verified 3 phone numbers with Twilio Line Type
+                  Intelligence
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-green-100 text-green-800"
+                  >
+                    1 Mobile
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-100 text-blue-800"
+                  >
+                    1 Landline
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-100 text-purple-800"
+                  >
+                    1 VoIP
+                  </Badge>
                 </div>
               </div>
             </div>
-          )
-        }
+          </div>
+        )}
       </CardContent>
       <CardFooter>
         <Button

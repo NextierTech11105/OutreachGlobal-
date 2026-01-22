@@ -440,7 +440,10 @@ export function GiannaResponseHandler({
   const toggleMode = () => {
     const newMode =
       settings.mode === "human-in-loop" ? "full-auto" : "human-in-loop";
-    const newSettings = { ...settings, mode: newMode };
+    const newSettings = {
+      ...settings,
+      mode: newMode as "human-in-loop" | "full-auto",
+    };
     setSettings(newSettings);
     localStorage.setItem("gianna_settings", JSON.stringify(newSettings));
 

@@ -658,7 +658,8 @@ export function GiannaCopilot({
                           {lead.firstName} {lead.lastName}
                         </h4>
                         <p className="text-xs text-muted-foreground">
-                          {lead.responseTime && new Date(lead.responseTime)}
+                          {lead.responseTime &&
+                            new Date(lead.responseTime).toLocaleString()}
                         </p>
                       </div>
                       <Badge variant="default" className="bg-green-500">

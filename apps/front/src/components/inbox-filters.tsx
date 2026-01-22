@@ -36,18 +36,18 @@ interface InboxFiltersProps {
 export function InboxFilters({ filters, onFilterChange }: InboxFiltersProps) {
   const [localFilters, setLocalFilters] = useState<MessageFilter>(filters);
   const [dateRange, setDateRange] = useState<{
-    from: Date | null;
-    to: Date | null;
+    from: Date | undefined;
+    to: Date | undefined;
   }>({
-    from: filters.dateRange?.from || null,
-    to: filters.dateRange?.to || null,
+    from: filters.dateRange?.from || undefined,
+    to: filters.dateRange?.to || undefined,
   });
 
   useEffect(() => {
     setLocalFilters(filters);
     setDateRange({
-      from: filters.dateRange?.from || null,
-      to: filters.dateRange?.to || null,
+      from: filters.dateRange?.from || undefined,
+      to: filters.dateRange?.to || undefined,
     });
   }, [filters]);
 
@@ -57,10 +57,7 @@ export function InboxFilters({ filters, onFilterChange }: InboxFiltersProps) {
     onFilterChange(newFilters);
   };
 
-  const handleDateRangeChange = (range: {
-    from: Date | null;
-    to: Date | null;
-  }) => {
+  const handleDateRangeChange = (range: any) => {
     setDateRange(range);
     handleFilterChange("dateRange", range);
   };
@@ -288,7 +285,7 @@ export function InboxFilters({ filters, onFilterChange }: InboxFiltersProps) {
                 <X
                   className="h-3 w-3 cursor-pointer"
                   onClick={() =>
-                    handleDateRangeChange({ from: null, to: null })
+                    handleDateRangeChange({ from: undefined, to: undefined })
                   }
                 />
               </Badge>

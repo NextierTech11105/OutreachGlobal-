@@ -27,13 +27,13 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const notificationFormSchema = z.object({
-  emailNotifications: z.boolean().default(true),
-  browserNotifications: z.boolean().default(true),
-  campaignStarted: z.boolean().default(true),
-  campaignCompleted: z.boolean().default(true),
-  newResponse: z.boolean().default(true),
-  leadConverted: z.boolean().default(true),
-  weeklyReport: z.boolean().default(true),
+  emailNotifications: z.boolean().optional().default(true),
+  browserNotifications: z.boolean().optional().default(true),
+  campaignStarted: z.boolean().optional().default(true),
+  campaignCompleted: z.boolean().optional().default(true),
+  newResponse: z.boolean().optional().default(true),
+  leadConverted: z.boolean().optional().default(true),
+  weeklyReport: z.boolean().optional().default(true),
   notificationFrequency: z.enum(["immediate", "hourly", "daily"], {
     required_error: "Please select a notification frequency.",
   }),

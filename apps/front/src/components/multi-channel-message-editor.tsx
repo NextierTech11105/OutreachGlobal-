@@ -36,6 +36,7 @@ interface Template {
 }
 
 // Templates are now fetched from real API - no mock data
+const mockTemplates: Template[] = [];
 
 interface MultiChannelMessageEditorProps {
   messageId?: string;

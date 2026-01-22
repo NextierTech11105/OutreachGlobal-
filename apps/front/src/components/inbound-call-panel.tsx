@@ -94,7 +94,7 @@ export function InboundCallPanel() {
 
         // Create and register device
         deviceInstance = new Device(tokenData.token, {
-          codecPreferences: ["opus", "pcmu"],
+          codecPreferences: ["opus" as any, "pcmu" as any],
           closeProtection: true,
           enableRingingState: true,
         }) as unknown as TwilioDevice;
@@ -105,12 +105,14 @@ export function InboundCallPanel() {
           if (mounted) setIsInitializing(false);
         });
 
-        deviceInstance.on("error", (err: Error) => {
+        deviceInstance.on("error", (...args: unknown[]) => {
+          const err = args[0] as Error;
           console.error("[Softphone] Device error:", err);
           if (mounted) setError(err.message);
         });
 
-        deviceInstance.on("incoming", (call: TwilioCall) => {
+        deviceInstance.on("incoming", (...args: unknown[]) => {
+          const call = args[0] as TwilioCall;
           console.log("[Softphone] Incoming call:", call.parameters);
           if (mounted) {
             setActiveCall(call);

@@ -52,6 +52,7 @@ export interface Lead {
   email?: string;
   phone?: string; // Keeping for backward compatibility
   phoneNumbers: PhoneNumber[]; // New field for multiple phone numbers with line type
+  company?: string;
   status: LeadStatus;
   source: LeadSource;
   priority: LeadPriority;

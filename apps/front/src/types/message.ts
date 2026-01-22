@@ -13,6 +13,8 @@ export interface Message {
   id: string;
   type: MessageType;
   from: string;
+  fromName?: string;
+  companyName?: string;
   email?: string;
   phone?: string;
   subject?: string;
