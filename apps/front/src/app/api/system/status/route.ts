@@ -185,12 +185,13 @@ async function checkTracerfy(): Promise<{
   latency: number;
   message?: string;
 }> {
-  const apiKey = process.env.TRACERFY_API_KEY;
+  // Support both env var names (TOKEN is legacy, KEY is new)
+  const apiKey = process.env.TRACERFY_API_TOKEN || process.env.TRACERFY_API_KEY;
   if (!apiKey) {
     return {
       ok: false,
       latency: 0,
-      message: "TRACERFY_API_KEY not configured",
+      message: "TRACERFY_API_TOKEN not configured",
     };
   }
 
