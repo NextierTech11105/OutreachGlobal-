@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ArrowLeft,
   Rocket,
@@ -11,7 +13,10 @@ import {
   CheckCircle,
   Loader2,
   Sparkles,
+  Phone,
+  AlertCircle,
 } from "lucide-react";
+import { useParams } from "next/navigation";
 import { PersonaTeam, PersonaMessage } from "../persona-avatar";
 import type { OnboardingData } from "../onboarding-wizard";
 
@@ -29,6 +34,7 @@ interface LaunchStepProps {
   onComplete: () => void;
   onBack: () => void;
   isSaving: boolean;
+  teamId?: string;
 }
 
 export function LaunchStep({
@@ -37,7 +43,34 @@ export function LaunchStep({
   onComplete,
   onBack,
   isSaving,
+  teamId,
 }: LaunchStepProps) {
+  const params = useParams();
+  const teamSlug = params?.team as string;
+  const [setupCallCompleted, setSetupCallCompleted] = useState<boolean | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
+  // Check if setup call is completed
+  useEffect(() => {
+    async function checkSetupCallStatus() {
+      try {
+        const res = await fetch(`/api/team/setup-call-status?teamId=${teamId || "default_team"}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSetupCallCompleted(data.completed);
+        } else {
+          // If endpoint doesn't exist yet, assume not completed
+          setSetupCallCompleted(false);
+        }
+      } catch {
+        setSetupCallCompleted(false);
+      } finally {
+        setCheckingStatus(false);
+      }
+    }
+    checkSetupCallStatus();
+  }, [teamId]);
+
   const daysToStabilize = Math.ceil(20000 / data.dailyCapacity);
 
   const totalTierA = data.uploadedFiles.reduce(
@@ -176,30 +209,70 @@ export function LaunchStep({
         </ul>
       </div>
 
+      {/* Setup Call Required Notice */}
+      {!checkingStatus && !setupCallCompleted && (
+        <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertCircle className="h-5 w-5 text-amber-600" />
+          <AlertDescription className="ml-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-200">
+                  Setup call required before launch
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Book a quick 30-min call with Thomas to configure your machine for success.
+                </p>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 shrink-0"
+                onClick={() => window.location.href = `/t/${teamSlug}/book-setup-call`}
+              >
+                <Phone className="mr-2 h-4 w-4" />
+                Book Setup Call
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Navigation */}
       <div className="flex justify-between items-center">
         <Button variant="outline" onClick={onBack} disabled={isSaving}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button
-          onClick={onComplete}
-          disabled={isSaving}
-          size="lg"
-          className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-lg px-8"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Launching...
-            </>
-          ) : (
-            <>
-              <Rocket className="mr-2 h-5 w-5" />
-              Launch Your Machine
-            </>
-          )}
-        </Button>
+        {setupCallCompleted ? (
+          <Button
+            onClick={onComplete}
+            disabled={isSaving}
+            size="lg"
+            className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-lg px-8"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Launching...
+              </>
+            ) : (
+              <>
+                <Rocket className="mr-2 h-5 w-5" />
+                Launch Your Machine
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => window.location.href = `/t/${teamSlug}/book-setup-call`}
+            className="text-lg px-8"
+          >
+            <Phone className="mr-2 h-5 w-5" />
+            Book Call to Launch
+          </Button>
+        )}
       </div>
     </div>
   );

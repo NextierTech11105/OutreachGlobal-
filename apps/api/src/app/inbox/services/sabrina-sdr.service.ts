@@ -13,7 +13,9 @@ import {
   bucketMovementsTable,
   suppressionListTable,
   aiResponseApprovalsTable,
+  workerPhoneAssignmentsTable,
 } from "@/database/schema-alias";
+import { SignalHouseService } from "@/lib/signalhouse/signalhouse.service";
 import {
   ResponseClassification,
   InboxPriority,
@@ -56,7 +58,10 @@ interface PrioritizationInput {
 export class SabrinaSdrService {
   private readonly logger = new Logger(SabrinaSdrService.name);
 
-  constructor(@InjectDB() private db: DrizzleClient) {}
+  constructor(
+    @InjectDB() private db: DrizzleClient,
+    private signalHouseService: SignalHouseService,
+  ) {}
 
   /**
    * Calculate priority score for inbox item
@@ -519,12 +524,20 @@ export class SabrinaSdrService {
 
   /**
    * Approve an AI-suggested response - human authorizes sending
+   * This method now SENDS the SMS immediately after approval
    */
   async approveResponse(
     approvalId: string,
     userId: string,
     editedResponse?: string, // Optional: human can modify before sending
-  ): Promise<{ success: boolean; approvalId: string; finalResponse: string }> {
+  ): Promise<{
+    success: boolean;
+    approvalId: string;
+    finalResponse: string;
+    sent: boolean;
+    messageId?: string;
+    sendError?: string;
+  }> {
     const approval = await this.db.query.aiResponseApprovals.findFirst({
       where: eq(aiResponseApprovalsTable.id, approvalId),
     });
@@ -565,17 +578,122 @@ export class SabrinaSdrService {
       .where(eq(inboxItemsTable.id, approval.inboxItemId));
 
     this.logger.log(
-      `Response approved by ${userId}: ${approvalId} - ready to send`,
+      `Response approved by ${userId}: ${approvalId} - sending SMS...`,
     );
 
-    // NOTE: Actual sending happens in a separate service after approval
-    // This keeps the approval flow clean and testable
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SEND SMS VIA SIGNALHOUSE
+    // ═══════════════════════════════════════════════════════════════════════════
 
-    return {
-      success: true,
-      approvalId,
-      finalResponse,
-    };
+    // Get inbox item to get recipient phone
+    const inboxItem = await this.db.query.inboxItems.findFirst({
+      where: eq(inboxItemsTable.id, approval.inboxItemId),
+    });
+
+    if (!inboxItem?.phoneNumber) {
+      this.logger.error(
+        `Cannot send: No phone number for inbox item ${approval.inboxItemId}`,
+      );
+      return {
+        success: true,
+        approvalId,
+        finalResponse,
+        sent: false,
+        sendError: "No recipient phone number",
+      };
+    }
+
+    // Get worker's phone number (sender)
+    // First try to get from worker_phone_assignments, fallback to env var
+    let fromNumber: string | undefined;
+
+    if (approval.sdrId) {
+      // Get SDR details to find worker ID
+      const sdr = await this.db.query.aiSdrAvatars.findFirst({
+        where: eq(aiSdrAvatarsTable.id, approval.sdrId),
+      });
+
+      if (sdr) {
+        // Derive workerId from SDR name (e.g., "GIANNA" -> "gianna")
+        const workerId = sdr.name?.toLowerCase().split(" ")[0] || "gianna";
+
+        // Look up worker phone assignment
+        const workerPhone =
+          await this.db.query.workerPhoneAssignments.findFirst({
+            where: and(
+              eq(workerPhoneAssignmentsTable.teamId, approval.teamId),
+              eq(workerPhoneAssignmentsTable.workerId, workerId),
+              eq(workerPhoneAssignmentsTable.isActive, true),
+            ),
+          });
+
+        if (workerPhone) {
+          fromNumber = workerPhone.phoneNumber;
+          this.logger.log(
+            `Using worker phone: ${fromNumber} (${sdr.name} -> ${workerId})`,
+          );
+        }
+      }
+    }
+
+    // Fallback to env var if no worker phone configured
+    if (!fromNumber) {
+      fromNumber = process.env.GIANNA_PHONE_NUMBER;
+      if (fromNumber) {
+        this.logger.log(`Using env GIANNA_PHONE_NUMBER: ${fromNumber}`);
+      }
+    }
+
+    if (!fromNumber) {
+      this.logger.error(
+        "Cannot send: No sender phone configured (check worker_phone_assignments or GIANNA_PHONE_NUMBER env)",
+      );
+      return {
+        success: true,
+        approvalId,
+        finalResponse,
+        sent: false,
+        sendError:
+          "No sender phone configured. Set GIANNA_PHONE_NUMBER or configure worker phone.",
+      };
+    }
+
+    // Send via SignalHouse
+    const sendResult = await this.signalHouseService.sendSms({
+      to: inboxItem.phoneNumber,
+      from: fromNumber,
+      message: finalResponse,
+    });
+
+    if (sendResult.success) {
+      // Update sentAt timestamp
+      await this.db
+        .update(aiResponseApprovalsTable)
+        .set({ sentAt: new Date() })
+        .where(eq(aiResponseApprovalsTable.id, approvalId));
+
+      this.logger.log(
+        `SMS sent successfully: ${sendResult.messageId} to ${inboxItem.phoneNumber}`,
+      );
+
+      return {
+        success: true,
+        approvalId,
+        finalResponse,
+        sent: true,
+        messageId: sendResult.messageId,
+      };
+    } else {
+      this.logger.error(`SMS send failed: ${sendResult.error}`);
+
+      return {
+        success: true, // Approval succeeded, sending failed
+        approvalId,
+        finalResponse,
+        sent: false,
+        sendError: sendResult.error,
+      };
+    }
   }
 
   /**

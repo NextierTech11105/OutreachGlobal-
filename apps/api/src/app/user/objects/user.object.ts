@@ -39,4 +39,7 @@ export class OAuthLoginPayload {
 
   @Field()
   token: string;
+
+  @Field(() => Boolean)
+  isNewUser: boolean;
 }

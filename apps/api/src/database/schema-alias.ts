@@ -260,3 +260,7 @@ export const dataLakeImportsTable = dataLakeImports;
 export const enrichmentJobsTable = enrichmentJobs;
 export const enrichmentBlocksTable = enrichmentBlocks;
 export const enrichmentSubBlocksTable = enrichmentSubBlocks;
+
+// Worker Phone Assignments (SDR phone numbers)
+import { workerPhoneAssignments } from "./schema/worker-phones.schema";
+export const workerPhoneAssignmentsTable = workerPhoneAssignments;

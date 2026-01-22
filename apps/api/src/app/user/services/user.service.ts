@@ -184,7 +184,7 @@ export class UserService {
         console.error("[UserService] Failed to send welcome email:", err);
       });
 
-      return { user, team, token };
+      return { user, team, token, isNewUser: true };
     }
 
     if (input.googleId && !user.googleId) {
@@ -210,11 +210,11 @@ export class UserService {
       }
 
       const { token } = await this.authService.accessToken(user);
-      return { user, team: membership.team, token };
+      return { user, team: membership.team, token, isNewUser: false };
     }
 
     const { token } = await this.authService.accessToken(user);
-    return { user, team, token };
+    return { user, team, token, isNewUser: false };
   }
 
   /**

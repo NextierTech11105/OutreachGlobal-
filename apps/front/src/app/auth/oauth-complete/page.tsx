@@ -6,7 +6,7 @@ import { useMutation, gql } from "@apollo/client";
 import { $cookie } from "@/lib/cookie/client-cookie";
 import { addMonths } from "date-fns";
 
-// Platform owners - Thomas Borruso and Frank Mirando
+// Platform owners - get direct access, no booking required
 const PLATFORM_OWNERS = [
   "tb@outreachglobal.io",
   "fm@outreachglobal.io",
@@ -26,6 +26,7 @@ const OAUTH_LOGIN_MUTATION = gql`
         slug
         name
       }
+      isNewUser
     }
   }
 `;
@@ -34,7 +35,7 @@ export default function OAuthCompletePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [capturing, setCapturing] = useState(false);
+  const [status, setStatus] = useState<string>("Completing sign in...");
 
   const email = searchParams.get("email");
   const provider = searchParams.get("provider");
@@ -50,15 +51,26 @@ export default function OAuthCompletePage() {
         return;
       }
 
-      const { token, team } = data.oauthLogin;
+      const { token, team, isNewUser } = data.oauthLogin;
 
       if (!token || !team?.slug) {
         setError("Login failed - missing token or team");
         return;
       }
 
+      // Set session cookie
       $cookie.set("session", token, { expires: addMonths(new Date(), 10) });
-      router.push(`/t/${team.slug}`);
+
+      const emailLower = email?.toLowerCase() || "";
+      const isPlatformOwner = PLATFORM_OWNERS.includes(emailLower);
+
+      // New users (non-platform owners) go to book-a-call page
+      if (isNewUser && !isPlatformOwner) {
+        router.push(`/t/${team.slug}/book-setup-call`);
+      } else {
+        // Existing users and platform owners go to dashboard
+        router.push(`/t/${team.slug}`);
+      }
     },
     onError: (err) => {
       console.error("[OAuth] Login error:", err);
@@ -73,22 +85,11 @@ export default function OAuthCompletePage() {
     const emailLower = email.toLowerCase();
     const isPlatformOwner = PLATFORM_OWNERS.includes(emailLower);
 
-    if (isPlatformOwner) {
-      // Platform owner - proceed with login
-      oauthLogin({
-        variables: {
-          input: {
-            email,
-            provider,
-            ...(name && { name }),
-            ...(googleId && { googleId }),
-          },
-        },
-      });
-    } else {
-      // New user - capture as HOT LEAD and add to nurture queues
-      setCapturing(true);
+    // Capture ALL signups as leads (for tracking), then create account
+    if (!isPlatformOwner) {
+      setStatus("Creating your account...");
 
+      // Capture as lead for tracking (fire and forget)
       fetch("/api/leads/capture-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,21 +98,26 @@ export default function OAuthCompletePage() {
           name: name || "",
           source: "google_oauth",
           provider: "google",
-          isHotLead: true, // Mark as hot lead - they tried to sign up!
-          leadScore: 90, // High score for sign-up intent
-          // Queue assignments for nurturing
-          addToCallQueue: true, // Add to call queue for follow-up
-          addToDripQueue: true, // Add to drip/nurture campaign
-          tags: ["google_signup", "hot_lead", "nurture"],
+          isHotLead: true,
+          leadScore: 90,
+          addToCallQueue: true,
+          tags: ["google_signup", "new_customer", "needs_onboarding_call"],
         }),
-      })
-        .catch(() => {}) // Silent fail - still redirect
-        .finally(() => {
-          // Redirect to access-granted page
-          router.push(`/auth/access-granted?email=${encodeURIComponent(emailLower)}&name=${encodeURIComponent(name || "")}`);
-        });
+      }).catch(() => {}); // Silent - don't block signup
     }
-  }, [email, provider, name, googleId, oauthLogin, router]);
+
+    // Create account for ALL users (platform owners and new signups)
+    oauthLogin({
+      variables: {
+        input: {
+          email,
+          provider,
+          ...(name && { name }),
+          ...(googleId && { googleId }),
+        },
+      },
+    });
+  }, [email, provider, name, googleId, oauthLogin]);
 
   if (error) {
     return (
@@ -131,9 +137,7 @@ export default function OAuthCompletePage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-        <p className="text-muted-foreground">
-          {capturing ? "Processing your request..." : "Completing sign in..."}
-        </p>
+        <p className="text-muted-foreground">{status}</p>
       </div>
     </div>
   );
