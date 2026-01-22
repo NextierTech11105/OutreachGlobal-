@@ -638,9 +638,10 @@ export class SabrinaSdrService {
 
     // Fallback to env var if no worker phone configured
     if (!fromNumber) {
-      fromNumber = process.env.GIANNA_PHONE_NUMBER;
+      fromNumber =
+        process.env.GIANNA_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER;
       if (fromNumber) {
-        this.logger.log(`Using env GIANNA_PHONE_NUMBER: ${fromNumber}`);
+        this.logger.log(`Using env phone: ${fromNumber}`);
       }
     }
 
