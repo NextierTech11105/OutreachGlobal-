@@ -35,6 +35,7 @@ import {
   User,
   Clock,
   FolderOpen,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -320,6 +321,14 @@ export const navigationGroups: NavGroup[] = [
         href: "/settings",
         icon: Settings,
         description: "All settings",
+      },
+      {
+        label: "Diagnostics",
+        href: "/diagnostics",
+        icon: AlertTriangle,
+        badge: "DEBUG",
+        badgeVariant: "destructive",
+        description: "System health & credentials",
       },
       {
         label: "Account",
