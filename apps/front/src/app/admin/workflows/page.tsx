@@ -1,7 +1,7 @@
 "use client";
 
 import { sf, sfd } from "@/lib/utils/safe-format";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -12,10 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pause, Play, Archive, Edit, Trash2 } from "lucide-react";
+import { Plus, Pause, Play, Archive, Edit, Trash2, Loader2 } from "lucide-react";
 import { WorkflowModal } from "@/components/workflow-modal";
 import type { Workflow } from "@/types/workflow";
 import { useToast } from "@/hooks/use-toast";
+
+const DEFAULT_TEAM_ID = "admin";
 
 export default function WorkflowsPage() {
   const { toast } = useToast();
@@ -23,9 +25,35 @@ export default function WorkflowsPage() {
   const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | undefined>(
     undefined,
   );
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Workflows state - starts empty, populated by user creation
+  // Workflows state - fetched from API
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+
+  // Fetch workflows on mount
+  useEffect(() => {
+    fetchWorkflows();
+  }, []);
+
+  const fetchWorkflows = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/workflows?teamId=${DEFAULT_TEAM_ID}`);
+      const result = await response.json();
+      if (response.ok && result.data) {
+        setWorkflows(result.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch workflows:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load workflows",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter workflows by status
   const activeWorkflows = workflows.filter((w) => w.status === "active");
@@ -42,69 +70,123 @@ export default function WorkflowsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveWorkflow = (workflowData: any) => {
-    if (currentWorkflow) {
-      // Update existing workflow
-      const updatedWorkflows = workflows.map((w) =>
-        w.id === currentWorkflow.id
-          ? { ...w, ...workflowData, updatedAt: new Date().toISOString() }
-          : w,
-      );
-      setWorkflows(updatedWorkflows);
+  const handleSaveWorkflow = async (workflowData: any) => {
+    try {
+      if (currentWorkflow) {
+        // Update existing workflow via API
+        const response = await fetch("/api/workflows", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: currentWorkflow.id, ...workflowData }),
+        });
+
+        if (response.ok) {
+          await fetchWorkflows();
+          toast({
+            title: "Workflow updated",
+            description: `${workflowData.name} has been updated successfully.`,
+          });
+        } else {
+          throw new Error("Failed to update");
+        }
+      } else {
+        // Create new workflow via API
+        const response = await fetch("/api/workflows", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teamId: DEFAULT_TEAM_ID, ...workflowData }),
+        });
+
+        if (response.ok) {
+          await fetchWorkflows();
+          toast({
+            title: "Workflow created",
+            description: `${workflowData.name} has been created successfully.`,
+          });
+        } else {
+          throw new Error("Failed to create");
+        }
+      }
+    } catch (error) {
       toast({
-        title: "Workflow updated",
-        description: `${workflowData.name} has been updated successfully.`,
-      });
-    } else {
-      // Create new workflow
-      const newWorkflow: Workflow = {
-        id: `workflow-${Date.now()}`,
-        ...workflowData,
-        createdAt: new Date().toISOString(),
-      };
-      setWorkflows([...workflows, newWorkflow]);
-      toast({
-        title: "Workflow created",
-        description: `${workflowData.name} has been created successfully.`,
+        title: "Error",
+        description: "Failed to save workflow",
+        variant: "destructive",
       });
     }
   };
 
-  const handleToggleStatus = (workflow: Workflow) => {
+  const handleToggleStatus = async (workflow: Workflow) => {
     const newStatus: "active" | "draft" | "archived" =
       workflow.status === "active" ? "draft" : "active";
-    const updatedWorkflows = workflows.map((w) =>
-      w.id === workflow.id ? { ...w, status: newStatus } : w,
-    );
-    setWorkflows(updatedWorkflows);
 
-    toast({
-      title:
-        workflow.status === "active" ? "Workflow paused" : "Workflow activated",
-      description: `${workflow.name} has been ${workflow.status === "active" ? "paused" : "activated"}.`,
-    });
+    try {
+      const response = await fetch("/api/workflows", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: workflow.id, status: newStatus }),
+      });
+
+      if (response.ok) {
+        await fetchWorkflows();
+        toast({
+          title: workflow.status === "active" ? "Workflow paused" : "Workflow activated",
+          description: `${workflow.name} has been ${workflow.status === "active" ? "paused" : "activated"}.`,
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update workflow status",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleArchiveWorkflow = (workflow: Workflow) => {
-    const updatedWorkflows = workflows.map((w) =>
-      w.id === workflow.id ? { ...w, status: "archived" as const } : w,
-    );
-    setWorkflows(updatedWorkflows);
+  const handleArchiveWorkflow = async (workflow: Workflow) => {
+    try {
+      const response = await fetch("/api/workflows", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: workflow.id, status: "archived" }),
+      });
 
-    toast({
-      title: "Workflow archived",
-      description: `${workflow.name} has been archived.`,
-    });
+      if (response.ok) {
+        await fetchWorkflows();
+        toast({
+          title: "Workflow archived",
+          description: `${workflow.name} has been archived.`,
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to archive workflow",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteWorkflow = (workflowId: string) => {
-    const updatedWorkflows = workflows.filter((w) => w.id !== workflowId);
-    setWorkflows(updatedWorkflows);
+  const handleDeleteWorkflow = async (workflowId: string) => {
+    try {
+      const response = await fetch(`/api/workflows?id=${workflowId}`, {
+        method: "DELETE",
+      });
 
-    toast({
-      title: "Workflow deleted",
-      description: "The workflow has been permanently deleted.",
-    });
+      if (response.ok) {
+        await fetchWorkflows();
+        toast({
+          title: "Workflow deleted",
+          description: "The workflow has been permanently deleted.",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to delete workflow",
+        variant: "destructive",
+      });
+    }
   };
 
   const renderWorkflowTable = (workflowList: Workflow[]) => (

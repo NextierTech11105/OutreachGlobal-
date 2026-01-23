@@ -1,7 +1,7 @@
 "use client";
 
-import { sf, sfd } from "@/lib/utils/safe-format";
-import { useState } from "react";
+import { sf } from "@/lib/utils/safe-format";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -44,16 +44,26 @@ import {
   MessageSquare,
   TrendingUp,
   Eye,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
-interface MessageTemplate {
-  id: string;
-  name: string;
-  category: string;
+interface TemplateData {
   content: string;
+  category: string;
   timesUsed: number;
   responseRate: number;
   isActive: boolean;
+}
+
+interface MessageTemplate {
+  id: string;
+  teamId: string;
+  name: string;
+  type: string;
+  data: TemplateData;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const categories = [
@@ -77,59 +87,159 @@ const tokens = [
   { token: "{{email}}", desc: "Lead's email" },
 ];
 
+// Default team ID for admin - in production, get from session
+const DEFAULT_TEAM_ID = "admin";
+
 export default function MessageTemplatesPage() {
-  // Templates state - starts empty, populated by user creation
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] =
-    useState<MessageTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
   const [newTemplate, setNewTemplate] = useState({
     name: "",
     category: "",
     content: "",
   });
 
-  const handleSave = () => {
-    if (editingTemplate) {
-      setTemplates(
-        templates.map((t) =>
-          t.id === editingTemplate.id
-            ? { ...editingTemplate, ...newTemplate }
-            : t,
-        ),
-      );
-    } else {
-      setTemplates([
-        ...templates,
-        {
-          id: `${Date.now()}`,
-          ...newTemplate,
-          timesUsed: 0,
-          responseRate: 0,
-          isActive: true,
-        },
-      ]);
+  // Fetch templates on mount
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/message-templates?teamId=${DEFAULT_TEAM_ID}`);
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        setTemplates(result.data);
+      } else {
+        console.error("Failed to fetch templates:", result.error);
+        toast.error("Failed to load templates");
+      }
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      toast.error("Failed to load templates");
+    } finally {
+      setIsLoading(false);
     }
-    setIsOpen(false);
-    setNewTemplate({ name: "", category: "", content: "" });
-    setEditingTemplate(null);
   };
 
-  const deleteTemplate = (id: string) => {
-    setTemplates(templates.filter((t) => t.id !== id));
+  const handleSave = async () => {
+    if (!newTemplate.name || !newTemplate.content) {
+      toast.error("Name and content are required");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (editingTemplate) {
+        // Update existing template
+        const response = await fetch("/api/message-templates", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editingTemplate.id,
+            name: newTemplate.name,
+            content: newTemplate.content,
+            category: newTemplate.category,
+          }),
+        });
+
+        if (response.ok) {
+          toast.success("Template updated!");
+          await fetchTemplates();
+        } else {
+          const result = await response.json();
+          toast.error(result.error || "Failed to update template");
+        }
+      } else {
+        // Create new template
+        const response = await fetch("/api/message-templates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            teamId: DEFAULT_TEAM_ID,
+            name: newTemplate.name,
+            content: newTemplate.content,
+            category: newTemplate.category,
+            type: "sms",
+          }),
+        });
+
+        if (response.ok) {
+          toast.success("Template created!");
+          await fetchTemplates();
+        } else {
+          const result = await response.json();
+          toast.error(result.error || "Failed to create template");
+        }
+      }
+
+      setIsOpen(false);
+      setNewTemplate({ name: "", category: "", content: "" });
+      setEditingTemplate(null);
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Failed to save template");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const duplicateTemplate = (template: MessageTemplate) => {
-    setTemplates([
-      ...templates,
-      {
-        ...template,
-        id: `${Date.now()}`,
-        name: `${template.name} (Copy)`,
-        timesUsed: 0,
-      },
-    ]);
+  const deleteTemplate = async (id: string) => {
+    try {
+      const response = await fetch(`/api/message-templates?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Template deleted");
+        setTemplates(templates.filter((t) => t.id !== id));
+      } else {
+        const result = await response.json();
+        toast.error(result.error || "Failed to delete template");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete template");
+    }
   };
+
+  const duplicateTemplate = async (template: MessageTemplate) => {
+    try {
+      const response = await fetch("/api/message-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId: DEFAULT_TEAM_ID,
+          name: `${template.name} (Copy)`,
+          content: template.data.content,
+          category: template.data.category,
+          type: template.type,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Template duplicated!");
+        await fetchTemplates();
+      } else {
+        const result = await response.json();
+        toast.error(result.error || "Failed to duplicate template");
+      }
+    } catch (error) {
+      console.error("Duplicate error:", error);
+      toast.error("Failed to duplicate template");
+    }
+  };
+
+  const getTemplateContent = (t: MessageTemplate) => t.data?.content || "";
+  const getTemplateCategory = (t: MessageTemplate) => t.data?.category || "general";
+  const getTimesUsed = (t: MessageTemplate) => t.data?.timesUsed || 0;
+  const getResponseRate = (t: MessageTemplate) => t.data?.responseRate || 0;
+  const getIsActive = (t: MessageTemplate) => t.data?.isActive !== false;
 
   return (
     <div className="p-8 space-y-6">
@@ -230,7 +340,8 @@ export default function MessageTemplatesPage() {
                 <Button variant="outline" onClick={() => setIsOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} disabled={isSaving}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {editingTemplate ? "Save Changes" : "Create Template"}
                 </Button>
               </div>
@@ -260,7 +371,7 @@ export default function MessageTemplatesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {sf(templates.reduce((sum, t) => sum + t.timesUsed, 0))}
+              {sf(templates.reduce((sum, t) => sum + getTimesUsed(t), 0))}
             </div>
           </CardContent>
         </Card>
@@ -275,7 +386,7 @@ export default function MessageTemplatesPage() {
             <div className="text-2xl font-bold">
               {templates.length > 0
                 ? (
-                    templates.reduce((sum, t) => sum + t.responseRate, 0) /
+                    templates.reduce((sum, t) => sum + getResponseRate(t), 0) /
                     templates.length
                   ).toFixed(1)
                 : "0"}
@@ -289,99 +400,105 @@ export default function MessageTemplatesPage() {
         <CardHeader>
           <CardTitle>All Templates</CardTitle>
           <CardDescription>
-            {templates.filter((t) => t.isActive).length} active templates
+            {templates.filter((t) => getIsActive(t)).length} active templates
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Preview</TableHead>
-                <TableHead className="text-right">Used</TableHead>
-                <TableHead className="text-right">Response</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {templates.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-12 text-muted-foreground"
-                  >
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="font-medium">No Templates Yet</p>
-                    <p className="text-sm">
-                      Create your first message template to get started
-                    </p>
-                  </TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Preview</TableHead>
+                  <TableHead className="text-right">Used</TableHead>
+                  <TableHead className="text-right">Response</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : null}
-              {templates.map((template) => (
-                <TableRow
-                  key={template.id}
-                  className={!template.isActive ? "opacity-50" : ""}
-                >
-                  <TableCell className="font-medium">{template.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {template.category.replace("_", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
-                    {template.content}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {sf(template.timesUsed)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={
-                        template.responseRate > 10 ? "text-green-500" : ""
-                      }
+              </TableHeader>
+              <TableBody>
+                {templates.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-12 text-muted-foreground"
                     >
-                      {template.responseRate}%
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingTemplate(template);
-                          setNewTemplate({
-                            name: template.name,
-                            category: template.category,
-                            content: template.content,
-                          });
-                          setIsOpen(true);
-                        }}
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-medium">No Templates Yet</p>
+                      <p className="text-sm">
+                        Create your first message template to get started
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+                {templates.map((template) => (
+                  <TableRow
+                    key={template.id}
+                    className={!getIsActive(template) ? "opacity-50" : ""}
+                  >
+                    <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {getTemplateCategory(template).replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[300px] truncate text-sm text-muted-foreground">
+                      {getTemplateContent(template)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {sf(getTimesUsed(template))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span
+                        className={
+                          getResponseRate(template) > 10 ? "text-green-500" : ""
+                        }
                       >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => duplicateTemplate(template)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteTemplate(template.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        {getResponseRate(template)}%
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditingTemplate(template);
+                            setNewTemplate({
+                              name: template.name,
+                              category: getTemplateCategory(template),
+                              content: getTemplateContent(template),
+                            });
+                            setIsOpen(true);
+                          }}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => duplicateTemplate(template)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteTemplate(template.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

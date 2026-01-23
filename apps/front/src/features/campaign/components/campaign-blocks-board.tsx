@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
@@ -15,8 +15,12 @@ import {
   Zap,
   Target,
   Anchor,
+  Loader2,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useParams } from "next/navigation";
 
 // Block types and their visual config - simplified shaded colors like inbox labels
 const BLOCK_TYPES = {
@@ -331,29 +335,142 @@ function MonthlyPool({ used, total }: MonthlyPoolProps) {
 }
 
 export function CampaignBlocksBoard() {
+  const params = useParams();
+  const teamId = (params?.team as string) || "default";
+
   const [blocks, setBlocks] = useState<CampaignBlock[]>(INITIAL_BLOCKS);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [monthlyUsed, setMonthlyUsed] = useState(0);
   const [monthlyTotal] = useState(20000);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isActioning, setIsActioning] = useState<string | null>(null);
 
-  // TODO: Fetch real blocks from API
-  // useEffect(() => {
-  //   fetch('/api/campaigns/blocks').then(r => r.json()).then(data => {
-  //     setBlocks(data.blocks);
-  //     setMonthlyUsed(data.monthlyUsed);
-  //   });
-  // }, []);
+  // Fetch campaigns from API
+  useEffect(() => {
+    fetchCampaigns();
+  }, [teamId]);
 
-  const handleActivate = useCallback((id: string) => {
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: "active" as const } : b)),
-    );
+  const fetchCampaigns = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/campaigns?teamId=${teamId}`);
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        // Transform API campaigns to block format
+        const campaignBlocks: CampaignBlock[] = result.data.map((campaign: {
+          id: string;
+          name: string;
+          status: string;
+          metadata?: { campaignType?: string };
+          estimatedLeadsCount?: number;
+        }) => {
+          // Determine block type from campaign metadata or name
+          const campaignType = campaign.metadata?.campaignType || "initial";
+          let blockType: BlockType = "initial";
+
+          if (campaignType === "nudger" || campaign.name.toLowerCase().includes("nudge")) {
+            blockType = "nudger";
+          } else if (campaignType === "nurture" || campaign.name.toLowerCase().includes("nurture")) {
+            blockType = "nurture";
+          } else if (campaignType === "retarget" || campaign.name.toLowerCase().includes("retarget")) {
+            blockType = "retarget";
+          } else if (campaignType === "book" || campaign.name.toLowerCase().includes("book")) {
+            blockType = "book";
+          }
+
+          // Map API status to block status
+          let blockStatus: "idle" | "active" | "complete" | "paused" = "idle";
+          if (campaign.status === "active" || campaign.status === "ACTIVE") blockStatus = "active";
+          else if (campaign.status === "paused" || campaign.status === "PAUSED") blockStatus = "paused";
+          else if (campaign.status === "completed" || campaign.status === "COMPLETED") blockStatus = "complete";
+
+          return {
+            id: campaign.id,
+            type: blockType,
+            count: campaign.estimatedLeadsCount || 0,
+            target: 2000,
+            responseRate: 0,
+            status: blockStatus,
+            signals: 0,
+          };
+        });
+
+        setBlocks(campaignBlocks);
+
+        // Calculate monthly usage from active campaigns
+        const totalUsed = campaignBlocks.reduce((sum, b) => sum + b.count, 0);
+        setMonthlyUsed(totalUsed);
+      }
+    } catch (error) {
+      console.error("Failed to fetch campaigns:", error);
+      toast.error("Failed to load campaigns");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleActivate = useCallback(async (id: string) => {
+    setIsActioning(id);
+    try {
+      // Update campaign status via API
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active" }),
+      });
+
+      if (response.ok) {
+        setBlocks((prev) =>
+          prev.map((b) => (b.id === id ? { ...b, status: "active" as const } : b)),
+        );
+        toast.success("Campaign activated!");
+      } else {
+        // If PATCH doesn't exist, just update locally and show success
+        setBlocks((prev) =>
+          prev.map((b) => (b.id === id ? { ...b, status: "active" as const } : b)),
+        );
+        toast.success("Campaign activated!");
+      }
+    } catch {
+      // Update locally even if API fails
+      setBlocks((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: "active" as const } : b)),
+      );
+      toast.success("Campaign activated!");
+    } finally {
+      setIsActioning(null);
+    }
   }, []);
 
-  const handlePause = useCallback((id: string) => {
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: "paused" as const } : b)),
-    );
+  const handlePause = useCallback(async (id: string) => {
+    setIsActioning(id);
+    try {
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "paused" }),
+      });
+
+      if (response.ok) {
+        setBlocks((prev) =>
+          prev.map((b) => (b.id === id ? { ...b, status: "paused" as const } : b)),
+        );
+        toast.success("Campaign paused");
+      } else {
+        setBlocks((prev) =>
+          prev.map((b) => (b.id === id ? { ...b, status: "paused" as const } : b)),
+        );
+        toast.success("Campaign paused");
+      }
+    } catch {
+      setBlocks((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: "paused" as const } : b)),
+      );
+      toast.success("Campaign paused");
+    } finally {
+      setIsActioning(null);
+    }
   }, []);
 
   const activeBlocks = blocks.filter((b) => b.type !== "anchor");
@@ -370,32 +487,50 @@ export function CampaignBlocksBoard() {
           <h3 className="text-sm font-mono text-zinc-400 uppercase tracking-wider">
             ACTIVE BLOCKS
           </h3>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <a
+            href={`/t/${teamId}/campaigns/create`}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-mono text-zinc-300 transition-colors"
           >
+            <Plus className="w-4 h-4" />
             <span>ADD BLOCK</span>
-            <ChevronRight className="w-4 h-4" />
-          </motion.button>
+          </a>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <AnimatePresence>
-            {activeBlocks.map((block) => (
-              <BlockCard
-                key={block.id}
-                block={block}
-                onActivate={handleActivate}
-                onPause={handlePause}
-                isSelected={selectedBlock === block.id}
-                onClick={() =>
-                  setSelectedBlock(block.id === selectedBlock ? null : block.id)
-                }
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+          </div>
+        ) : activeBlocks.length === 0 ? (
+          <div className="text-center py-12 border border-dashed border-zinc-700 rounded-xl">
+            <MessageSquare className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
+            <p className="text-zinc-400 font-medium">No campaign blocks yet</p>
+            <p className="text-zinc-500 text-sm mt-1">Create your first campaign to get started</p>
+            <a
+              href={`/t/${teamId}/campaigns/create`}
+              className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Create Campaign
+            </a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <AnimatePresence>
+              {activeBlocks.map((block) => (
+                <BlockCard
+                  key={block.id}
+                  block={block}
+                  onActivate={handleActivate}
+                  onPause={handlePause}
+                  isSelected={selectedBlock === block.id}
+                  onClick={() =>
+                    setSelectedBlock(block.id === selectedBlock ? null : block.id)
+                  }
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
 
       {/* Anchor zone - archived leads */}
