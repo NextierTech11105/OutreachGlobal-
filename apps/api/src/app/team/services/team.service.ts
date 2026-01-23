@@ -3,7 +3,7 @@ import { orFail } from "@/database/exceptions";
 import { DrizzleClient } from "@/database/types";
 import { Injectable, Logger } from "@nestjs/common";
 import { and, eq, or } from "drizzle-orm";
-import { teams, teamMembers } from "@/database/schema-alias";
+import { teamsTable as teams, teamMembersTable as teamMembers } from "@/database/schema-alias";
 import { SignalHouseProvisioningService } from "@/app/auth/services/signalhouse-provisioning.service";
 
 export interface CreateTeamInput {
