@@ -1103,6 +1103,107 @@ export default function SectorsPage() {
           </ScrollArea>
         </Tabs>
 
+        {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+        {/* CAMPAIGN BLOCKS - Your Local Lead Files */}
+        {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+        <Card className="border-2 border-purple-500/30 bg-purple-50/5">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-purple-600" />
+                  Campaign Blocks
+                  <Badge className="bg-purple-600 ml-2">669 Files</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Your local USBizData files organized by industry - ready for upload
+                </CardDescription>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700"
+                onClick={() => setShowUploadDialog(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Blocks
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              {/* Consultants Block */}
+              <Card className="hover:border-purple-500 cursor-pointer transition-colors" onClick={() => setShowUploadDialog(true)}>
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="outline" className="text-blue-600 border-blue-600">SIC 8742 / 8748</Badge>
+                    <span className="text-xs text-muted-foreground">168 files</span>
+                  </div>
+                  <h4 className="font-semibold text-lg">Consultants</h4>
+                  <p className="text-sm text-muted-foreground">Management & Business Consulting</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-xl font-bold text-purple-600">~168K</span>
+                    <span className="text-xs text-muted-foreground">leads</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Plumbing Block */}
+              <Card className="hover:border-purple-500 cursor-pointer transition-colors" onClick={() => setShowUploadDialog(true)}>
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">SIC 1711</Badge>
+                    <span className="text-xs text-muted-foreground">110 files</span>
+                  </div>
+                  <h4 className="font-semibold text-lg">Plumbing</h4>
+                  <p className="text-sm text-muted-foreground">Plumbing, Heating, AC</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-xl font-bold text-purple-600">~110K</span>
+                    <span className="text-xs text-muted-foreground">leads</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Realtors Block */}
+              <Card className="hover:border-purple-500 cursor-pointer transition-colors" onClick={() => setShowUploadDialog(true)}>
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="outline" className="text-green-600 border-green-600">SIC 6531</Badge>
+                    <span className="text-xs text-muted-foreground">390 files</span>
+                  </div>
+                  <h4 className="font-semibold text-lg">Realtors</h4>
+                  <p className="text-sm text-muted-foreground">Real Estate Agents & Brokers</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-xl font-bold text-purple-600">~390K</span>
+                    <span className="text-xs text-muted-foreground">leads</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="mt-4 p-3 bg-muted rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-6 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Total Files:</span>
+                  <span className="ml-2 font-bold">669</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Est. Leads:</span>
+                  <span className="ml-2 font-bold text-purple-600">~668K</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Skip Trace Cost:</span>
+                  <span className="ml-2 font-bold text-green-600">~$13,360</span>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                C:\Users\colep\Downloads\CampaignBlocks\
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Data Sources Section */}
         <Card>
           <CardHeader>

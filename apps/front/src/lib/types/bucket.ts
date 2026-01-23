@@ -1,6 +1,102 @@
 // Bucket & Lead Types for Real Estate + Apollo data
 
-export type BucketSource = "real-estate" | "apollo" | "mixed";
+export type BucketSource = "real-estate" | "apollo" | "mixed" | "usbizdata" | "zoho" | "propwire" | "tracerfy";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COLOR-CODED TAG SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Pipeline Status - Where is this data in the workflow?
+ * Color: Background color for visual clarity
+ */
+export type PipelineStatus = "raw" | "validated" | "skip_traced" | "ready" | "blocked" | "sent";
+
+/**
+ * PIPELINE ORDER:
+ * 1. RAW - Freshly uploaded CSV
+ * 2. SKIP_TRACED - Tracerfy enrichment (creates Lead ID, gets phone/email) - $0.02/lead
+ * 3. VALIDATED - Trestle Real Contact scoring - $0.015/lead
+ * 4. READY - Passed validation, ready for campaign
+ * 5. BLOCKED - DNC, litigator, or failed validation
+ * 6. SENT - Already pushed to SMS campaign
+ */
+export const PIPELINE_STATUS_CONFIG: Record<PipelineStatus, { label: string; color: string; bgColor: string; description: string; step: number }> = {
+  raw: { label: "Raw", color: "#6B7280", bgColor: "#F3F4F6", description: "Freshly uploaded, not processed", step: 1 },
+  skip_traced: { label: "Skip Traced", color: "#8B5CF6", bgColor: "#EDE9FE", description: "Enriched via Tracerfy ($0.02)", step: 2 },
+  validated: { label: "Validated", color: "#3B82F6", bgColor: "#DBEAFE", description: "Scored via Trestle ($0.015)", step: 3 },
+  ready: { label: "Ready", color: "#10B981", bgColor: "#D1FAE5", description: "Ready for SMS campaign", step: 4 },
+  blocked: { label: "Blocked", color: "#EF4444", bgColor: "#FEE2E2", description: "DNC, litigator, or invalid", step: 0 },
+  sent: { label: "Sent", color: "#F59E0B", bgColor: "#FEF3C7", description: "Already in campaign", step: 5 },
+};
+
+/**
+ * Quality Flags - What do we know about this lead?
+ * These are boolean indicators with color badges
+ */
+export interface QualityFlags {
+  hasPhone: boolean;
+  hasMobile: boolean;
+  hasEmail: boolean;
+  hasAddress: boolean;
+  isDecisionMaker: boolean;
+  phoneValidated: boolean;
+  emailValidated: boolean;
+  skipTraced: boolean;
+  isDNC: boolean;
+  isLitigator: boolean;
+}
+
+export const QUALITY_FLAG_CONFIG: Record<keyof QualityFlags, { label: string; trueColor: string; falseColor: string; icon: string }> = {
+  hasPhone: { label: "Phone", trueColor: "#10B981", falseColor: "#D1D5DB", icon: "📞" },
+  hasMobile: { label: "Mobile", trueColor: "#10B981", falseColor: "#D1D5DB", icon: "📱" },
+  hasEmail: { label: "Email", trueColor: "#3B82F6", falseColor: "#D1D5DB", icon: "✉️" },
+  hasAddress: { label: "Address", trueColor: "#6366F1", falseColor: "#D1D5DB", icon: "🏠" },
+  isDecisionMaker: { label: "DM", trueColor: "#F59E0B", falseColor: "#D1D5DB", icon: "👔" },
+  phoneValidated: { label: "Ph Valid", trueColor: "#10B981", falseColor: "#D1D5DB", icon: "✓" },
+  emailValidated: { label: "Em Valid", trueColor: "#3B82F6", falseColor: "#D1D5DB", icon: "✓" },
+  skipTraced: { label: "Traced", trueColor: "#8B5CF6", falseColor: "#D1D5DB", icon: "🔍" },
+  isDNC: { label: "DNC", trueColor: "#EF4444", falseColor: "#D1D5DB", icon: "🚫" },
+  isLitigator: { label: "Litigator", trueColor: "#EF4444", falseColor: "#D1D5DB", icon: "⚠️" },
+};
+
+/**
+ * Source Tags - Where did this data come from?
+ */
+export const SOURCE_TAG_CONFIG: Record<BucketSource, { label: string; color: string; bgColor: string }> = {
+  "real-estate": { label: "Real Estate", color: "#059669", bgColor: "#D1FAE5" },
+  apollo: { label: "Apollo", color: "#7C3AED", bgColor: "#EDE9FE" },
+  mixed: { label: "Mixed", color: "#6B7280", bgColor: "#F3F4F6" },
+  usbizdata: { label: "USBizData", color: "#2563EB", bgColor: "#DBEAFE" },
+  zoho: { label: "Zoho", color: "#DC2626", bgColor: "#FEE2E2" },
+  propwire: { label: "PropWire", color: "#059669", bgColor: "#D1FAE5" },
+  tracerfy: { label: "Tracerfy", color: "#7C3AED", bgColor: "#EDE9FE" },
+};
+
+/**
+ * SIC Code Categories - Industry groupings
+ */
+export const SIC_CATEGORIES: Record<string, { label: string; color: string; codes: string[] }> = {
+  consultants: { label: "Consultants", color: "#3B82F6", codes: ["8742", "8748"] },
+  realtors: { label: "Realtors", color: "#10B981", codes: ["6531"] },
+  plumbing: { label: "Plumbing", color: "#F59E0B", codes: ["1711"] },
+  legal: { label: "Legal", color: "#6366F1", codes: ["8111"] },
+  healthcare: { label: "Healthcare", color: "#EF4444", codes: ["8011", "8021", "8031"] },
+  construction: { label: "Construction", color: "#F97316", codes: ["1521", "1531", "1541"] },
+  finance: { label: "Finance", color: "#14B8A6", codes: ["6021", "6022", "6211"] },
+};
+
+/**
+ * Get SIC category from code
+ */
+export function getSICCategory(sicCode: string): { label: string; color: string } | null {
+  for (const [, config] of Object.entries(SIC_CATEGORIES)) {
+    if (config.codes.includes(sicCode)) {
+      return { label: config.label, color: config.color };
+    }
+  }
+  return null;
+}
 
 export type EnrichmentStatus =
   | "pending"
@@ -140,6 +236,14 @@ export interface Lead {
   bucketId: string;
   source: BucketSource;
   status: LeadStatus;
+  // Pipeline tracking - where is this lead in the workflow?
+  pipelineStatus?: PipelineStatus;
+  // Quality flags for color-coded badges
+  qualityFlags?: QualityFlags;
+  // Contactability score from Trestle (0-100)
+  contactabilityScore?: number;
+  // SIC code for industry grouping
+  sicCode?: string;
   tags: string[];
   autoTags: string[]; // System-generated tags
   createdAt: string;

@@ -76,6 +76,7 @@ import {
 import { UniversalDetailModal } from "@/components/universal-detail-modal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PIPELINE_STATUS_CONFIG, type PipelineStatus } from "@/lib/types/bucket";
 
 // ==================== DECISION MAKER DETECTION ====================
 // Detect if contact is likely a decision maker based on name/title patterns
@@ -219,6 +220,42 @@ function calculatePriorityScore(lead: {
   if (lead.phone) score += 10;
   if (lead.email) score += 5;
   return score;
+}
+
+// Determine pipeline status based on lead data
+// Pipeline: RAW → SKIP_TRACED → VALIDATED → READY → SENT
+// BLOCKED = DNC/litigator at any stage
+function getPipelineStatus(lead: {
+  enriched?: boolean;
+  contactabilityScore?: number;
+  pipelineStatus?: PipelineStatus;
+  isDNC?: boolean;
+  isLitigator?: boolean;
+  sentToCampaign?: boolean;
+  mobilePhone?: string | null;
+  enrichedPhones?: { number: string }[];
+}): PipelineStatus {
+  // Explicit status overrides
+  if (lead.pipelineStatus) return lead.pipelineStatus;
+
+  // Blocked check (DNC or litigator)
+  if (lead.isDNC || lead.isLitigator) return "blocked";
+
+  // Already sent to campaign
+  if (lead.sentToCampaign) return "sent";
+
+  // Has contactability score = validated
+  if (lead.contactabilityScore && lead.contactabilityScore > 0) {
+    return lead.contactabilityScore >= 60 ? "ready" : "validated";
+  }
+
+  // Has enriched phone = skip traced
+  if (lead.enriched || lead.mobilePhone || (lead.enrichedPhones && lead.enrichedPhones.length > 0)) {
+    return "skip_traced";
+  }
+
+  // Default = raw
+  return "raw";
 }
 
 // Phone with type info from skip trace
@@ -413,6 +450,75 @@ export default function SectorDetailPage() {
     leadsEnriched?: number;
     leadsPushed?: number;
   } | null>(null);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ENRICHMENT ADD-ONS (Toggles)
+  // YOUR COSTS vs CHARGE TO CUSTOMER
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const [traceType, setTraceType] = useState<"normal" | "enhanced">("normal");
+  const [enrichmentAddOns, setEnrichmentAddOns] = useState({
+    trestle: false,    // Phone validation (line type, carrier)
+    ml_scoring: false, // ML Contactability Score (risk tier, DNC, litigator)
+    apollo: false,     // B2B company enrichment
+    perplexity: false, // AI research/verification
+  });
+
+  // PRICING TABLE (YOUR COST | CHARGE | MARGIN)
+  // ML Scoring = Trestle + Contactability Engine
+  const ENRICHMENT_PRICING = {
+    tracerfy_normal:  { yourCost: 0.02, charge: 0.08, label: "Skip Trace (Normal)", desc: "Phone, email, address" },
+    tracerfy_enhanced: { yourCost: 0.15, charge: 0.30, label: "Skip Trace (Enhanced)", desc: "+ demographics, relatives, history" },
+    trestle:          { yourCost: 0.015, charge: 0.05, label: "Phone Validation", desc: "Line type, carrier, activity" },
+    ml_scoring:       { yourCost: 0.02, charge: 0.08, label: "ML Contactability Score", desc: "Risk tier, DNC, litigator checks" },
+    apollo:           { yourCost: 0.03, charge: 0.10, label: "B2B Enrichment", desc: "Company data, revenue, employees" },
+    perplexity:       { yourCost: 0.01, charge: 0.05, label: "AI Research", desc: "Business verification, intel" },
+  };
+
+  // Calculate costs and charges
+  const calculateEnrichmentCosts = () => {
+    let yourCost = traceType === "enhanced"
+      ? ENRICHMENT_PRICING.tracerfy_enhanced.yourCost
+      : ENRICHMENT_PRICING.tracerfy_normal.yourCost;
+    let charge = traceType === "enhanced"
+      ? ENRICHMENT_PRICING.tracerfy_enhanced.charge
+      : ENRICHMENT_PRICING.tracerfy_normal.charge;
+
+    if (enrichmentAddOns.trestle) {
+      yourCost += ENRICHMENT_PRICING.trestle.yourCost;
+      charge += ENRICHMENT_PRICING.trestle.charge;
+    }
+    if (enrichmentAddOns.ml_scoring) {
+      yourCost += ENRICHMENT_PRICING.ml_scoring.yourCost;
+      charge += ENRICHMENT_PRICING.ml_scoring.charge;
+    }
+    if (enrichmentAddOns.apollo) {
+      yourCost += ENRICHMENT_PRICING.apollo.yourCost;
+      charge += ENRICHMENT_PRICING.apollo.charge;
+    }
+    if (enrichmentAddOns.perplexity) {
+      yourCost += ENRICHMENT_PRICING.perplexity.yourCost;
+      charge += ENRICHMENT_PRICING.perplexity.charge;
+    }
+
+    const margin = ((charge - yourCost) / charge * 100).toFixed(0);
+    return { yourCost, charge, margin };
+  };
+
+  // Get list of selected add-ons for display
+  const getSelectedAddOns = () => {
+    const selected: string[] = [];
+    if (traceType === "enhanced") selected.push("Enhanced Trace");
+    if (enrichmentAddOns.trestle) selected.push("Phone Validation");
+    if (enrichmentAddOns.ml_scoring) selected.push("ML Scoring");
+    if (enrichmentAddOns.apollo) selected.push("B2B Enrichment");
+    if (enrichmentAddOns.perplexity) selected.push("AI Research");
+    return selected;
+  };
+
+  // Toggle an add-on
+  const toggleAddOn = (addon: keyof typeof enrichmentAddOns) => {
+    setEnrichmentAddOns(prev => ({ ...prev, [addon]: !prev[addon] }));
+  };
 
   // Load daily skip trace count from localStorage
   useEffect(() => {
@@ -674,7 +780,7 @@ export default function SectorDetailPage() {
     }
   };
 
-  // Skip Trace Enrichment (RealEstateAPI)
+  // Skip Trace Enrichment (Tracerfy) + Optional Add-ons
   const handleSkipTrace = async () => {
     const selected = leads.filter(
       (l) =>
@@ -1722,6 +1828,121 @@ export default function SectorDetailPage() {
           </Badge>
         </div>
 
+        {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+        {/* ENRICHMENT ADD-ONS PANEL - Configure before running Skip Trace */}
+        {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+        <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-900">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* TRACE TYPE SELECTOR */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-500">Trace:</span>
+              <div className="flex border rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setTraceType("normal")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-medium transition-colors",
+                    traceType === "normal"
+                      ? "bg-purple-600 text-white"
+                      : "bg-white hover:bg-slate-100 text-slate-600"
+                  )}
+                >
+                  Normal ($0.02)
+                </button>
+                <button
+                  onClick={() => setTraceType("enhanced")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-medium transition-colors",
+                    traceType === "enhanced"
+                      ? "bg-purple-600 text-white"
+                      : "bg-white hover:bg-slate-100 text-slate-600"
+                  )}
+                >
+                  Enhanced ($0.15)
+                </button>
+              </div>
+            </div>
+
+            {/* ADD-ON TOGGLES */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-slate-500">Add-ons:</span>
+
+              {/* Trestle - Phone Validation */}
+              <button
+                onClick={() => toggleAddOn("trestle")}
+                className={cn(
+                  "px-2 py-1 text-xs rounded-md border transition-colors",
+                  enrichmentAddOns.trestle
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-slate-600 border-slate-300 hover:border-blue-400"
+                )}
+              >
+                Phone Valid (+$0.015)
+              </button>
+
+              {/* ML Scoring */}
+              <button
+                onClick={() => toggleAddOn("ml_scoring")}
+                className={cn(
+                  "px-2 py-1 text-xs rounded-md border transition-colors",
+                  enrichmentAddOns.ml_scoring
+                    ? "bg-green-600 text-white border-green-600"
+                    : "bg-white text-slate-600 border-slate-300 hover:border-green-400"
+                )}
+              >
+                ML Score (+$0.02)
+              </button>
+
+              {/* Apollo - B2B */}
+              <button
+                onClick={() => toggleAddOn("apollo")}
+                className={cn(
+                  "px-2 py-1 text-xs rounded-md border transition-colors",
+                  enrichmentAddOns.apollo
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-slate-600 border-slate-300 hover:border-indigo-400"
+                )}
+              >
+                B2B Data (+$0.03)
+              </button>
+
+              {/* Perplexity - AI Research */}
+              <button
+                onClick={() => toggleAddOn("perplexity")}
+                className={cn(
+                  "px-2 py-1 text-xs rounded-md border transition-colors",
+                  enrichmentAddOns.perplexity
+                    ? "bg-orange-600 text-white border-orange-600"
+                    : "bg-white text-slate-600 border-slate-300 hover:border-orange-400"
+                )}
+              >
+                AI Research (+$0.01)
+              </button>
+            </div>
+
+            {/* COST SUMMARY */}
+            <div className="flex items-center gap-4 text-xs">
+              <div className="px-3 py-1 rounded bg-slate-200 dark:bg-slate-700">
+                <span className="text-slate-500">Your Cost:</span>
+                <span className="ml-1 font-bold text-slate-700 dark:text-slate-200">
+                  ${calculateEnrichmentCosts().yourCost.toFixed(3)}/lead
+                </span>
+              </div>
+              <div className="px-3 py-1 rounded bg-green-100 dark:bg-green-900">
+                <span className="text-green-700 dark:text-green-300">Charge:</span>
+                <span className="ml-1 font-bold text-green-700 dark:text-green-200">
+                  ${calculateEnrichmentCosts().charge.toFixed(2)}/lead
+                </span>
+              </div>
+              <div className="px-3 py-1 rounded bg-emerald-100 dark:bg-emerald-900">
+                <span className="text-emerald-700 dark:text-emerald-300">Margin:</span>
+                <span className="ml-1 font-bold text-emerald-700 dark:text-emerald-200">
+                  {calculateEnrichmentCosts().margin}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ENRICHMENT BUTTONS */}
         <div className="flex items-center gap-4 flex-wrap">
           <Button
@@ -1735,7 +1956,7 @@ export default function SectorDetailPage() {
             className="border-purple-500 text-purple-600 hover:bg-purple-50"
           >
             <Home className="h-4 w-4 mr-2" />
-            Skip Trace ({selectedIds.size})
+            Skip Trace ({selectedIds.size}) - ${(calculateEnrichmentCosts().charge * selectedIds.size).toFixed(2)}
           </Button>
 
           <Button
@@ -1875,12 +2096,23 @@ export default function SectorDetailPage() {
                         </div>
                       </div>
                       <div className="flex gap-1 flex-wrap">
-                        {isEnriched && (
-                          <Badge className="bg-green-600 text-xs">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Enriched
-                          </Badge>
-                        )}
+                        {/* Pipeline Status Badge */}
+                        {(() => {
+                          const status = getPipelineStatus(lead);
+                          const config = PIPELINE_STATUS_CONFIG[status];
+                          return (
+                            <Badge
+                              className="text-xs"
+                              style={{
+                                backgroundColor: config.bgColor,
+                                color: config.color,
+                                borderColor: config.color,
+                              }}
+                            >
+                              {config.label}
+                            </Badge>
+                          );
+                        })()}
                         {lead.isDecisionMaker && (
                           <Badge className="bg-amber-500 text-xs">
                             <Crown className="h-3 w-3 mr-1" />
@@ -1943,6 +2175,143 @@ export default function SectorDetailPage() {
                         {lead.industry || lead.sicDescription}
                       </p>
                     )}
+
+                    {/* ACTION BUTTONS - Label, Clone, Call, SMS */}
+                    <div className="flex items-center gap-1 pt-2 border-t mt-2">
+                      {/* LABEL */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toast.info(`Label: ${lead.contactName || lead.companyName}`);
+                        }}
+                      >
+                        <Layers className="h-3 w-3 mr-1" />
+                        Label
+                      </Button>
+
+                      {/* CLONE */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toast.success("Lead cloned to clipboard");
+                        }}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Clone
+                      </Button>
+
+                      {/* CALL - Twilio Outbound */}
+                      {(lead.mobilePhone || lead.phone || lead.directPhone) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const phone = lead.mobilePhone || lead.phone || lead.directPhone;
+                            try {
+                              toast.info(`Calling ${phone}...`);
+                              const res = await fetch("/api/twilio/call", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  to: phone,
+                                  leadId: lead.id,
+                                  contactName: lead.contactName || lead.companyName,
+                                }),
+                              });
+                              if (res.ok) {
+                                toast.success(`Call initiated to ${phone}`);
+                              } else {
+                                // Fallback to tel: link
+                                window.open(`tel:${phone}`, "_self");
+                              }
+                            } catch {
+                              window.open(`tel:${phone}`, "_self");
+                            }
+                          }}
+                        >
+                          <PhoneCall className="h-3 w-3 mr-1" />
+                          Call
+                        </Button>
+                      )}
+
+                      {/* SMS - SignalHouse Quick Send */}
+                      {(lead.mobilePhone || lead.phone) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const phone = lead.mobilePhone || lead.phone;
+                            try {
+                              const message = prompt("Enter message:", "Hi! Quick question about your business...");
+                              if (message) {
+                                toast.info("Sending via SignalHouse...");
+                                const res = await fetch("/api/sms/send", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    to: phone,
+                                    message,
+                                    leadId: lead.id,
+                                  }),
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                  toast.success(`SMS sent to ${phone}`);
+                                } else {
+                                  toast.error(data.error || "Failed to send SMS");
+                                }
+                              }
+                            } catch (err) {
+                              toast.error("SMS send failed");
+                            }
+                          }}
+                        >
+                          <Send className="h-3 w-3 mr-1" />
+                          SMS
+                        </Button>
+                      )}
+
+                      {/* SHARE - Email or WhatsApp */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const name = lead.contactName || lead.companyName || "Lead";
+                          const phone = lead.mobilePhone || lead.phone || "N/A";
+                          const email = lead.email || "N/A";
+                          const company = lead.companyName || "N/A";
+                          const address = [lead.address, lead.city, lead.state].filter(Boolean).join(", ") || "N/A";
+
+                          const leadText = `Lead: ${name}\nCompany: ${company}\nPhone: ${phone}\nEmail: ${email}\nAddress: ${address}`;
+                          const encodedText = encodeURIComponent(leadText);
+
+                          // Show share options
+                          const choice = window.confirm("Share via WhatsApp?\n\nOK = WhatsApp\nCancel = Email");
+                          if (choice) {
+                            // WhatsApp
+                            window.open(`https://wa.me/?text=${encodedText}`, "_blank");
+                          } else {
+                            // Email
+                            window.open(`mailto:?subject=Lead: ${name}&body=${encodedText}`, "_blank");
+                          }
+                        }}
+                      >
+                        <Globe className="h-3 w-3 mr-1" />
+                        Share
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -2029,7 +2398,8 @@ export default function SectorDetailPage() {
                 <TableHead className="w-[80px]">SIC Code</TableHead>
                 <TableHead className="min-w-[200px]">SIC Description</TableHead>
                 <TableHead className="text-center w-[80px]">Attempts</TableHead>
-                <TableHead className="w-[100px]">Status</TableHead>
+                <TableHead className="w-[100px]">Pipeline</TableHead>
+                <TableHead className="w-[200px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2421,15 +2791,93 @@ export default function SectorDetailPage() {
                         )}
                       </div>
                     </TableCell>
-                    {/* STATUS */}
+                    {/* PIPELINE STATUS */}
                     <TableCell>
-                      {lead.enriched ? (
-                        <Badge className="bg-green-600">Enriched</Badge>
-                      ) : lead.address ? (
-                        <Badge variant="outline">Pending</Badge>
-                      ) : (
-                        <Badge variant="secondary">No Addr</Badge>
-                      )}
+                      {(() => {
+                        const status = getPipelineStatus(lead);
+                        const config = PIPELINE_STATUS_CONFIG[status];
+                        return (
+                          <Badge
+                            className="text-xs"
+                            style={{
+                              backgroundColor: config.bgColor,
+                              color: config.color,
+                              borderColor: config.color,
+                            }}
+                          >
+                            {config.label}
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+                    {/* ACTIONS */}
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {/* Call */}
+                        {(lead.mobilePhone || lead.phone) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-green-600 hover:bg-green-50"
+                            onClick={async () => {
+                              const phone = lead.mobilePhone || lead.phone || lead.directPhone;
+                              try {
+                                await fetch("/api/twilio/call", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ to: phone, leadId: lead.id }),
+                                });
+                                toast.success(`Calling ${phone}`);
+                              } catch {
+                                window.open(`tel:${phone}`, "_self");
+                              }
+                            }}
+                          >
+                            <PhoneCall className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {/* SMS */}
+                        {(lead.mobilePhone || lead.phone) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-blue-600 hover:bg-blue-50"
+                            onClick={async () => {
+                              const phone = lead.mobilePhone || lead.phone;
+                              const msg = prompt("Message:", "Hi! Quick question...");
+                              if (msg) {
+                                const res = await fetch("/api/sms/send", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ to: phone, message: msg, leadId: lead.id }),
+                                });
+                                const data = await res.json();
+                                toast[data.success ? "success" : "error"](data.success ? `SMS sent to ${phone}` : data.error);
+                              }
+                            }}
+                          >
+                            <Send className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {/* Share */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-purple-600 hover:bg-purple-50"
+                          onClick={() => {
+                            const name = lead.contactName || lead.companyName || "Lead";
+                            const text = `Lead: ${name}\nPhone: ${lead.phone || "N/A"}\nEmail: ${lead.email || "N/A"}`;
+                            const encoded = encodeURIComponent(text);
+                            if (confirm("WhatsApp? (OK=Yes, Cancel=Email)")) {
+                              window.open(`https://wa.me/?text=${encoded}`, "_blank");
+                            } else {
+                              window.open(`mailto:?subject=Lead: ${name}&body=${encoded}`, "_blank");
+                            }
+                          }}
+                        >
+                          <Globe className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -2516,7 +2964,7 @@ export default function SectorDetailPage() {
               {enrichType === "skip_trace" ? (
                 <>
                   <Home className="h-5 w-5 text-purple-600" />
-                  Skip Trace (RealEstateAPI)
+                  Skip Trace (Tracerfy) {getSelectedAddOns().length > 0 && `+ ${getSelectedAddOns().length} Add-ons`}
                 </>
               ) : (
                 <>
