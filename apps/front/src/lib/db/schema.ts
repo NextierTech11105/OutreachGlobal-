@@ -3107,6 +3107,7 @@ export const sequenceEnrollments = pgTable(
     steps: jsonb("steps").notNull().default([]), // Array of step configs with scheduledAt
     startedAt: timestamp("started_at").defaultNow().notNull(),
     nextStepAt: timestamp("next_step_at"),
+    lastStepAt: timestamp("last_step_at"),
     completedAt: timestamp("completed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

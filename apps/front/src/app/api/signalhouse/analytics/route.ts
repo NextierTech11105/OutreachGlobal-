@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 const SIGNALHOUSE_API_URL =
   process.env.SIGNALHOUSE_API_URL || "https://api.signalhouse.io";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
+const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
 const SIGNALHOUSE_SUB_GROUP_ID = process.env.SIGNALHOUSE_SUB_GROUP_ID || "";
 
 export async function GET(request: NextRequest) {
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
         }),
       {
         headers: {
-          Authorization: `Bearer ${SIGNALHOUSE_API_KEY}`,
+          "apiKey": SIGNALHOUSE_API_KEY,
+          "authToken": SIGNALHOUSE_AUTH_TOKEN,
           "Content-Type": "application/json",
         },
       },

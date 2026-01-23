@@ -8,6 +8,7 @@ const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   "https://monkfish-app-mb7h3.ondigitalocean.app";
 const SIGNALHOUSE_API_KEY = process.env.SIGNALHOUSE_API_KEY || "";
+const SIGNALHOUSE_AUTH_TOKEN = process.env.SIGNALHOUSE_AUTH_TOKEN || "";
 const FROM_NUMBER =
   process.env.SIGNALHOUSE_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER || "";
 
@@ -54,21 +55,22 @@ async function sendSMS(
   to: string,
   message: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  if (!SIGNALHOUSE_API_KEY) {
+  if (!SIGNALHOUSE_API_KEY || !SIGNALHOUSE_AUTH_TOKEN) {
     console.warn("[Content Send] SignalHouse not configured");
     return { success: false, error: "SMS not configured" };
   }
 
   try {
-    const response = await fetch("https://api.signalhouse.io/v1/messages", {
+    const response = await fetch("https://api.signalhouse.io/message/sendSMS", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SIGNALHOUSE_API_KEY}`,
+        "apiKey": SIGNALHOUSE_API_KEY,
+        "authToken": SIGNALHOUSE_AUTH_TOKEN,
       },
       body: JSON.stringify({
         to,
-        text: message,
+        message,
         from: FROM_NUMBER,
       }),
     });

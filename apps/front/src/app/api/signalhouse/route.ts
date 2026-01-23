@@ -19,15 +19,11 @@ function isConfigured(): boolean {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  if (SIGNALHOUSE_API_KEY) {
+  // SignalHouse uses apiKey and authToken headers, NOT Bearer auth
+  if (SIGNALHOUSE_API_KEY && SIGNALHOUSE_AUTH_TOKEN) {
     return {
-      Authorization: `Bearer ${SIGNALHOUSE_API_KEY}`,
-      "Content-Type": "application/json",
-    };
-  }
-  if (SIGNALHOUSE_ACCOUNT_SID && SIGNALHOUSE_AUTH_TOKEN) {
-    return {
-      Authorization: `Basic ${Buffer.from(`${SIGNALHOUSE_ACCOUNT_SID}:${SIGNALHOUSE_AUTH_TOKEN}`).toString("base64")}`,
+      "apiKey": SIGNALHOUSE_API_KEY,
+      "authToken": SIGNALHOUSE_AUTH_TOKEN,
       "Content-Type": "application/json",
     };
   }
