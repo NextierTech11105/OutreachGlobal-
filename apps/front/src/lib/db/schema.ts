@@ -3090,3 +3090,34 @@ export const aiPrompts = pgTable(
 
 export type AiPrompt = typeof aiPrompts.$inferSelect;
 export type NewAiPrompt = typeof aiPrompts.$inferInsert;
+
+// ============================================================
+// SEQUENCE ENROLLMENTS - Track leads in multi-step sequences
+// ============================================================
+
+export const sequenceEnrollments = pgTable(
+  "sequence_enrollments",
+  {
+    id: text("id").primaryKey(),
+    sequenceId: text("sequence_id").notNull(),
+    leadId: text("lead_id").notNull(),
+    teamId: text("team_id").notNull(),
+    status: text("status").notNull().default("active"), // 'active' | 'paused' | 'completed' | 'cancelled'
+    currentStep: integer("current_step").notNull().default(0),
+    steps: jsonb("steps").notNull().default([]), // Array of step configs with scheduledAt
+    startedAt: timestamp("started_at").defaultNow().notNull(),
+    nextStepAt: timestamp("next_step_at"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("sequence_enrollments_team_id_idx").on(table.teamId),
+    leadIdIdx: index("sequence_enrollments_lead_id_idx").on(table.leadId),
+    sequenceIdIdx: index("sequence_enrollments_sequence_id_idx").on(table.sequenceId),
+    statusIdx: index("sequence_enrollments_status_idx").on(table.status),
+  })
+);
+
+export type SequenceEnrollment = typeof sequenceEnrollments.$inferSelect;
+export type NewSequenceEnrollment = typeof sequenceEnrollments.$inferInsert;
