@@ -16,7 +16,7 @@ export const Button = ({ children, style, ...props }: Props) => {
 
   return (
     <ReactButton style={buttonStyle} {...props}>
-      {children}
+      {children as React.ReactNode}
     </ReactButton>
   );
 };
