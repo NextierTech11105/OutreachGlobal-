@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { apiAuth } from "@/lib/api-auth";
+import {
+  getSpacesClient,
+  getBucketName,
+  getSpacesUrl,
+  isSpacesConfigured,
+} from "@/lib/do-spaces-client";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -15,20 +21,8 @@ import { apiAuth } from "@/lib/api-auth";
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-// DO Spaces configuration
-const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
-const SPACES_KEY = process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.DO_SPACES_SECRET || "";
-
-function getS3Client(): S3Client | null {
-  if (!SPACES_KEY || !SPACES_SECRET) return null;
-  return new S3Client({
-    endpoint: SPACES_ENDPOINT,
-    region: "nyc3",
-    credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
-  });
-}
+// Use centralized DO Spaces client (has forcePathStyle: true)
+const SPACES_BUCKET = getBucketName();
 
 // Valid folder prefixes (enforces conventions)
 const VALID_FOLDERS = {
@@ -82,7 +76,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const client = getS3Client();
+    const client = getSpacesClient();
     if (!client) {
       return NextResponse.json(
         { error: "DO Spaces not configured", required: ["DO_SPACES_KEY", "DO_SPACES_SECRET"] },
@@ -179,7 +173,7 @@ export async function POST(request: NextRequest) {
       success: true,
       storagePath,
       bucket: SPACES_BUCKET,
-      url: `${SPACES_ENDPOINT}/${SPACES_BUCKET}/${storagePath}`,
+      url: getSpacesUrl(storagePath),
       metadata,
       nextSteps: getNextSteps(validPrefix, storagePath),
     });
@@ -235,7 +229,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const client = getS3Client();
+    const client = getSpacesClient();
     if (!client) {
       return NextResponse.json({ error: "DO Spaces not configured" }, { status: 503 });
     }
