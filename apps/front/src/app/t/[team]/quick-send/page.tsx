@@ -97,27 +97,33 @@ export default function QuickSendPage() {
   const getSelectedBatch = () => batches.find(b => b.id === selectedBatch);
 
   const startEnrichment = async () => {
-    if (!selectedBatch) return;
+    if (!selectedBatch) {
+      toast.error("Select a batch first");
+      return;
+    }
     setEnriching(true);
     try {
-      const response = await fetch("/api/luci/enrich", {
+      // Use the datalake pipeline endpoint with LUCI guardrails
+      const response = await fetch("/api/datalake/pipeline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "enrich",
+          batchId: selectedBatch,
           limit: enrichLimit,
-          level: "skip_trace_only", // Just Tracerfy at $0.02 for primary phone
           campaignType: enrichLimit <= 100 ? "small" : enrichLimit <= 500 ? "medium" : "large",
-          confirmed: true,
+          confirmed: true, // User confirmed cost
         }),
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(`Started enrichment for ${data.stats?.enriching || enrichLimit} leads`);
+        toast.success(data.message || `Started enrichment for ${enrichLimit} leads`);
         loadBatches();
       } else {
-        toast.error(data.error || "Enrichment failed");
+        toast.error(data.error || data.message || "Enrichment failed");
       }
-    } catch {
+    } catch (err) {
+      console.error("Enrichment error:", err);
       toast.error("Failed to start enrichment");
     } finally {
       setEnriching(false);
@@ -128,7 +134,7 @@ export default function QuickSendPage() {
     if (!phone || !message) { toast.error("Enter phone and message"); return; }
     setSending(true);
     try {
-      const response = await fetch("/api/test-sms", {
+      const response = await fetch("/api/sms/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: phone, message }),
