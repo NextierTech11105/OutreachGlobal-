@@ -151,6 +151,95 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path") || "/";
     const reportId = searchParams.get("reportId");
+    const listAll = searchParams.get("listAll") === "true";
+
+    // CDN base URL for public access
+    const cdnUrl = `https://${SPACES_BUCKET}.${SPACES_REGION}.cdn.digitaloceanspaces.com`;
+
+    // List ALL saved reports with public URLs (for Content Hub)
+    if (listAll && s3Client && SPACES_CONFIGURED) {
+      try {
+        // List all files under leads/ prefix (where valuations are stored)
+        const command = new ListObjectsV2Command({
+          Bucket: SPACES_BUCKET,
+          Prefix: "leads/",
+          MaxKeys: 1000,
+        });
+        const response = await s3Client.send(command);
+
+        const reports: Array<{
+          id: string;
+          name: string;
+          type: "property-valuation" | "business-evaluation" | "ai-blueprint" | "generic";
+          path: string;
+          publicUrl: string;
+          createdAt: string;
+          size?: number;
+          metadata?: {
+            address?: string;
+            companyName?: string;
+            estimatedValue?: number;
+          };
+        }> = [];
+
+        if (response.Contents) {
+          for (const obj of response.Contents) {
+            // Only include HTML reports (public-facing)
+            if (obj.Key?.endsWith(".html")) {
+              const pathParts = obj.Key.split("/");
+              const leadId = pathParts[1] || "";
+              const fileName = pathParts[pathParts.length - 1]?.replace(".html", "") || "";
+
+              // Determine report type from path
+              let reportType: "property-valuation" | "business-evaluation" | "ai-blueprint" | "generic" = "generic";
+              if (obj.Key.includes("valuation-reports")) {
+                reportType = "property-valuation";
+              } else if (obj.Key.includes("business-evaluations")) {
+                reportType = "business-evaluation";
+              } else if (obj.Key.includes("blueprints")) {
+                reportType = "ai-blueprint";
+              }
+
+              reports.push({
+                id: obj.Key,
+                name: fileName || leadId,
+                type: reportType,
+                path: obj.Key,
+                publicUrl: `${cdnUrl}/${obj.Key}`,
+                createdAt: obj.LastModified?.toISOString() || new Date().toISOString(),
+                size: obj.Size,
+                metadata: {
+                  address: leadId.replace(/-/g, " "),
+                },
+              });
+            }
+          }
+        }
+
+        // Sort by date descending (newest first)
+        reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        return NextResponse.json({
+          success: true,
+          reports,
+          total: reports.length,
+          storageInfo: {
+            bucket: SPACES_BUCKET,
+            region: SPACES_REGION,
+            prefix: "leads/",
+            cdnUrl,
+          },
+        });
+      } catch (err) {
+        console.error("[Research Library] ListAll error:", err);
+        return NextResponse.json({
+          success: true,
+          reports: [],
+          total: 0,
+          error: "Could not list reports from storage",
+        });
+      }
+    }
 
     // If reportId provided, fetch specific report
     if (reportId) {

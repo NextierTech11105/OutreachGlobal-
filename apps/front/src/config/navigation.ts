@@ -34,6 +34,7 @@ import {
   Headphones,
   User,
   Clock,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,13 +42,14 @@ import {
 // NAVIGATION CONFIGURATION - NEXTIER PLATFORM
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// 9 GROUPS - 45 VERIFIED ROUTES (ALL PAGES EXIST)
+// 10 GROUPS - WORKFLOW-ALIGNED NAVIGATION
 // ┌─────────────────────────────────────────────────────────────────────────┐
 // │  HOME        → Dashboard, Command Center, Getting Started              │
 // │  DATA        → Import, B2B Search, Properties, Skip Trace, Data Hub    │
-// │  AUDIENCE    → Leads, Companies, Sectors, Territories, Pipelines, Deals│
+// │  AUDIENCE    → Leads, Companies, Sectors, Territories, Deals           │
 // │  OUTREACH    → Campaign Builder, Campaigns, Quick Send, Pre-Queue...   │
 // │  AI WORKERS  → Digital Workers, AI SDR, Automation Rules, Prompts...   │
+// │  CONTENT     → Content Hub, Valuation Tool (consolidated delivery)     │
 // │  INBOUND     → Inbox, Workflows, Templates                             │
 // │  VOICE       → Call Center, Power Dialers, Appointments, Calendar      │
 // │  ANALYTICS   → Overview, SMS Analytics, Pipeline Heatmap, Reports...   │
@@ -321,6 +323,31 @@ export const navigationGroups: NavGroup[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // CONTENT - Content creation & delivery (CONSOLIDATED HUB)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "content",
+    label: "CONTENT",
+    icon: FolderOpen,
+    items: [
+      {
+        label: "Content Hub",
+        href: "/content",
+        icon: FolderOpen,
+        badge: "NEW",
+        badgeVariant: "default",
+        description: "Create, queue, saved reports & templates",
+      },
+      {
+        label: "Valuation Tool",
+        href: "/valuation",
+        icon: Home,
+        description: "Property valuation creator",
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // INBOUND - Response handling
   // ═══════════════════════════════════════════════════════════════════════════
   {
@@ -347,18 +374,6 @@ export const navigationGroups: NavGroup[] = [
         href: "/message-templates",
         icon: FileText,
         description: "Message templates",
-      },
-      {
-        label: "Content Library",
-        href: "/library",
-        icon: FileText,
-        description: "Reusable content",
-      },
-      {
-        label: "Research",
-        href: "/research-library",
-        icon: Search,
-        description: "NEVA research (Perplexity)",
       },
     ],
   },
