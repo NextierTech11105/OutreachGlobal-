@@ -3,18 +3,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
-  Calendar,
+  Calendar as CalendarIcon,
   Clock,
   User,
   Phone,
-  MapPin,
   Plus,
-  Filter,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
-  Search,
-  X,
   CheckCircle,
   XCircle,
+  Video,
+  Mail,
+  ExternalLink,
+  Settings,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +28,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -45,53 +47,70 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface Appointment {
   id: string;
   leadId?: string;
   leadName: string;
   leadPhone: string;
+  leadEmail?: string;
   scheduledAt: string;
   duration: number;
   type: "call" | "meeting" | "demo" | "discovery" | "strategy";
   status: "scheduled" | "completed" | "cancelled" | "no-show";
   notes?: string;
+  calendarEventId?: string;
+  meetingLink?: string;
 }
 
-interface Lead {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  email?: string;
-  companyName?: string;
+interface CalendarConnection {
+  provider: "google" | "outlook";
+  email: string;
+  connected: boolean;
+  lastSync?: string;
 }
+
+// Calendar grid helpers
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
 
 export default function AppointmentsPage() {
   const params = useParams<{ team: string }>();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("upcoming");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<"month" | "week" | "day">("week");
+  const [calendarConnections, setCalendarConnections] = useState<CalendarConnection[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
-  // New appointment dialog state
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [leadSearch, setLeadSearch] = useState("");
-  const [leadResults, setLeadResults] = useState<Lead[]>([]);
-  const [searchingLeads, setSearchingLeads] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  // Dialog states
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showConnectCalendar, setShowConnectCalendar] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
 
   // Form state
-  const [appointmentDate, setAppointmentDate] = useState("");
-  const [appointmentTime, setAppointmentTime] = useState("");
-  const [appointmentType, setAppointmentType] = useState<string>("call");
-  const [appointmentDuration, setAppointmentDuration] = useState("15");
-  const [appointmentNotes, setAppointmentNotes] = useState("");
+  const [formData, setFormData] = useState({
+    leadName: "",
+    leadPhone: "",
+    leadEmail: "",
+    date: "",
+    time: "",
+    type: "call",
+    duration: "30",
+    notes: "",
+  });
 
-  // Fetch appointments from real API
+  // Fetch appointments
   const fetchAppointments = useCallback(async () => {
     try {
-      const res = await fetch(`/api/appointments?teamId=${params.team}`);
+      const start = getWeekStart(currentDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 7);
+
+      const res = await fetch(
+        `/api/appointments?teamId=${params.team}&start=${start.toISOString()}&end=${end.toISOString()}`
+      );
       if (res.ok) {
         const data = await res.json();
         setAppointments(data.appointments || []);
@@ -101,79 +120,99 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
+  }, [params.team, currentDate]);
+
+  // Fetch calendar connections
+  const fetchConnections = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/calendar/connections?teamId=${params.team}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCalendarConnections(data.connections || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch calendar connections:", error);
+    }
   }, [params.team]);
 
   useEffect(() => {
-    if (params.team) fetchAppointments();
-  }, [params.team, fetchAppointments]);
+    if (params.team) {
+      fetchAppointments();
+      fetchConnections();
+    }
+  }, [params.team, fetchAppointments, fetchConnections]);
 
-  // Search leads
-  const searchLeads = useCallback(
-    async (query: string) => {
-      if (!query || query.length < 2) {
-        setLeadResults([]);
-        return;
+  // Connect to Google Calendar
+  const connectGoogle = async () => {
+    try {
+      const res = await fetch(`/api/calendar/google/auth?teamId=${params.team}`);
+      const data = await res.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
       }
+    } catch (error) {
+      toast.error("Failed to connect Google Calendar");
+    }
+  };
 
-      setSearchingLeads(true);
-      try {
-        const res = await fetch(
-          `/api/leads/search?teamId=${params.team}&q=${encodeURIComponent(query)}&limit=10`,
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setLeadResults(data.leads || []);
-        }
-      } catch (error) {
-        console.error("Failed to search leads:", error);
-      } finally {
-        setSearchingLeads(false);
+  // Connect to Outlook
+  const connectOutlook = async () => {
+    try {
+      const res = await fetch(`/api/calendar/outlook/auth?teamId=${params.team}`);
+      const data = await res.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
       }
-    },
-    [params.team],
-  );
+    } catch (error) {
+      toast.error("Failed to connect Outlook");
+    }
+  };
 
-  // Debounced lead search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (leadSearch) searchLeads(leadSearch);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [leadSearch, searchLeads]);
+  // Sync calendars
+  const syncCalendars = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`/api/calendar/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId: params.team }),
+      });
+      if (res.ok) {
+        toast.success("Calendars synced!");
+        fetchAppointments();
+      }
+    } catch (error) {
+      toast.error("Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Create appointment
   const handleCreateAppointment = async () => {
-    if (!selectedLead) {
-      toast.error("Please select a lead");
-      return;
-    }
-    if (!appointmentDate || !appointmentTime) {
-      toast.error("Please select date and time");
+    if (!formData.leadName || !formData.date || !formData.time) {
+      toast.error("Please fill in required fields");
       return;
     }
 
-    setCreating(true);
     try {
-      const scheduledAt = new Date(
-        `${appointmentDate}T${appointmentTime}`,
-      ).toISOString();
+      const scheduledAt = new Date(`${formData.date}T${formData.time}`).toISOString();
 
       const res = await fetch("/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leadId: selectedLead.id,
+          ...formData,
           teamId: params.team,
           scheduledAt,
-          duration: parseInt(appointmentDuration),
-          type: appointmentType,
-          notes: appointmentNotes || undefined,
+          duration: parseInt(formData.duration),
+          syncToCalendar: calendarConnections.length > 0,
         }),
       });
 
       if (res.ok) {
         toast.success("Appointment scheduled!");
-        setDialogOpen(false);
+        setShowNewAppointment(false);
         resetForm();
         fetchAppointments();
       } else {
@@ -182,116 +221,110 @@ export default function AppointmentsPage() {
       }
     } catch (error) {
       toast.error("Failed to create appointment");
-    } finally {
-      setCreating(false);
     }
   };
 
-  // Update appointment status
-  const handleUpdateStatus = async (
-    leadId: string,
-    status: "completed" | "cancelled" | "no-show",
-  ) => {
+  // Update status
+  const handleUpdateStatus = async (id: string, status: string) => {
     try {
       const res = await fetch("/api/appointments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadId, status }),
+        body: JSON.stringify({ id, status }),
       });
 
       if (res.ok) {
-        toast.success(`Appointment marked as ${status}`);
+        toast.success(`Marked as ${status}`);
         fetchAppointments();
       }
     } catch (error) {
-      toast.error("Failed to update appointment");
+      toast.error("Failed to update");
     }
   };
 
   const resetForm = () => {
-    setLeadSearch("");
-    setLeadResults([]);
-    setSelectedLead(null);
-    setAppointmentDate("");
-    setAppointmentTime("");
-    setAppointmentType("call");
-    setAppointmentDuration("15");
-    setAppointmentNotes("");
+    setFormData({
+      leadName: "",
+      leadPhone: "",
+      leadEmail: "",
+      date: "",
+      time: "",
+      type: "call",
+      duration: "30",
+      notes: "",
+    });
+    setSelectedSlot(null);
   };
 
-  const openDialog = () => {
-    resetForm();
-    setDialogOpen(true);
+  // Calendar navigation
+  const navigateWeek = (direction: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + direction * 7);
+    setCurrentDate(newDate);
   };
 
-  const getStatusColor = (status: Appointment["status"]) => {
-    switch (status) {
-      case "scheduled":
-        return "bg-blue-500";
-      case "completed":
-        return "bg-green-500";
-      case "cancelled":
-        return "bg-gray-500";
-      case "no-show":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
+  const goToToday = () => setCurrentDate(new Date());
 
-  const getTypeIcon = (type: Appointment["type"]) => {
-    switch (type) {
-      case "call":
-        return <Phone className="h-4 w-4" />;
-      case "meeting":
-      case "discovery":
-      case "strategy":
-        return <User className="h-4 w-4" />;
-      case "demo":
-        return <MapPin className="h-4 w-4" />;
-      default:
-        return <Calendar className="h-4 w-4" />;
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
+  // Get week days
+  const getWeekDays = () => {
+    const start = getWeekStart(currentDate);
+    return Array.from({ length: 7 }, (_, i) => {
+      const day = new Date(start);
+      day.setDate(day.getDate() + i);
+      return day;
     });
   };
 
-  const getLeadDisplayName = (lead: Lead) => {
-    const name = `${lead.firstName || ""} ${lead.lastName || ""}`.trim();
-    return name || lead.email || lead.phone || "Unknown";
+  const getWeekStart = (date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d;
   };
 
-  // Filter appointments based on active tab
-  const filteredAppointments = appointments.filter((apt) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    const aptDate = new Date(apt.scheduledAt);
+  // Get appointments for a specific day/hour
+  const getAppointmentsForSlot = (date: Date, hour: number) => {
+    return appointments.filter((apt) => {
+      const aptDate = new Date(apt.scheduledAt);
+      return (
+        aptDate.getDate() === date.getDate() &&
+        aptDate.getMonth() === date.getMonth() &&
+        aptDate.getHours() === hour
+      );
+    });
+  };
 
-    switch (activeTab) {
-      case "today":
-        return (
-          aptDate >= today && aptDate < tomorrow && apt.status === "scheduled"
-        );
-      case "upcoming":
-        return aptDate >= tomorrow && apt.status === "scheduled";
-      case "past":
-        return aptDate < today || apt.status === "completed";
-      case "cancelled":
-        return apt.status === "cancelled" || apt.status === "no-show";
-      default:
-        return true;
-    }
-  });
+  // Handle slot click
+  const handleSlotClick = (date: Date, hour: number) => {
+    const slotDate = new Date(date);
+    slotDate.setHours(hour, 0, 0, 0);
+
+    setSelectedSlot({ date: slotDate, hour });
+    setFormData((prev) => ({
+      ...prev,
+      date: slotDate.toISOString().split("T")[0],
+      time: `${hour.toString().padStart(2, "0")}:00`,
+    }));
+    setShowNewAppointment(true);
+  };
+
+  const weekDays = getWeekDays();
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const formatWeekRange = () => {
+    const start = weekDays[0];
+    const end = weekDays[6];
+    const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+    return `${start.toLocaleDateString("en-US", opts)} - ${end.toLocaleDateString("en-US", opts)}, ${end.getFullYear()}`;
+  };
 
   if (loading) {
     return (
@@ -302,249 +335,306 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
-          <p className="text-muted-foreground">
-            Manage your scheduled calls, meetings, and demos
-          </p>
+    <div className="flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b bg-background">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Calendar</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigateWeek(-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={goToToday}>
+              Today
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigateWeek(1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium ml-2">{formatWeekRange()}</span>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button onClick={openDialog}>
-            <Plus className="mr-2 h-4 w-4" />
+
+        <div className="flex items-center gap-2">
+          {/* Calendar Connections Status */}
+          {calendarConnections.length > 0 ? (
+            <div className="flex items-center gap-2">
+              {calendarConnections.map((conn) => (
+                <Badge
+                  key={conn.provider}
+                  variant="outline"
+                  className={cn(
+                    "gap-1",
+                    conn.provider === "google" ? "border-red-500" : "border-blue-500"
+                  )}
+                >
+                  {conn.provider === "google" ? (
+                    <Mail className="h-3 w-3 text-red-500" />
+                  ) : (
+                    <Mail className="h-3 w-3 text-blue-500" />
+                  )}
+                  {conn.email.split("@")[0]}
+                </Badge>
+              ))}
+              <Button variant="ghost" size="sm" onClick={syncCalendars} disabled={syncing}>
+                <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setShowConnectCalendar(true)}>
+              <Mail className="h-4 w-4 mr-2" />
+              Connect Calendar
+            </Button>
+          )}
+
+          <Button onClick={() => setShowNewAppointment(true)}>
+            <Plus className="h-4 w-4 mr-2" />
             New Appointment
           </Button>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="today">Today</TabsTrigger>
-          <TabsTrigger value="past">Past</TabsTrigger>
-          <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={activeTab} className="mt-6">
-          <div className="grid gap-4">
-            {filteredAppointments.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">No appointments</h3>
-                  <p className="text-muted-foreground text-center mt-1">
-                    Schedule your first appointment to get started
-                  </p>
-                  <Button className="mt-4" onClick={openDialog}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Schedule Appointment
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              filteredAppointments.map((apt) => (
-                <Card
-                  key={apt.id}
-                  className="hover:shadow-md transition-shadow"
+      {/* Calendar Grid */}
+      <div className="flex-1 overflow-auto">
+        <div className="min-w-[800px]">
+          {/* Day Headers */}
+          <div className="grid grid-cols-8 border-b sticky top-0 bg-background z-10">
+            <div className="p-2 border-r text-xs text-muted-foreground">Time</div>
+            {weekDays.map((day, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "p-2 text-center border-r",
+                  isToday(day) && "bg-blue-50 dark:bg-blue-950"
+                )}
+              >
+                <div className="text-xs text-muted-foreground">{DAYS[day.getDay()]}</div>
+                <div
+                  className={cn(
+                    "text-lg font-semibold",
+                    isToday(day) && "text-blue-600"
+                  )}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2 rounded-full ${getStatusColor(apt.status)} bg-opacity-20`}
-                        >
-                          {getTypeIcon(apt.type)}
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">
-                            {apt.leadName}
-                          </CardTitle>
-                          <CardDescription>{apt.leadPhone}</CardDescription>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {apt.status === "scheduled" && apt.leadId && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600"
-                              onClick={() =>
-                                handleUpdateStatus(apt.leadId!, "completed")
-                              }
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Complete
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600"
-                              onClick={() =>
-                                handleUpdateStatus(apt.leadId!, "no-show")
-                              }
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              No Show
-                            </Button>
-                          </>
-                        )}
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(apt.status) + " text-white"}
-                        >
-                          {apt.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(apt.scheduledAt)}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {apt.duration} min
-                      </div>
-                      <Badge variant="secondary">{apt.type}</Badge>
-                    </div>
-                    {apt.notes && (
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        {apt.notes}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                  {day.getDate()}
+                </div>
+              </div>
+            ))}
           </div>
-        </TabsContent>
-      </Tabs>
+
+          {/* Time Slots */}
+          {HOURS.map((hour) => (
+            <div key={hour} className="grid grid-cols-8 border-b min-h-[60px]">
+              <div className="p-2 border-r text-xs text-muted-foreground">
+                {hour > 12 ? `${hour - 12} PM` : hour === 12 ? "12 PM" : `${hour} AM`}
+              </div>
+              {weekDays.map((day, dayIndex) => {
+                const slotAppointments = getAppointmentsForSlot(day, hour);
+                const isPast = new Date(day.setHours(hour)) < new Date();
+
+                return (
+                  <div
+                    key={dayIndex}
+                    className={cn(
+                      "p-1 border-r cursor-pointer hover:bg-muted/50 transition-colors relative",
+                      isToday(day) && "bg-blue-50/50 dark:bg-blue-950/50",
+                      isPast && "opacity-50"
+                    )}
+                    onClick={() => !isPast && handleSlotClick(day, hour)}
+                  >
+                    {slotAppointments.map((apt) => (
+                      <div
+                        key={apt.id}
+                        className={cn(
+                          "p-1 rounded text-xs mb-1 cursor-pointer",
+                          apt.type === "call" && "bg-green-100 dark:bg-green-900 border-l-2 border-green-500",
+                          apt.type === "meeting" && "bg-blue-100 dark:bg-blue-900 border-l-2 border-blue-500",
+                          apt.type === "demo" && "bg-purple-100 dark:bg-purple-900 border-l-2 border-purple-500",
+                          apt.status === "completed" && "opacity-60",
+                          apt.status === "cancelled" && "line-through opacity-40"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Could open detail view
+                        }}
+                      >
+                        <div className="font-medium truncate">{apt.leadName}</div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          {apt.type === "call" ? (
+                            <Phone className="h-3 w-3" />
+                          ) : (
+                            <Video className="h-3 w-3" />
+                          )}
+                          {apt.duration}m
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Upcoming Appointments Sidebar */}
+      <div className="w-80 border-l bg-muted/10 p-4 overflow-auto hidden lg:block absolute right-0 top-[140px] bottom-0">
+        <h3 className="font-semibold mb-4">Upcoming Today</h3>
+        {appointments
+          .filter((apt) => {
+            const aptDate = new Date(apt.scheduledAt);
+            const today = new Date();
+            return (
+              aptDate.getDate() === today.getDate() &&
+              aptDate.getMonth() === today.getMonth() &&
+              apt.status === "scheduled"
+            );
+          })
+          .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+          .map((apt) => (
+            <Card key={apt.id} className="mb-3">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">{apt.leadName}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {new Date(apt.scheduledAt).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </Badge>
+                </div>
+                <div className="text-sm text-muted-foreground mb-2">
+                  {apt.leadPhone}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-green-600"
+                    onClick={() => handleUpdateStatus(apt.id, "completed")}
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Done
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-red-600"
+                    onClick={() => handleUpdateStatus(apt.id, "no-show")}
+                  >
+                    <XCircle className="h-3 w-3 mr-1" />
+                    No Show
+                  </Button>
+                </div>
+                {apt.meetingLink && (
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="w-full mt-2 text-blue-600"
+                    onClick={() => window.open(apt.meetingLink, "_blank")}
+                  >
+                    <Video className="h-3 w-3 mr-1" />
+                    Join Meeting
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        {appointments.filter((apt) => {
+          const aptDate = new Date(apt.scheduledAt);
+          const today = new Date();
+          return (
+            aptDate.getDate() === today.getDate() &&
+            aptDate.getMonth() === today.getMonth() &&
+            apt.status === "scheduled"
+          );
+        }).length === 0 && (
+          <p className="text-sm text-muted-foreground">No appointments today</p>
+        )}
+      </div>
 
       {/* New Appointment Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={showNewAppointment} onOpenChange={setShowNewAppointment}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Schedule New Appointment</DialogTitle>
+            <DialogTitle>Schedule Appointment</DialogTitle>
             <DialogDescription>
-              Search for a lead and schedule a call, meeting, or demo.
+              Create a new appointment. It will sync to your connected calendar.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Lead Search */}
-            <div className="space-y-2">
-              <Label>Lead</Label>
-              {selectedLead ? (
-                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
-                  <div>
-                    <p className="font-medium">
-                      {getLeadDisplayName(selectedLead)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedLead.phone || selectedLead.email}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedLead(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name, phone, or email..."
-                    className="pl-9"
-                    value={leadSearch}
-                    onChange={(e) => setLeadSearch(e.target.value)}
-                  />
-                  {searchingLeads && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />
-                  )}
-                  {leadResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-auto">
-                      {leadResults.map((lead) => (
-                        <button
-                          key={lead.id}
-                          className="w-full p-3 text-left hover:bg-muted transition-colors"
-                          onClick={() => {
-                            setSelectedLead(lead);
-                            setLeadResults([]);
-                            setLeadSearch("");
-                          }}
-                        >
-                          <p className="font-medium">
-                            {getLeadDisplayName(lead)}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {lead.phone}{" "}
-                            {lead.companyName && `• ${lead.companyName}`}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Date and Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Date</Label>
+                <Label>Name *</Label>
+                <Input
+                  placeholder="Lead name"
+                  value={formData.leadName}
+                  onChange={(e) => setFormData({ ...formData, leadName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  placeholder="Phone number"
+                  value={formData.leadPhone}
+                  onChange={(e) => setFormData({ ...formData, leadPhone: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                placeholder="Email for calendar invite"
+                value={formData.leadEmail}
+                onChange={(e) => setFormData({ ...formData, leadEmail: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date *</Label>
                 <Input
                   type="date"
-                  value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   min={new Date().toISOString().split("T")[0]}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Time</Label>
+                <Label>Time *</Label>
                 <Input
                   type="time"
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
+                  value={formData.time}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                 />
               </div>
             </div>
 
-            {/* Type and Duration */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
                 <Select
-                  value={appointmentType}
-                  onValueChange={setAppointmentType}
+                  value={formData.type}
+                  onValueChange={(v) => setFormData({ ...formData, type: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="call">Phone Call</SelectItem>
-                    <SelectItem value="discovery">15-min Discovery</SelectItem>
-                    <SelectItem value="strategy">Strategy Session</SelectItem>
-                    <SelectItem value="demo">Product Demo</SelectItem>
-                    <SelectItem value="meeting">General Meeting</SelectItem>
+                    <SelectItem value="call">📞 Phone Call</SelectItem>
+                    <SelectItem value="meeting">🤝 Video Meeting</SelectItem>
+                    <SelectItem value="demo">🎬 Product Demo</SelectItem>
+                    <SelectItem value="discovery">🔍 Discovery Call</SelectItem>
+                    <SelectItem value="strategy">📋 Strategy Session</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Duration</Label>
                 <Select
-                  value={appointmentDuration}
-                  onValueChange={setAppointmentDuration}
+                  value={formData.duration}
+                  onValueChange={(v) => setFormData({ ...formData, duration: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -559,24 +649,83 @@ export default function AppointmentsPage() {
               </div>
             </div>
 
-            {/* Notes */}
             <div className="space-y-2">
-              <Label>Notes (optional)</Label>
+              <Label>Notes</Label>
               <Textarea
-                placeholder="Add any notes about this appointment..."
-                value={appointmentNotes}
-                onChange={(e) => setAppointmentNotes(e.target.value)}
+                placeholder="Add notes..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
             </div>
+
+            {calendarConnections.length > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-green-700 dark:text-green-300">
+                  Will sync to {calendarConnections.map((c) => c.provider).join(" & ")}
+                </span>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setShowNewAppointment(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateAppointment} disabled={creating}>
-              {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Schedule Appointment
+            <Button onClick={handleCreateAppointment}>Schedule</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Connect Calendar Dialog */}
+      <Dialog open={showConnectCalendar} onOpenChange={setShowConnectCalendar}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Connect Your Calendar</DialogTitle>
+            <DialogDescription>
+              Sync appointments with Google Calendar or Outlook
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Button
+              variant="outline"
+              className="w-full h-14 justify-start gap-4"
+              onClick={connectGoogle}
+            >
+              <div className="w-8 h-8 rounded bg-red-100 flex items-center justify-center">
+                <Mail className="h-5 w-5 text-red-600" />
+              </div>
+              <div className="text-left">
+                <div className="font-medium">Google Calendar</div>
+                <div className="text-xs text-muted-foreground">
+                  Connect your Gmail account
+                </div>
+              </div>
+              <ExternalLink className="h-4 w-4 ml-auto" />
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-14 justify-start gap-4"
+              onClick={connectOutlook}
+            >
+              <div className="w-8 h-8 rounded bg-blue-100 flex items-center justify-center">
+                <Mail className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="text-left">
+                <div className="font-medium">Outlook Calendar</div>
+                <div className="text-xs text-muted-foreground">
+                  Connect your Microsoft account
+                </div>
+              </div>
+              <ExternalLink className="h-4 w-4 ml-auto" />
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConnectCalendar(false)}>
+              Skip for now
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -80,15 +80,37 @@ export default function QuickSendPage() {
   const loadBatches = async () => {
     setLoading(true);
     try {
-      // Real batches from USBizData
-      const mockBatches: DataLakeBatch[] = [
-        { id: "sic-8742", name: "SIC 8742 - Management Consultants", sicCode: "8742", leadCount: 168000, enrichedCount: 0, status: "raw", createdAt: "2024-01-15" },
-        { id: "sic-1711", name: "SIC 1711 - Plumbing & HVAC", sicCode: "1711", leadCount: 110000, enrichedCount: 0, status: "raw", createdAt: "2024-01-18" },
-        { id: "sic-6531", name: "SIC 6531 - Real Estate Agents", sicCode: "6531", leadCount: 390000, enrichedCount: 15000, status: "ready", createdAt: "2024-01-12" },
-      ];
-      setBatches(mockBatches);
-    } catch {
+      // Fetch REAL buckets from API
+      const response = await fetch("/api/buckets?perPage=50");
+      const data = await response.json();
+
+      if (data.buckets && Array.isArray(data.buckets)) {
+        const realBatches: DataLakeBatch[] = data.buckets.map((bucket: {
+          id: string;
+          name: string;
+          totalLeads?: number;
+          enrichedLeads?: number;
+          enrichmentStatus?: string;
+          createdAt?: string;
+          tags?: string[];
+        }) => ({
+          id: bucket.id,
+          name: bucket.name,
+          sicCode: bucket.tags?.find((t: string) => t.startsWith("SIC-"))?.replace("SIC-", "") || undefined,
+          leadCount: bucket.totalLeads || 0,
+          enrichedCount: bucket.enrichedLeads || 0,
+          status: bucket.enrichmentStatus === "complete" ? "ready" :
+                  bucket.enrichmentStatus === "in_progress" ? "enriching" : "raw",
+          createdAt: bucket.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
+        }));
+        setBatches(realBatches);
+      } else {
+        setBatches([]);
+      }
+    } catch (err) {
+      console.error("Failed to load batches:", err);
       toast.error("Failed to load batches");
+      setBatches([]);
     } finally {
       setLoading(false);
     }

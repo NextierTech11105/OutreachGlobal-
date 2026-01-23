@@ -272,6 +272,7 @@ async function handleSectorImport(
     endpoint: SPACES_ENDPOINT,
     region: "nyc3",
     credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+    forcePathStyle: true, // CRITICAL for DO Spaces
   });
 
   const { sectorId, records, source = "api_import", chunk = 1, totalChunks = 1 } = data as {
@@ -417,6 +418,7 @@ async function handleFdailyImport(
     endpoint: SPACES_ENDPOINT,
     region: "nyc3",
     credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+    forcePathStyle: true, // CRITICAL for DO Spaces
   });
 
   const { batchName, records, source = "fdaily_import" } = data as {
@@ -510,6 +512,7 @@ async function handleDatalakeImport(
     endpoint: SPACES_ENDPOINT,
     region: "nyc3",
     credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+    forcePathStyle: true, // CRITICAL for DO Spaces
   });
 
   const key = `datalake/${schema}/raw/${Date.now()}_${filename}`;

@@ -18,6 +18,8 @@ import {
   Search,
   Sparkles,
   Loader2,
+  Send,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -34,6 +36,7 @@ import {
   LeadResearchPanel,
   type LeadResearchResult,
 } from "@/components/lead-research-panel";
+import { BulkSMSPanel } from "@/components/bulk-sms-panel";
 
 export function UnifiedInbox() {
   const router = useRouter();
@@ -64,6 +67,7 @@ export function UnifiedInbox() {
   });
   const [showSidebar, setShowSidebar] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
+  const [showBulkSMS, setShowBulkSMS] = useState(false);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
@@ -386,7 +390,7 @@ export function UnifiedInbox() {
       <div className="border-b p-2 bg-muted/30">
         <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-2">
-            {(selectedMessage || showCompose) && (
+            {(selectedMessage || showCompose || showBulkSMS) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -394,13 +398,14 @@ export function UnifiedInbox() {
                 onClick={() => {
                   handleCloseDetail();
                   setShowCompose(false);
+                  setShowBulkSMS(false);
                 }}
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back
               </Button>
             )}
-            {!selectedMessage && !showCompose && (
+            {!selectedMessage && !showCompose && !showBulkSMS && (
               <Tabs
                 defaultValue="all"
                 value={activeTab}
@@ -425,7 +430,7 @@ export function UnifiedInbox() {
           </div>
 
           <div className="flex items-center gap-2">
-            {!selectedMessage && !showCompose && (
+            {!selectedMessage && !showCompose && !showBulkSMS && (
               <>
                 <Button
                   size="sm"
@@ -435,6 +440,14 @@ export function UnifiedInbox() {
                 >
                   <PenSquare className="h-4 w-4" />
                   Compose
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 gap-1 bg-blue-600 hover:bg-blue-700"
+                  onClick={() => setShowBulkSMS(true)}
+                >
+                  <Zap className="h-4 w-4" />
+                  Bulk SMS
                 </Button>
                 <Button
                   size="sm"
@@ -458,7 +471,7 @@ export function UnifiedInbox() {
                 </Button>
               </>
             )}
-            {!selectedMessage && !showCompose && (
+            {!selectedMessage && !showCompose && !showBulkSMS && (
               <Button
                 size="sm"
                 className="h-8 gap-1 bg-green-600 hover:bg-green-700"
@@ -494,7 +507,7 @@ export function UnifiedInbox() {
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        {showSidebar && !selectedMessage && !showCompose && (
+        {showSidebar && !selectedMessage && !showCompose && !showBulkSMS && (
           <div className="w-56 md:w-64 border-r bg-muted/10 overflow-y-auto">
             <div className="p-2 space-y-4">
               {/* Inbound Call Panel - Always visible at top */}
@@ -507,7 +520,18 @@ export function UnifiedInbox() {
         {/* Content area */}
         <div className="flex-1 overflow-auto">
           <div className="p-4">
-            {showCompose ? (
+            {showBulkSMS ? (
+              <div className="max-w-2xl mx-auto">
+                <BulkSMSPanel
+                  teamId={team?.id}
+                  onClose={() => setShowBulkSMS(false)}
+                  onSent={(count) => {
+                    toast.success(`Sent ${count} messages!`);
+                    setShowBulkSMS(false);
+                  }}
+                />
+              </div>
+            ) : showCompose ? (
               <div className="max-w-2xl mx-auto">
                 <GmailEmailComposer
                   onSent={() => setShowCompose(false)}
