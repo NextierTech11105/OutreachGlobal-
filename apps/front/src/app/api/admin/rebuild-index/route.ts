@@ -38,7 +38,16 @@ function getS3Client() {
   });
 }
 
+// Allow GET for easy browser access
+export async function GET() {
+  return rebuildIndex();
+}
+
 export async function POST() {
+  return rebuildIndex();
+}
+
+async function rebuildIndex() {
   try {
     const client = getS3Client();
     if (!client) {
