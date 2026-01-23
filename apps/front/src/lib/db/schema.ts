@@ -1787,6 +1787,38 @@ export type Campaign = typeof campaigns.$inferSelect;
 export type NewCampaign = typeof campaigns.$inferInsert;
 
 // ============================================================
+// CAMPAIGN LEADS - Junction table for leads enrolled in campaigns
+// ============================================================
+
+export const campaignLeads = pgTable(
+  "campaign_leads",
+  {
+    id: text("id").primaryKey(),
+    campaignId: text("campaign_id").notNull(),
+    leadId: text("lead_id").notNull(),
+    teamId: text("team_id").notNull(),
+    status: text("status").notNull().default("active"), // 'active' | 'paused' | 'completed' | 'opted_out'
+    position: integer("position").notNull().default(0), // Current day/step in sequence
+    enrolledAt: timestamp("enrolled_at").defaultNow().notNull(),
+    nextSequenceRunAt: timestamp("next_sequence_run_at"),
+    lastContactedAt: timestamp("last_contacted_at"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    campaignIdIdx: index("campaign_leads_campaign_id_idx").on(table.campaignId),
+    leadIdIdx: index("campaign_leads_lead_id_idx").on(table.leadId),
+    teamIdIdx: index("campaign_leads_team_id_idx").on(table.teamId),
+    statusIdx: index("campaign_leads_status_idx").on(table.status),
+    nextRunIdx: index("campaign_leads_next_run_idx").on(table.nextSequenceRunAt),
+  })
+);
+
+export type CampaignLead = typeof campaignLeads.$inferSelect;
+export type NewCampaignLead = typeof campaignLeads.$inferInsert;
+
+// ============================================================
 // POWER DIALERS - Dialing sessions
 // See: apps/api/src/database/schema/power-dialers.schema.ts
 // ============================================================

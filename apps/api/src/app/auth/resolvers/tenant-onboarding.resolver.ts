@@ -10,6 +10,7 @@ import { ConfigService } from "@nestjs/config";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { sql } from "drizzle-orm";
+import { TeamService } from "@/app/team/services/team.service";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INPUT TYPES

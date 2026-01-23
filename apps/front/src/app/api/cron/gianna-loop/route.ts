@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         phone: leads.phone,
         firstName: leads.firstName,
         lastName: leads.lastName,
-        companyName: leads.companyName,
+        companyName: leads.company,
         status: leads.status,
       })
       .from(campaignLeads)

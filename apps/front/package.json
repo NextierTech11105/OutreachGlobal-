@@ -119,6 +119,7 @@
     "@types/pg": "^8.15.4",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.2",
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.3.3",
