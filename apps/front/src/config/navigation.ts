@@ -39,24 +39,20 @@ import {
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════
-// NAVIGATION CONFIGURATION - NEXTIER PLATFORM
+// NAVIGATION CONFIGURATION - NEXTIER PLATFORM (STREAMLINED)
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// 10 GROUPS - WORKFLOW-ALIGNED NAVIGATION
+// 6 GROUPS - WORKFLOW-ALIGNED (DECLUTTERED)
 // ┌─────────────────────────────────────────────────────────────────────────┐
-// │  HOME        → Dashboard, Command Center, Getting Started              │
-// │  DATA        → Import, B2B Search, Properties, Skip Trace, Data Hub    │
-// │  AUDIENCE    → Leads, Companies, Sectors, Territories, Deals           │
-// │  OUTREACH    → Campaign Builder, Campaigns, Quick Send, Pre-Queue...   │
-// │  AI WORKERS  → Digital Workers, AI SDR, Automation Rules, Prompts...   │
-// │  CONTENT     → Content Hub, Valuation Tool (consolidated delivery)     │
-// │  INBOUND     → Inbox, Workflows, Templates                             │
-// │  VOICE       → Call Center, Power Dialers, Appointments, Calendar      │
-// │  ANALYTICS   → Overview, SMS Analytics, Pipeline Heatmap, Reports...   │
-// │  SETTINGS    → Settings, Account, Users, Integrations, SignalHouse...  │
+// │  SECTORS   → Data Pipeline Hub (Import, Search, Leads, Skip Trace)     │
+// │  CONTENT   → Create & Deliver (Valuation, Queue, Saved, Templates)     │
+// │  CAMPAIGNS → Execute (Builder, Campaigns, AI Workers, Sequences)       │
+// │  INBOX     → Respond (Messages, Call Queue, Appointments)              │
+// │  ANALYTICS → Measure (Overview, SMS, Pipeline, Reports)                │
+// │  SETTINGS  → Configure (Account, Integrations, SignalHouse)            │
 // └─────────────────────────────────────────────────────────────────────────┘
 //
-// EVERY ROUTE VERIFIED AGAINST apps/front/src/app/t/[team]/**/page.tsx
+// FLOW: SECTORS → CONTENT → CAMPAIGNS → INBOX → ANALYTICS
 
 export type NavItemRole = "admin" | "member" | "viewer";
 
@@ -93,12 +89,12 @@ export interface NavGroup {
 
 export const navigationGroups: NavGroup[] = [
   // ═══════════════════════════════════════════════════════════════════════════
-  // HOME - Dashboard & onboarding
+  // SECTORS - Data Pipeline Hub (Upload → Search → Enrich → Ready)
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "home",
-    label: "HOME",
-    icon: Home,
+    id: "sectors",
+    label: "SECTORS",
+    icon: Layers,
     items: [
       {
         label: "Dashboard",
@@ -107,29 +103,13 @@ export const navigationGroups: NavGroup[] = [
         description: "Pipeline overview & KPIs",
       },
       {
-        label: "Command Center",
-        href: "/command-center",
-        icon: Activity,
-        description: "Unified control panel",
+        label: "Sectors",
+        href: "/sectors",
+        icon: Layers,
+        badge: "HUB",
+        badgeVariant: "default",
+        description: "Data pipeline hub",
       },
-      {
-        label: "Getting Started",
-        href: "/getting-started",
-        icon: Rocket,
-        hideAfterOnboarding: true,
-        description: "Setup guide",
-      },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DATA - Lead acquisition & enrichment
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: "data",
-    label: "DATA",
-    icon: Database,
-    items: [
       {
         label: "Import",
         href: "/import",
@@ -143,86 +123,23 @@ export const navigationGroups: NavGroup[] = [
         description: "Search 70M+ businesses",
       },
       {
-        label: "Properties",
-        href: "/properties",
-        icon: MapPin,
-        description: "Real estate data",
-      },
-      {
-        label: "Valuation",
-        href: "/valuation",
-        icon: Home,
-        description: "Property evaluation",
-      },
-      {
         label: "Skip Trace",
         href: "/skip-trace",
         icon: UserCheck,
-        description: "Find phone numbers",
-      },
-      {
-        label: "Data Hub",
-        href: "/data-hub",
-        icon: Database,
-        description: "Data management",
-      },
-      {
-        label: "LUCI Engine",
-        href: "/data/luci",
-        icon: BrainCircuit,
-        description: "AI data pipeline",
+        description: "$0.02/lead - Tracerfy",
       },
       {
         label: "Lead Lab",
         href: "/lead-lab",
         icon: BarChart3,
-        badge: "NEW",
-        badgeVariant: "default",
-        description: "Contactability assessment",
+        description: "Contactability scoring",
       },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // AUDIENCE - Lead & company organization
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: "audience",
-    label: "AUDIENCE",
-    icon: Users,
-    items: [
       {
         label: "Leads",
         href: "/leads",
         icon: Users,
         description: "All contacts",
       },
-      {
-        label: "Companies",
-        href: "/companies",
-        icon: Building2,
-        description: "Organizations",
-      },
-      {
-        label: "Sectors",
-        href: "/sectors",
-        icon: Layers,
-        description: "Industry segments",
-      },
-      {
-        label: "Territories",
-        href: "/territories",
-        icon: MapPin,
-        description: "Geographic regions",
-      },
-      // NOTE: Pipelines hidden - "Coming soon" placeholder
-      // Uncomment when pipeline management is implemented
-      // {
-      //   label: "Pipelines",
-      //   href: "/pipelines",
-      //   icon: GitBranch,
-      //   description: "Deal stages",
-      // },
       {
         label: "Deals",
         href: "/deals",
@@ -233,11 +150,36 @@ export const navigationGroups: NavGroup[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // OUTREACH - Campaigns & messaging (THE MONEY MAKER)
+  // CONTENT - Create & Deliver (Valuation, Queue, Saved, Templates)
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "outreach",
-    label: "OUTREACH",
+    id: "content",
+    label: "CONTENT",
+    icon: FolderOpen,
+    items: [
+      {
+        label: "Content Hub",
+        href: "/content",
+        icon: FolderOpen,
+        badge: "NEW",
+        badgeVariant: "default",
+        description: "Create → Queue → Saved → Templates",
+      },
+      {
+        label: "Valuation Tool",
+        href: "/valuation",
+        icon: Home,
+        description: "Property valuation creator",
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CAMPAIGNS - Execute (Builder, Campaigns, AI, Sequences)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "campaigns",
+    label: "CAMPAIGNS",
     icon: Send,
     items: [
       {
@@ -261,10 +203,10 @@ export const navigationGroups: NavGroup[] = [
         description: "One-off messages",
       },
       {
-        label: "Pre-Queue",
-        href: "/pre-queue",
-        icon: Clock,
-        description: "Review before send",
+        label: "Digital Workers",
+        href: "/digital-workers",
+        icon: Bot,
+        description: "GIANNA, CATHY, SABRINA",
       },
       {
         label: "Sequences",
@@ -282,81 +224,15 @@ export const navigationGroups: NavGroup[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AI WORKERS - Digital assistants & automation
+  // INBOX - Respond (Messages, Call Queue, Appointments)
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: "ai",
-    label: "AI WORKERS",
-    icon: Bot,
-    items: [
-      {
-        label: "Digital Workers",
-        href: "/digital-workers",
-        icon: Bot,
-        description: "GIANNA, CATHY, SABRINA",
-      },
-      {
-        label: "AI SDR",
-        href: "/ai-sdr",
-        icon: Sparkles,
-        description: "Automated outreach",
-      },
-      {
-        label: "Automation Rules",
-        href: "/automation-rules",
-        icon: Workflow,
-        description: "Trigger rules",
-      },
-      {
-        label: "Prompts",
-        href: "/prompts",
-        icon: MessageSquare,
-        description: "AI prompt library",
-      },
-      {
-        label: "AI Training",
-        href: "/ai-training",
-        icon: BrainCircuit,
-        description: "Train the AI",
-      },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CONTENT - Content creation & delivery (CONSOLIDATED HUB)
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: "content",
-    label: "CONTENT",
-    icon: FolderOpen,
-    items: [
-      {
-        label: "Content Hub",
-        href: "/content",
-        icon: FolderOpen,
-        badge: "NEW",
-        badgeVariant: "default",
-        description: "Create, queue, saved reports & templates",
-      },
-      {
-        label: "Valuation Tool",
-        href: "/valuation",
-        icon: Home,
-        description: "Property valuation creator",
-      },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // INBOUND - Response handling
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: "inbound",
-    label: "INBOUND",
+    id: "inbox",
+    label: "INBOX",
     icon: Inbox,
     items: [
       {
-        label: "Inbox",
+        label: "Messages",
         href: "/inbox",
         icon: Inbox,
         badge: "HOT",
@@ -364,38 +240,15 @@ export const navigationGroups: NavGroup[] = [
         description: "All responses",
       },
       {
-        label: "Workflows",
-        href: "/workflows",
-        icon: Workflow,
-        description: "Automation flows",
-      },
-      {
-        label: "Templates",
-        href: "/message-templates",
-        icon: FileText,
-        description: "Message templates",
-      },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // VOICE - Phone calls & appointments
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: "voice",
-    label: "VOICE",
-    icon: Phone,
-    items: [
-      {
-        label: "Call Center",
+        label: "Call Queue",
         href: "/call-center",
-        icon: Headphones,
-        description: "Phone dashboard",
+        icon: PhoneCall,
+        description: "Human override calls",
       },
       {
-        label: "Power Dialers",
+        label: "Power Dialer",
         href: "/power-dialers",
-        icon: PhoneCall,
+        icon: Phone,
         description: "Auto-dial sessions",
       },
       {
@@ -405,16 +258,16 @@ export const navigationGroups: NavGroup[] = [
         description: "Scheduled calls",
       },
       {
-        label: "Calendar",
-        href: "/calendar",
-        icon: Calendar,
-        description: "Schedule view",
+        label: "Workflows",
+        href: "/workflows",
+        icon: Workflow,
+        description: "Automation flows",
       },
     ],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ANALYTICS - Reporting & insights
+  // ANALYTICS - Measure (Overview, SMS, Pipeline, Reports)
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "analytics",
@@ -455,7 +308,7 @@ export const navigationGroups: NavGroup[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SETTINGS - Configuration
+  // SETTINGS - Configure (Account, Integrations, SignalHouse)
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "settings",
@@ -491,12 +344,6 @@ export const navigationGroups: NavGroup[] = [
         href: "/settings/signalhouse",
         icon: Radio,
         description: "SMS provider",
-      },
-      {
-        label: "SMS Config",
-        href: "/settings/sms",
-        icon: MessageCircle,
-        description: "SMS settings",
       },
     ],
   },
