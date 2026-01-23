@@ -39,6 +39,14 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  AlertTriangle,
+  Ban,
+  Clock,
+  Zap,
+  Filter,
+  Phone,
+  Mail,
+  MessageSquare,
 } from "lucide-react";
 import {
   Dialog,
@@ -64,6 +72,10 @@ import {
   SectorWorkspaceSelector,
   SectorBadges,
 } from "@/components/sector-workspace-selector";
+import {
+  PIPELINE_STATUS_CONFIG,
+  type PipelineStatus,
+} from "@/lib/types/bucket";
 
 // Stats for each sector (would come from API in production)
 interface SectorStats {
@@ -106,6 +118,24 @@ interface DataLake {
 // Target for contactable leads before SMS campaign
 const CONTACTABLE_TARGET = 2000;
 
+// Pipeline stats aggregation
+interface PipelineStats {
+  raw: number;
+  skip_traced: number;
+  validated: number;
+  ready: number;
+  blocked: number;
+  sent: number;
+  // Blocked breakdown
+  blockedDNC: number;
+  blockedLitigator: number;
+  blockedInvalid: number;
+  // Quality counts
+  withPhone: number;
+  withMobile: number;
+  withEmail: number;
+}
+
 export default function SectorsPage() {
   const router = useRouter();
   const params = useParams();
@@ -122,6 +152,20 @@ export default function SectorsPage() {
   const [dataSources, setDataSources] = useState<DataSourceSummary[]>([]);
   const [dataLakes, setDataLakes] = useState<DataLake[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pipelineStats, setPipelineStats] = useState<PipelineStats>({
+    raw: 0,
+    skip_traced: 0,
+    validated: 0,
+    ready: 0,
+    blocked: 0,
+    sent: 0,
+    blockedDNC: 0,
+    blockedLitigator: 0,
+    blockedInvalid: 0,
+    withPhone: 0,
+    withMobile: 0,
+    withEmail: 0,
+  });
 
   // CSV Upload state
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -178,6 +222,22 @@ export default function SectorsPage() {
         }
 
         if (data.buckets && data.buckets.length > 0) {
+          // Pipeline aggregation
+          const pipeline: PipelineStats = {
+            raw: 0,
+            skip_traced: 0,
+            validated: 0,
+            ready: 0,
+            blocked: 0,
+            sent: 0,
+            blockedDNC: 0,
+            blockedLitigator: 0,
+            blockedInvalid: 0,
+            withPhone: 0,
+            withMobile: 0,
+            withEmail: 0,
+          };
+
           data.buckets.forEach(
             (bucket: {
               id: string;
@@ -189,6 +249,25 @@ export default function SectorsPage() {
               queuedLeads: number;
               createdAt: string;
               tags?: string[];
+              // Pipeline counts (if available from API)
+              pipelineCounts?: {
+                raw?: number;
+                skip_traced?: number;
+                validated?: number;
+                ready?: number;
+                blocked?: number;
+                sent?: number;
+              };
+              blockedCounts?: {
+                dnc?: number;
+                litigator?: number;
+                invalid?: number;
+              };
+              qualityCounts?: {
+                withPhone?: number;
+                withMobile?: number;
+                withEmail?: number;
+              };
             }) => {
               // Create stat entry for each bucket (as its own data lake)
               stats[bucket.id] = {
@@ -198,6 +277,44 @@ export default function SectorsPage() {
                 contactedRecords: bucket.contactedLeads || 0,
                 lastUpdated: new Date(bucket.createdAt),
               };
+
+              // Aggregate pipeline counts
+              if (bucket.pipelineCounts) {
+                pipeline.raw += bucket.pipelineCounts.raw || 0;
+                pipeline.skip_traced += bucket.pipelineCounts.skip_traced || 0;
+                pipeline.validated += bucket.pipelineCounts.validated || 0;
+                pipeline.ready += bucket.pipelineCounts.ready || 0;
+                pipeline.blocked += bucket.pipelineCounts.blocked || 0;
+                pipeline.sent += bucket.pipelineCounts.sent || 0;
+              } else {
+                // Estimate from enriched/contacted counts
+                const unenriched = Math.max(0, bucket.totalLeads - bucket.enrichedLeads);
+                const enrichedNotContacted = Math.max(0, bucket.enrichedLeads - bucket.contactedLeads);
+                pipeline.raw += unenriched;
+                pipeline.skip_traced += Math.floor(enrichedNotContacted * 0.6); // Estimate
+                pipeline.validated += Math.floor(enrichedNotContacted * 0.4); // Estimate
+                pipeline.ready += Math.floor(bucket.queuedLeads || 0);
+                pipeline.sent += bucket.contactedLeads || 0;
+              }
+
+              // Aggregate blocked counts
+              if (bucket.blockedCounts) {
+                pipeline.blockedDNC += bucket.blockedCounts.dnc || 0;
+                pipeline.blockedLitigator += bucket.blockedCounts.litigator || 0;
+                pipeline.blockedInvalid += bucket.blockedCounts.invalid || 0;
+              }
+
+              // Aggregate quality counts
+              if (bucket.qualityCounts) {
+                pipeline.withPhone += bucket.qualityCounts.withPhone || 0;
+                pipeline.withMobile += bucket.qualityCounts.withMobile || 0;
+                pipeline.withEmail += bucket.qualityCounts.withEmail || 0;
+              } else {
+                // Estimate from enriched
+                pipeline.withPhone += bucket.enrichedLeads || 0;
+                pipeline.withMobile += Math.floor((bucket.enrichedLeads || 0) * 0.7);
+                pipeline.withEmail += Math.floor((bucket.enrichedLeads || 0) * 0.5);
+              }
 
               // Add as data source
               sources.push({
@@ -213,6 +330,7 @@ export default function SectorsPage() {
             },
           );
 
+          setPipelineStats(pipeline);
           setDataSources(sources);
           setDataLakes(data.buckets);
         }
@@ -928,6 +1046,276 @@ export default function SectorsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+        {/* PIPELINE OVERVIEW - Blocked, Batched, Grouped Visibility */}
+        {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+        <Card className="border-2 border-blue-500/30 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-blue-600" />
+                  Pipeline Overview
+                  <Badge className="bg-blue-600 ml-2">
+                    {formatNumber(
+                      pipelineStats.raw +
+                      pipelineStats.skip_traced +
+                      pipelineStats.validated +
+                      pipelineStats.ready +
+                      pipelineStats.blocked +
+                      pipelineStats.sent
+                    )} Total
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  See exactly where your leads are - RAW → SKIP TRACED → VALIDATED → READY → SENT
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Refresh pipeline stats
+                  toast.info("Refreshing pipeline stats...");
+                  window.location.reload();
+                }}
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Pipeline Flow Visualization */}
+            <div className="grid grid-cols-6 gap-2">
+              {/* RAW */}
+              <div
+                className="p-3 rounded-lg text-center cursor-pointer hover:scale-105 transition-transform"
+                style={{ backgroundColor: PIPELINE_STATUS_CONFIG.raw.bgColor }}
+              >
+                <div className="text-2xl font-bold" style={{ color: PIPELINE_STATUS_CONFIG.raw.color }}>
+                  {formatNumber(pipelineStats.raw)}
+                </div>
+                <div className="text-xs font-medium" style={{ color: PIPELINE_STATUS_CONFIG.raw.color }}>
+                  RAW
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  Not processed
+                </div>
+              </div>
+
+              {/* SKIP TRACED */}
+              <div
+                className="p-3 rounded-lg text-center cursor-pointer hover:scale-105 transition-transform"
+                style={{ backgroundColor: PIPELINE_STATUS_CONFIG.skip_traced.bgColor }}
+              >
+                <div className="text-2xl font-bold" style={{ color: PIPELINE_STATUS_CONFIG.skip_traced.color }}>
+                  {formatNumber(pipelineStats.skip_traced)}
+                </div>
+                <div className="text-xs font-medium" style={{ color: PIPELINE_STATUS_CONFIG.skip_traced.color }}>
+                  SKIP TRACED
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  $0.02/lead
+                </div>
+              </div>
+
+              {/* VALIDATED */}
+              <div
+                className="p-3 rounded-lg text-center cursor-pointer hover:scale-105 transition-transform"
+                style={{ backgroundColor: PIPELINE_STATUS_CONFIG.validated.bgColor }}
+              >
+                <div className="text-2xl font-bold" style={{ color: PIPELINE_STATUS_CONFIG.validated.color }}>
+                  {formatNumber(pipelineStats.validated)}
+                </div>
+                <div className="text-xs font-medium" style={{ color: PIPELINE_STATUS_CONFIG.validated.color }}>
+                  VALIDATED
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  Trestle scored
+                </div>
+              </div>
+
+              {/* READY */}
+              <div
+                className="p-3 rounded-lg text-center cursor-pointer hover:scale-105 transition-transform"
+                style={{ backgroundColor: PIPELINE_STATUS_CONFIG.ready.bgColor }}
+              >
+                <div className="text-2xl font-bold" style={{ color: PIPELINE_STATUS_CONFIG.ready.color }}>
+                  {formatNumber(pipelineStats.ready)}
+                </div>
+                <div className="text-xs font-medium" style={{ color: PIPELINE_STATUS_CONFIG.ready.color }}>
+                  READY
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  SMS ready
+                </div>
+              </div>
+
+              {/* BLOCKED */}
+              <div
+                className="p-3 rounded-lg text-center cursor-pointer hover:scale-105 transition-transform"
+                style={{ backgroundColor: PIPELINE_STATUS_CONFIG.blocked.bgColor }}
+              >
+                <div className="text-2xl font-bold" style={{ color: PIPELINE_STATUS_CONFIG.blocked.color }}>
+                  {formatNumber(pipelineStats.blocked)}
+                </div>
+                <div className="text-xs font-medium" style={{ color: PIPELINE_STATUS_CONFIG.blocked.color }}>
+                  BLOCKED
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  DNC/Litigator
+                </div>
+              </div>
+
+              {/* SENT */}
+              <div
+                className="p-3 rounded-lg text-center cursor-pointer hover:scale-105 transition-transform"
+                style={{ backgroundColor: PIPELINE_STATUS_CONFIG.sent.bgColor }}
+              >
+                <div className="text-2xl font-bold" style={{ color: PIPELINE_STATUS_CONFIG.sent.color }}>
+                  {formatNumber(pipelineStats.sent)}
+                </div>
+                <div className="text-xs font-medium" style={{ color: PIPELINE_STATUS_CONFIG.sent.color }}>
+                  SENT
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  In campaign
+                </div>
+              </div>
+            </div>
+
+            {/* Flow Arrows */}
+            <div className="flex items-center justify-center gap-2 text-muted-foreground py-1">
+              <span className="text-xs">CSV Upload</span>
+              <ArrowRight className="h-4 w-4" />
+              <span className="text-xs font-medium text-purple-600">Tracerfy ($0.02)</span>
+              <ArrowRight className="h-4 w-4" />
+              <span className="text-xs">Trestle (optional)</span>
+              <ArrowRight className="h-4 w-4" />
+              <span className="text-xs font-medium text-green-600">SMS Campaign</span>
+              <ArrowRight className="h-4 w-4" />
+              <span className="text-xs font-medium text-amber-600">2K/day SignalHouse</span>
+            </div>
+
+            {/* Blocked Breakdown + Quality Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Blocked Breakdown */}
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Ban className="h-4 w-4 text-red-600" />
+                  <span className="font-semibold text-red-700 dark:text-red-400">Blocked Breakdown</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">DNC (Do Not Call)</span>
+                    <span className="font-medium text-red-600">{formatNumber(pipelineStats.blockedDNC)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Litigator</span>
+                    <span className="font-medium text-red-600">{formatNumber(pipelineStats.blockedLitigator)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Invalid/Disconnected</span>
+                    <span className="font-medium text-red-600">{formatNumber(pipelineStats.blockedInvalid)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quality Stats */}
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-4 w-4 text-green-600" />
+                  <span className="font-semibold text-green-700 dark:text-green-400">Contactable Quality</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Phone className="h-3 w-3" /> With Phone
+                    </span>
+                    <span className="font-medium text-green-600">{formatNumber(pipelineStats.withPhone)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <MessageSquare className="h-3 w-3" /> With Mobile
+                    </span>
+                    <span className="font-medium text-green-600">{formatNumber(pipelineStats.withMobile)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Mail className="h-3 w-3" /> With Email
+                    </span>
+                    <span className="font-medium text-blue-600">{formatNumber(pipelineStats.withEmail)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SMS Campaign Ready Indicator */}
+            {pipelineStats.ready >= 2000 && (
+              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-500 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <span className="font-bold text-green-700">Ready for SMS Campaign!</span>
+                    <span className="text-sm text-green-600 ml-2">
+                      {formatNumber(pipelineStats.ready)} leads ready • 2K/day SignalHouse approved
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => router.push(`/t/${teamId}/campaigns/new`)}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Start Campaign
+                </Button>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/t/${teamId}/leads?pipelineStatus=blocked`)}
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                View Blocked ({formatNumber(pipelineStats.blocked)})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/t/${teamId}/leads?pipelineStatus=ready`)}
+                className="text-green-600 border-green-300 hover:bg-green-50"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                View Ready ({formatNumber(pipelineStats.ready)})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/t/${teamId}/skip-trace`)}
+                className="text-purple-600 border-purple-300 hover:bg-purple-50"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Skip Trace RAW ({formatNumber(pipelineStats.raw)})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/t/${teamId}/leads?pipelineStatus=sent`)}
+                className="text-amber-600 border-amber-300 hover:bg-amber-50"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                View Sent ({formatNumber(pipelineStats.sent)})
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Selected Sector Details */}
         {selectedSector && <SelectedSectorDetails />}
