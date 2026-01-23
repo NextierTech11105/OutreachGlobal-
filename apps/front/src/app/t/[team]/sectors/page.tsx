@@ -229,6 +229,7 @@ export default function SectorsPage() {
   }, []);
 
   // Handle CSV upload (two-step: storage upload -> import)
+  // Uses pre-signed URL for large files (>10MB) to avoid gateway timeout
   const handleUpload = async () => {
     if (!uploadFile || !uploadName) {
       toast.error("Please select a file and enter a name");
@@ -239,35 +240,80 @@ export default function SectorsPage() {
     setUploadResult(null);
 
     try {
-      // Step 1: Upload to storage (DO Spaces) via /api/storage/upload
       const folder = `sectors/usbizdata/${uploadName.replace(/\s+/g, "-").toLowerCase()}`;
-      const storageForm = new FormData();
-      storageForm.append("file", uploadFile);
-      storageForm.append("folder", folder);
-      storageForm.append("filename", uploadFile.name);
-      storageForm.append("tags", uploadTags);
+      const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 10MB
+      let storagePath: string;
 
-      const storageRes = await fetch("/api/storage/upload", {
-        method: "POST",
-        body: storageForm,
-      });
+      if (uploadFile.size > LARGE_FILE_THRESHOLD) {
+        // Large file: Use pre-signed URL for direct upload to DO Spaces
+        toast.info(`Large file (${(uploadFile.size / 1024 / 1024).toFixed(1)}MB) - uploading directly...`);
 
-      if (!storageRes.ok) {
-        const text = await storageRes.text().catch(() => "");
-        const isHtml = text.trim().startsWith("<");
-        const msg = isHtml
-          ? `Storage upload failed: server returned HTML (status ${storageRes.status})`
-          : text || `Storage upload failed: HTTP ${storageRes.status}`;
-        throw new Error(msg);
+        // Step 1a: Get pre-signed URL
+        const presignRes = await fetch("/api/storage/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: uploadFile.name,
+            folder,
+            contentType: uploadFile.type || "text/csv",
+            size: uploadFile.size,
+          }),
+        });
+
+        if (!presignRes.ok) {
+          throw new Error(`Failed to get upload URL: ${presignRes.status}`);
+        }
+
+        const presignData = await presignRes.json();
+        if (!presignData.presignedUrl) {
+          throw new Error("No presigned URL returned");
+        }
+
+        // Step 1b: Upload directly to DO Spaces
+        const uploadRes = await fetch(presignData.presignedUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": uploadFile.type || "text/csv",
+          },
+          body: uploadFile,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error(`Direct upload failed: ${uploadRes.status}`);
+        }
+
+        storagePath = presignData.storagePath;
+        toast.success("File uploaded to storage!");
+      } else {
+        // Small file: Use regular upload through API
+        const storageForm = new FormData();
+        storageForm.append("file", uploadFile);
+        storageForm.append("folder", folder);
+        storageForm.append("filename", uploadFile.name);
+        storageForm.append("tags", uploadTags);
+
+        const storageRes = await fetch("/api/storage/upload", {
+          method: "POST",
+          body: storageForm,
+        });
+
+        if (!storageRes.ok) {
+          const text = await storageRes.text().catch(() => "");
+          const isHtml = text.trim().startsWith("<");
+          const msg = isHtml
+            ? `Storage upload failed: server returned HTML (status ${storageRes.status})`
+            : text || `Storage upload failed: HTTP ${storageRes.status}`;
+          throw new Error(msg);
+        }
+
+        const storageData = await storageRes.json().catch(async () => {
+          const txt = await storageRes.text().catch(() => "");
+          throw new Error(txt || "Invalid JSON from storage upload");
+        });
+
+        storagePath = storageData.storagePath;
+        if (!storagePath) throw new Error("No storagePath returned from storage upload");
       }
-
-      const storageData = await storageRes.json().catch(async () => {
-        const txt = await storageRes.text().catch(() => "");
-        throw new Error(txt || "Invalid JSON from storage upload");
-      });
-
-      const storagePath = storageData.storagePath;
-      if (!storagePath) throw new Error("No storagePath returned from storage upload");
 
       // Step 2: Trigger import (async processing) using /api/buckets/import
       const importRes = await fetch("/api/buckets/import", {

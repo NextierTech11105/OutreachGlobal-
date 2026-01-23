@@ -69,6 +69,9 @@ import {
   Crown,
   Target,
   ArrowUpDown,
+  LayoutGrid,
+  List,
+  User,
 } from "lucide-react";
 import { UniversalDetailModal } from "@/components/universal-detail-modal";
 import { toast } from "sonner";
@@ -337,6 +340,9 @@ export default function SectorDetailPage() {
   const [sortBy, setSortBy] = useState<
     "default" | "priority" | "decisionMaker" | "propertyScore"
   >("default");
+
+  // View mode: card or list
+  const [viewMode, setViewMode] = useState<"card" | "list">("list");
 
   // Daily skip trace limit (2000/day)
   const DAILY_SKIP_TRACE_LIMIT = 2000;
@@ -1633,6 +1639,26 @@ export default function SectorDetailPage() {
             </Select>
           </div>
 
+          {/* VIEW MODE TOGGLE */}
+          <div className="flex border rounded-lg overflow-hidden">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              className="rounded-none px-3"
+              onClick={() => setViewMode("card")}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              className="rounded-none px-3"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
           {/* SERVER PAGINATION INFO */}
           {pagination && (
             <Badge variant="outline" className="px-3 py-1">
@@ -1794,7 +1820,172 @@ export default function SectorDetailPage() {
           </Button>
         </div>
 
+        {/* CARD VIEW */}
+        {viewMode === "card" && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {paginatedLeads.map((lead) => {
+              const isSelected = selectedIds.has(lead.id);
+              const hasPhone = !!(lead.phone || lead.mobilePhone || lead.enrichedPhones?.length);
+              const hasEmail = !!(lead.email || lead.enrichedEmails?.length);
+              const isEnriched = lead.enriched;
+              const hasMobile = !!(lead.mobilePhone || lead.enrichedPhones?.some(
+                (p) => p.type?.toLowerCase() === "mobile" || p.type?.toLowerCase() === "cell"
+              ));
+
+              return (
+                <Card
+                  key={lead.id}
+                  className={cn(
+                    "cursor-pointer transition-all hover:shadow-md",
+                    isSelected && "ring-2 ring-primary border-primary",
+                    isEnriched && "border-green-500/30"
+                  )}
+                  onClick={() => {
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(lead.id)) {
+                        next.delete(lead.id);
+                      } else {
+                        next.add(lead.id);
+                      }
+                      return next;
+                    });
+                  }}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => {
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(lead.id)) {
+                                next.delete(lead.id);
+                              } else {
+                                next.add(lead.id);
+                              }
+                              return next;
+                            });
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                          <User className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      </div>
+                      <div className="flex gap-1 flex-wrap">
+                        {isEnriched && (
+                          <Badge className="bg-green-600 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Enriched
+                          </Badge>
+                        )}
+                        {lead.isDecisionMaker && (
+                          <Badge className="bg-amber-500 text-xs">
+                            <Crown className="h-3 w-3 mr-1" />
+                            DM
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <CardTitle className="text-sm mt-2">
+                      {lead.contactName || lead.companyName || "Unknown Contact"}
+                    </CardTitle>
+                    {lead.title && (
+                      <CardDescription className="text-xs line-clamp-1">
+                        {lead.title}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2">
+                    {/* Company */}
+                    {lead.companyName && lead.contactName && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="truncate">{lead.companyName}</span>
+                      </div>
+                    )}
+
+                    {/* Phone indicators */}
+                    <div className="flex gap-2">
+                      {hasMobile ? (
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                          <Smartphone className="h-3 w-3 mr-1" />
+                          Mobile
+                        </Badge>
+                      ) : hasPhone ? (
+                        <Badge variant="outline" className="text-xs text-gray-600">
+                          <Phone className="h-3 w-3 mr-1" />
+                          Phone
+                        </Badge>
+                      ) : null}
+                      {hasEmail && (
+                        <Badge variant="outline" className="text-xs text-blue-600 border-blue-600">
+                          <Mail className="h-3 w-3" />
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Location */}
+                    {(lead.city || lead.state) && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {[lead.city, lead.state].filter(Boolean).join(", ")}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Industry/SIC */}
+                    {(lead.industry || lead.sicDescription) && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {lead.industry || lead.sicDescription}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Card View Pagination */}
+        {viewMode === "card" && pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              Showing {sf((currentPage - 1) * batchSize + 1)} to{" "}
+              {sf(Math.min(currentPage * batchSize, pagination.filteredTotal))} of{" "}
+              {sf(pagination.filteredTotal)}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-sm font-medium px-2">
+                Page {currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={!pagination.hasMore}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Table - FULL DATA VIEW */}
+        {viewMode === "list" && (
         <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -2314,6 +2505,7 @@ export default function SectorDetailPage() {
             </div>
           )}
         </Card>
+        )}
       </div>
 
       {/* Enrichment Progress Dialog */}
