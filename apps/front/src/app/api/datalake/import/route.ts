@@ -11,6 +11,118 @@ import { db } from "@/lib/db";
 import { businesses, contacts, importJobs } from "@/lib/db/schema";
 import { requireTenantContext } from "@/lib/api-auth";
 import { eq } from "drizzle-orm";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+
+// DO Spaces configuration
+const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET ||
+  process.env.DO_SPACES_BUCKET ||
+  "nextier";
+const SPACES_KEY =
+  process.env.SPACES_KEY ||
+  process.env.DO_SPACES_KEY ||
+  "";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET ||
+  process.env.DO_SPACES_SECRET ||
+  "";
+
+function getS3Client(): S3Client | null {
+  if (!SPACES_KEY || !SPACES_SECRET) {
+    return null;
+  }
+  return new S3Client({
+    endpoint: SPACES_ENDPOINT,
+    region: "nyc3",
+    credentials: { accessKeyId: SPACES_KEY, secretAccessKey: SPACES_SECRET },
+    forcePathStyle: true, // CRITICAL for DO Spaces
+  });
+}
+
+// Save bucket to DO Spaces for Quick Send visibility
+async function saveBucketToSpaces(
+  client: S3Client,
+  bucketData: {
+    id: string;
+    name: string;
+    description: string;
+    totalLeads: number;
+    records: any[];
+    metadata: any;
+  }
+): Promise<boolean> {
+  try {
+    // Save bucket data
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${bucketData.id}.json`,
+        Body: JSON.stringify(bucketData, null, 2),
+        ContentType: "application/json",
+      })
+    );
+
+    // Update bucket index
+    let buckets: any[] = [];
+    try {
+      const response = await client.send(
+        new GetObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: "buckets/_index.json",
+        })
+      );
+      const content = await response.Body?.transformToString();
+      if (content) {
+        const index = JSON.parse(content);
+        buckets = index.buckets || [];
+      }
+    } catch {
+      // Index doesn't exist yet
+    }
+
+    // Add new bucket to index
+    buckets.unshift({
+      id: bucketData.id,
+      name: bucketData.name,
+      description: bucketData.description,
+      source: "csv",
+      tags: bucketData.metadata.tags || [],
+      createdAt: bucketData.metadata.createdAt,
+      updatedAt: bucketData.metadata.createdAt,
+      totalLeads: bucketData.totalLeads,
+      enrichedLeads: 0,
+      enrichmentStatus: "pending",
+    });
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: "buckets/_index.json",
+        Body: JSON.stringify(
+          {
+            buckets,
+            updatedAt: new Date().toISOString(),
+            count: buckets.length,
+          },
+          null,
+          2
+        ),
+        ContentType: "application/json",
+      })
+    );
+
+    console.log(`[Datalake Import] Saved bucket ${bucketData.id} to DO Spaces`);
+    return true;
+  } catch (error) {
+    console.error("[Datalake Import] Failed to save to DO Spaces:", error);
+    return false;
+  }
+}
 
 // Campaign verticals for isolated campaign tracking
 const VALID_VERTICALS = [
@@ -437,6 +549,62 @@ export async function POST(request: NextRequest) {
         .where(eq(importJobs.id, jobId));
     }
 
+    // Also save to DO Spaces for Quick Send visibility
+    const bucketId = `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const now = new Date().toISOString();
+    const s3Client = getS3Client();
+    let savedToSpaces = false;
+
+    if (s3Client && !hasMoreRecords) {
+      // Only save after all chunks are processed
+      const bucketData = {
+        id: bucketId,
+        name: `${validatedVertical} - ${file.name}`,
+        description: `Imported ${insertedCount} ${importType} records from ${file.name}`,
+        totalLeads: insertedCount,
+        records: records.map((row, index) => ({
+          id: `${bucketId}-${index}`,
+          bucketId: bucketId,
+          rowIndex: index,
+          matchingKeys: {
+            companyName: extractValue(row, headers, "companyName"),
+            contactName: extractValue(row, headers, "contactName"),
+            firstName: extractValue(row, headers, "firstName"),
+            lastName: extractValue(row, headers, "lastName"),
+            title: extractValue(row, headers, "title"),
+            phone: extractValue(row, headers, "phone"),
+            email: extractValue(row, headers, "email"),
+            address: extractValue(row, headers, "address"),
+            city: extractValue(row, headers, "city"),
+            state: extractValue(row, headers, "state"),
+            zip: extractValue(row, headers, "zip"),
+            sicCode: extractValue(row, headers, "sicCode"),
+          },
+          flags: {
+            hasPhone: !!extractValue(row, headers, "phone"),
+            hasEmail: !!extractValue(row, headers, "email"),
+            hasAddress: !!(extractValue(row, headers, "address") && extractValue(row, headers, "city")),
+          },
+          _original: row,
+        })),
+        metadata: {
+          id: bucketId,
+          name: `${validatedVertical} - ${file.name}`,
+          description: `Imported from ${file.name}`,
+          tags: [validatedVertical.toLowerCase(), importType],
+          createdAt: now,
+          stats: {
+            total: insertedCount,
+            withPhone: records.filter(r => extractValue(r, headers, "phone")).length,
+            withEmail: records.filter(r => extractValue(r, headers, "email")).length,
+            withAddress: records.filter(r => extractValue(r, headers, "address") && extractValue(r, headers, "city")).length,
+          },
+        },
+      };
+
+      savedToSpaces = await saveBucketToSpaces(s3Client, bucketData);
+    }
+
     return NextResponse.json({
       success: true,
       message: hasMoreRecords
@@ -464,11 +632,22 @@ export async function POST(request: NextRequest) {
         nextOffset: hasMoreRecords ? processedSoFar : undefined,
       },
       errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
+      // DO Spaces bucket info for Quick Send
+      bucket: savedToSpaces ? {
+        id: bucketId,
+        savedToSpaces: true,
+        message: "Data also saved to Quick Send buckets",
+      } : {
+        savedToSpaces: false,
+        message: "DO Spaces not configured - data only in database",
+      },
       nextSteps: hasMoreRecords
         ? `Continue with offset=${processedSoFar}`
-        : autoEnrich
-          ? "Records queued for LUCI enrichment. Check /lead-lab for progress."
-          : "Records imported. Enable auto-enrich or use Lead Lab to enrich.",
+        : savedToSpaces
+          ? "Records imported and visible in Quick Send. Go to Quick Send to start campaigns."
+          : autoEnrich
+            ? "Records queued for LUCI enrichment. Check /lead-lab for progress."
+            : "Records imported. Enable auto-enrich or use Lead Lab to enrich.",
     });
   } catch (error) {
     console.error("[Datalake Import] Error:", error);
