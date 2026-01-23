@@ -10,6 +10,11 @@ import {
   INSTANT_EXECUTION,
   MACRO_STABILIZATION_TARGET,
 } from "@/config/constants";
+import {
+  executeContactSequence,
+  getContactSummary,
+  addToCallQueue,
+} from "@/lib/services/contact-sequence";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -91,8 +96,12 @@ export async function POST(request: NextRequest) {
         phone: leads.phone,
         firstName: leads.firstName,
         lastName: leads.lastName,
-        companyName: leads.companyName,
+        company: leads.company,
         address: leads.address,
+        primaryPhone: leads.primaryPhone,
+        mobile1: leads.mobile1,
+        mobile2: leads.mobile2,
+        email1: leads.email1,
         customFields: leads.customFields,
       })
       .from(leads)
@@ -139,14 +148,14 @@ export async function POST(request: NextRequest) {
         message = templateOverride
           .replace(/\{firstName\}/g, lead.firstName || "there")
           .replace(/\{lastName\}/g, lead.lastName || "")
-          .replace(/\{companyName\}/g, lead.companyName || "your business")
+          .replace(/\{companyName\}/g, lead.company || "your business")
           .replace(/\{address\}/g, lead.address || "your property");
       } else {
         const openers = gianna.generateOpeners({
           context: {
             firstName: lead.firstName || undefined,
             lastName: lead.lastName || undefined,
-            companyName: lead.companyName || undefined,
+            companyName: lead.company || undefined,
             propertyAddress: lead.address || undefined,
             phone: lead.phone!,
             channel: "sms",
@@ -154,7 +163,7 @@ export async function POST(request: NextRequest) {
             messageNumber: 1,
             teamId,
           },
-          category: lead.companyName ? "business" : "property",
+          category: lead.company ? "business" : "property",
           count: 1,
         });
 
