@@ -19,10 +19,25 @@ import { randomUUID } from "crypto";
 // DO Spaces configuration - check multiple env var names for compatibility
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
 const SPACES_BUCKET =
-  process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
-const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
+  process.env.SPACES_BUCKET ||
+  process.env.DO_SPACES_BUCKET ||
+  process.env.DIGITALOCEAN_SPACES_BUCKET ||
+  process.env.BUCKET_NAME ||
+  "nextier";
+const SPACES_KEY =
+  process.env.SPACES_KEY ||
+  process.env.DO_SPACES_KEY ||
+  process.env.DIGITALOCEAN_SPACES_KEY ||
+  process.env.AWS_ACCESS_KEY_ID ||
+  process.env.S3_ACCESS_KEY ||
+  "";
 const SPACES_SECRET =
-  process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+  process.env.SPACES_SECRET ||
+  process.env.DO_SPACES_SECRET ||
+  process.env.DIGITALOCEAN_SPACES_SECRET ||
+  process.env.AWS_SECRET_ACCESS_KEY ||
+  process.env.S3_SECRET_KEY ||
+  "";
 
 function getS3Client(): S3Client | null {
   if (!SPACES_KEY || !SPACES_SECRET) {
@@ -1522,21 +1537,28 @@ export async function POST(request: NextRequest) {
 
     // Save to DO Spaces
     const client = getS3Client();
-    if (client) {
-      await client.send(
-        new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: `buckets/${bucketId}.json`,
-          Body: JSON.stringify(bucket, null, 2),
-          ContentType: "application/json",
-        }),
+    if (!client) {
+      console.error("[CSV Upload] DO Spaces credentials not configured");
+      return NextResponse.json(
+        {
+          error:
+            "Storage not configured. Missing DO Spaces credentials (SPACES_KEY, SPACES_SECRET).",
+        },
+        { status: 500 },
       );
-
-      // Update the index so it appears in the UI immediately
-      await updateBucketIndex(client, bucket);
-    } else {
-      console.warn("[CSV Upload] DO Spaces not configured, data not persisted");
     }
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: SPACES_BUCKET,
+        Key: `buckets/${bucketId}.json`,
+        Body: JSON.stringify(bucket, null, 2),
+        ContentType: "application/json",
+      }),
+    );
+
+    // Update the index so it appears in the UI immediately
+    await updateBucketIndex(client, bucket);
 
     return NextResponse.json({
       success: true,

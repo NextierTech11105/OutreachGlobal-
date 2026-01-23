@@ -23,9 +23,26 @@ import { apiAuth } from "@/lib/api-auth";
 
 // DO Spaces configuration
 const SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com";
-const SPACES_BUCKET = process.env.SPACES_BUCKET || process.env.DO_SPACES_BUCKET || "nextier";
-const SPACES_KEY = process.env.SPACES_KEY || process.env.DO_SPACES_KEY || "";
-const SPACES_SECRET = process.env.SPACES_SECRET || process.env.DO_SPACES_SECRET || "";
+const SPACES_BUCKET =
+  process.env.SPACES_BUCKET ||
+  process.env.DO_SPACES_BUCKET ||
+  process.env.DIGITALOCEAN_SPACES_BUCKET ||
+  process.env.BUCKET_NAME ||
+  "nextier";
+const SPACES_KEY =
+  process.env.SPACES_KEY ||
+  process.env.DO_SPACES_KEY ||
+  process.env.DIGITALOCEAN_SPACES_KEY ||
+  process.env.AWS_ACCESS_KEY_ID ||
+  process.env.S3_ACCESS_KEY ||
+  "";
+const SPACES_SECRET =
+  process.env.SPACES_SECRET ||
+  process.env.DO_SPACES_SECRET ||
+  process.env.DIGITALOCEAN_SPACES_SECRET ||
+  process.env.AWS_SECRET_ACCESS_KEY ||
+  process.env.S3_SECRET_KEY ||
+  "";
 
 function getS3Client(): S3Client | null {
   if (!SPACES_KEY || !SPACES_SECRET) return null;
