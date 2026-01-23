@@ -82,9 +82,11 @@ export async function GET() {
     const authToken = process.env.SIGNALHOUSE_AUTH_TOKEN;
 
     if (apiKey && authToken) {
-      const response = await fetch("https://api.signalhouse.io/api/v1/analytics/stats", {
+      // Use correct SignalHouse API format with both apiKey and authToken headers
+      const response = await fetch("https://api.signalhouse.io/analytics/dashboardAnalytics", {
         headers: {
-          "x-api-key": apiKey,
+          "apiKey": apiKey,
+          "authToken": authToken,
           "Content-Type": "application/json",
         },
       });

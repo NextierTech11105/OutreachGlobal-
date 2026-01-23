@@ -1,0 +1,7 @@
+# DigitalOcean App Platform ignore file
+# Exclude NX build artifacts that cause "archive/tar: write too long" errors
+
+.nx/
+*.log
+node_modules/
+.git/
