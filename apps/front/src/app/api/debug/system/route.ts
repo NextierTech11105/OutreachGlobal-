@@ -46,22 +46,32 @@ export async function GET() {
   // 2. Check Database Connection and Data
   try {
     if (db) {
-      const [smsCount] = await db.select({ count: count() }).from(smsMessages);
-      const [leadCount] = await db.select({ count: count() }).from(leads);
-      const [businessCount] = await db.select({ count: count() }).from(businesses);
-      const [contactCount] = await db.select({ count: count() }).from(contacts);
-      const [campaignCount] = await db.select({ count: count() }).from(campaigns);
+      // Check each table individually to handle missing tables
+      const tableResults: Record<string, number | string> = {};
+
+      for (const [name, table] of [
+        ["smsMessages", smsMessages],
+        ["leads", leads],
+        ["businesses", businesses],
+        ["contacts", contacts],
+        ["campaigns", campaigns],
+      ] as const) {
+        try {
+          const [result] = await db.select({ count: count() }).from(table);
+          tableResults[name] = result?.count || 0;
+        } catch (e) {
+          tableResults[name] = "TABLE_MISSING";
+        }
+      }
+
+      const hasData = Object.values(tableResults).some(v => typeof v === "number" && v > 0);
+      const hasMissingTables = Object.values(tableResults).some(v => v === "TABLE_MISSING");
 
       results.database = {
-        status: "CONNECTED",
-        tables: {
-          smsMessages: smsCount?.count || 0,
-          leads: leadCount?.count || 0,
-          businesses: businessCount?.count || 0,
-          contacts: contactCount?.count || 0,
-          campaigns: campaignCount?.count || 0,
-        },
-        hasData: (smsCount?.count || 0) > 0 || (leadCount?.count || 0) > 0 || (businessCount?.count || 0) > 0,
+        status: hasMissingTables ? "NEEDS_MIGRATION" : "CONNECTED",
+        tables: tableResults,
+        hasData,
+        note: hasMissingTables ? "Run 'pnpm drizzle-kit push' to create missing tables" : undefined,
       };
     } else {
       results.database = {
@@ -82,8 +92,8 @@ export async function GET() {
     const authToken = process.env.SIGNALHOUSE_AUTH_TOKEN;
 
     if (apiKey && authToken) {
-      // Use correct SignalHouse API format with both apiKey and authToken headers
-      const response = await fetch("https://api.signalhouse.io/analytics/dashboardAnalytics", {
+      // Use user info endpoint - doesn't require any parameters
+      const response = await fetch("https://api.signalhouse.io/user/info", {
         headers: {
           "apiKey": apiKey,
           "authToken": authToken,
