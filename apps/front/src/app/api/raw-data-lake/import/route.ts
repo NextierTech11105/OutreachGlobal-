@@ -4,31 +4,24 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:3001";
 
 export async function POST(request: NextRequest) {
   try {
-    // Get session for auth
-    const session = await getServerSession(authOptions);
-
-    if (!session?.accessToken) {
-      return NextResponse.json(
-        { error: "Unauthorized - please log in" },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
+
+    // Get auth token from cookies
+    const cookieStore = await cookies();
+    const token = cookieStore.get("accessToken")?.value || cookieStore.get("token")?.value;
 
     // Forward to backend API
     const response = await fetch(`${API_URL}/raw-data-lake/import`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.accessToken}`,
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
     });
