@@ -52,6 +52,7 @@ import { AiCoPilotModule } from "./ai-co-pilot/ai-co-pilot.module";
 import { RawDataLakeModule } from "./raw-data-lake/raw-data-lake.module";
 import { CopilotModule } from "./copilot/copilot.module";
 import { GiannaModule } from "./gianna/gianna.module";
+import { NevaModule } from "./neva/neva.module";
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { GiannaModule } from "./gianna/gianna.module";
     RawDataLakeModule,
     CopilotModule,
     GiannaModule,
+    NevaModule,
   ],
   providers: [
     AppRunner,
