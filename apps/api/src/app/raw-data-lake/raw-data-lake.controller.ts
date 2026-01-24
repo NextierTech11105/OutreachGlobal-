@@ -170,12 +170,13 @@ export class RawDataLakeController {
         approvalRequired: true,
       },
       nextStep: `POST /luci/enrich-block/${result.blockId} to run Tracerfy and create LEADS`,
-      costBreakdown: {
-        tracerfy: `$${(result.count * 0.02).toFixed(2)} (skip trace)`,
-        trestle: `$${(result.count * 0.03).toFixed(2)} (phone scoring - optional)`,
-        total: `$${result.estimatedCost.toFixed(2)}`,
+      nextierCost: {
+        note: "NEXTIER WHOLESALE COST (not customer price)",
+        tracerfyOnly: `$${(result.count * 0.02).toFixed(2)} (phones + emails - 2¢/lead)`,
+        tracerfyPlusTrestle: `$${(result.count * 0.035).toFixed(2)} (+ scoring - 3.5¢/lead)`,
+        fullEnrichment: `$${(result.count * 0.05).toFixed(2)} (everything - 5¢/lead)`,
       },
-      warning: `⚠️ Enrichment will cost $${result.estimatedCost.toFixed(2)} - requires explicit approval`,
+      warning: `⚠️ NEXTIER COST: 2¢-5¢/lead. ${result.count} leads = $${(result.count * 0.02).toFixed(2)}-$${(result.count * 0.05).toFixed(2)}`,
     };
   }
 

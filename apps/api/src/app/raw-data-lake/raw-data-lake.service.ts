@@ -338,8 +338,8 @@ export class RawDataLakeService {
       }
     }
 
-    // Estimated cost: $0.02 Tracerfy + $0.03 Trestle = $0.05/lead
-    const estimatedCost = updatedCount * 0.05;
+    // NEXTIER COST: $0.02 Tracerfy (min) | $0.035 w/Trestle | $0.05 full enrichment (max)
+    const estimatedCost = updatedCount * 0.05; // Show max cost for safety
 
     return {
       blockId,
