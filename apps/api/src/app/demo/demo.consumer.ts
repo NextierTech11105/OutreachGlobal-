@@ -3,7 +3,7 @@ import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { ConfigService } from "@nestjs/config";
 import { SignalHouseService } from "@/lib/signalhouse/signalhouse.service";
-import { DEMO_QUEUE } from "./demo.module";
+import { DEMO_QUEUE } from "./demo.constants";
 
 /**
  * DEMO CONSUMER - Processes SMS sending jobs

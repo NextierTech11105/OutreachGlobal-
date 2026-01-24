@@ -13,7 +13,7 @@ import { AiOrchestratorService } from "../ai-orchestrator/ai-orchestrator.servic
 import { ConfigService } from "@nestjs/config";
 import { v4 as uuid } from "uuid";
 import { MessageDirection, MessageType } from "@nextier/common";
-import { DEMO_QUEUE } from "./demo.module";
+import { DEMO_QUEUE } from "./demo.constants";
 
 /**
  * DEMO SERVICE - Full Demo-Ready SMS Platform

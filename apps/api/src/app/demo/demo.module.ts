@@ -11,8 +11,7 @@ import { DemoService } from "./demo.service";
 import { DemoController } from "./demo.controller";
 import { DemoConsumer } from "./demo.consumer";
 import { TemplateService } from "./template.service";
-
-export const DEMO_QUEUE = "demo-sms";
+import { DEMO_QUEUE } from "./demo.constants";
 
 @CustomModule({
   imports: [
