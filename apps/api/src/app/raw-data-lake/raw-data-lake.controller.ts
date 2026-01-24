@@ -135,6 +135,9 @@ export class RawDataLakeController {
   /**
    * Create a block from list items
    * Block = batch ready for Tracerfy enrichment
+   *
+   * HUMAN-IN-LOOP: This only TAGS items. NO enrichment happens here.
+   * User must explicitly call /enrich-block to spend money.
    */
   @Post("create-block")
   async createBlock(
@@ -145,11 +148,12 @@ export class RawDataLakeController {
       state?: string;
       city?: string;
       leadIds?: string[];
-      blockSize: 500 | 1000 | 2000;
+      blockSize: 10 | 50 | 100 | 500 | 1000 | 2000;
     }
   ) {
-    if (!body.blockSize || ![500, 1000, 2000].includes(body.blockSize)) {
-      throw new BadRequestException("blockSize must be 500, 1000, or 2000");
+    const validSizes = [10, 50, 100, 500, 1000, 2000];
+    if (!body.blockSize || !validSizes.includes(body.blockSize)) {
+      throw new BadRequestException("blockSize must be 10, 50, 100, 500, 1000, or 2000 (10 is Tracerfy minimum)");
     }
 
     const result = await this.service.createBlock(teamId, body);
@@ -159,13 +163,19 @@ export class RawDataLakeController {
       blockId: result.blockId,
       count: result.count,
       estimatedCost: result.estimatedCost,
-      message: `Created block with ${result.count} list items`,
+      message: `Created block with ${result.count} list items (NO COST YET - just tagged)`,
+      humanInLoop: {
+        status: "AWAITING_APPROVAL",
+        nextAction: "You must explicitly call enrich-block to spend money",
+        approvalRequired: true,
+      },
       nextStep: `POST /luci/enrich-block/${result.blockId} to run Tracerfy and create LEADS`,
       costBreakdown: {
         tracerfy: `$${(result.count * 0.02).toFixed(2)} (skip trace)`,
         trestle: `$${(result.count * 0.03).toFixed(2)} (phone scoring - optional)`,
         total: `$${result.estimatedCost.toFixed(2)}`,
       },
+      warning: `⚠️ Enrichment will cost $${result.estimatedCost.toFixed(2)} - requires explicit approval`,
     };
   }
 

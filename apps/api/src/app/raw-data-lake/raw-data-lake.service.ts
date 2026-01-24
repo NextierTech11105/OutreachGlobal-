@@ -283,7 +283,7 @@ export class RawDataLakeService {
       state?: string;
       city?: string;
       leadIds?: string[];
-      blockSize: 500 | 1000 | 2000;
+      blockSize: 10 | 50 | 100 | 500 | 1000 | 2000;
     }
   ): Promise<{ blockId: string; count: number; estimatedCost: number }> {
     const blockId = `block_${ulid()}`;
