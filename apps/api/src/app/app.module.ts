@@ -50,6 +50,7 @@ import { AiOrchestratorModule } from "./ai-orchestrator/ai-orchestrator.module";
 import { LuciModule } from "./luci/luci.module";
 import { AiCoPilotModule } from "./ai-co-pilot/ai-co-pilot.module";
 import { RawDataLakeModule } from "./raw-data-lake/raw-data-lake.module";
+import { CopilotModule } from "./copilot/copilot.module";
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { RawDataLakeModule } from "./raw-data-lake/raw-data-lake.module";
     LuciModule,
     AiCoPilotModule,
     RawDataLakeModule,
+    CopilotModule,
   ],
   providers: [
     AppRunner,
