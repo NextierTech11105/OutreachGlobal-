@@ -10,8 +10,6 @@ import { BullModule } from "@nestjs/bullmq";
 import { ConfigModule } from "@nestjs/config";
 import { GIANNA_QUEUE } from "./gianna.constants";
 
-export { GIANNA_QUEUE };
-
 @CustomModule({
   imports: [
     TeamModule,
