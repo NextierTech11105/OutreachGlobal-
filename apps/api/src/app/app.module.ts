@@ -48,6 +48,9 @@ import { OutboundModule } from "../lib/outbound";
 import { BillingModule } from "./billing/billing.module";
 import { AiOrchestratorModule } from "./ai-orchestrator/ai-orchestrator.module";
 import { LuciModule } from "./luci/luci.module";
+import { AiCoPilotModule } from "./ai-co-pilot/ai-co-pilot.module";
+// TEMPORARILY DISABLED - Other agent working on it
+// import { RawDataLakeModule } from "./raw-data-lake/raw-data-lake.module";
 
 @Module({
   imports: [
@@ -104,6 +107,8 @@ import { LuciModule } from "./luci/luci.module";
     OutboundModule,
     AiOrchestratorModule,
     LuciModule,
+    AiCoPilotModule,
+    RawDataLakeModule,
   ],
   providers: [
     AppRunner,
