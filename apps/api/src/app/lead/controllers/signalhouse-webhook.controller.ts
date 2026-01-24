@@ -20,6 +20,8 @@ import {
   InboxPriority,
   BucketType,
 } from "@nextier/common";
+import { SabrinaSdrService } from "@/app/inbox/services/sabrina-sdr.service";
+import { AgentRouterService } from "@/app/inbox/services/agent-router.service";
 
 /**
  * SIGNALHOUSE WEBHOOK CONTROLLER
@@ -89,6 +91,8 @@ export class SignalHouseWebhookController {
     private configService: ConfigService,
     @InjectDB() private db: DrizzleClient,
     @InjectQueue("lead") private leadQueue: Queue,
+    private sabrinaSdrService: SabrinaSdrService,
+    private agentRouter: AgentRouterService,
   ) {
     const token = this.configService.get<string>("SIGNALHOUSE_WEBHOOK_TOKEN");
     if (!token) {
@@ -262,6 +266,41 @@ export class SignalHouseWebhookController {
         this.logger.log(
           `🔥 HOT LEAD: ${lead.firstName} ${lead.lastName} - "${message}"`,
         );
+
+        // Route to correct agent (GIANNA/CATHY/SABRINA) based on conversation
+        try {
+          const agentAssignment = await this.agentRouter.routeToAgent(
+            lead.teamId,
+            lead.id,
+            message,
+            to, // The number the lead replied TO determines which agent
+          );
+
+          this.logger.log(
+            `🤖 Routed to ${agentAssignment.agent.toUpperCase()}: ${agentAssignment.reason}`,
+          );
+
+          // Process through SABRINA (handles all agents' response generation)
+          const sabrinaResult =
+            await this.sabrinaSdrService.processIncomingResponse(
+              lead.teamId,
+              messageId || `inbound_${Date.now()}`,
+              message,
+              from,
+              undefined, // campaignId - determined from lead context
+            );
+
+          if (sabrinaResult.pendingApprovalId) {
+            this.logger.log(
+              `📨 ${agentAssignment.agent.toUpperCase()} response queued for approval: ${sabrinaResult.pendingApprovalId}`,
+            );
+            this.logger.log(
+              `💬 Suggested: "${sabrinaResult.suggestedResponse}"`,
+            );
+          }
+        } catch (err) {
+          this.logger.error(`Failed to process with agent router: ${err}`);
+        }
         break;
 
       case "dnc":

@@ -1,5 +1,6 @@
 import { CustomModule } from "@/common/decorators";
 import { TeamModule } from "../team/team.module";
+import { InboxModule } from "../inbox/inbox.module";
 import { LeadResolver } from "./resolvers/lead.resolver";
 import { LeadService } from "./services/lead.service";
 import { LeadEventService } from "./services/lead-event.service";
@@ -34,6 +35,7 @@ import { SicMapperService } from "./services/sic-mapper.service";
 @CustomModule({
   imports: [
     TeamModule,
+    InboxModule,
     PropertyModule,
     ConfigModule,
     CacheModule,

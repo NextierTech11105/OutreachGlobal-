@@ -2,6 +2,8 @@ import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { eq, and } from "drizzle-orm";
+import { AiOrchestratorService } from "@/app/ai-orchestrator/ai-orchestrator.service";
+import { v4 as uuid } from "uuid";
 import {
   inboxItemsTable,
   leadsTable,
@@ -61,6 +63,7 @@ export class SabrinaSdrService {
   constructor(
     @InjectDB() private db: DrizzleClient,
     private signalHouseService: SignalHouseService,
+    private aiOrchestrator: AiOrchestratorService,
   ) {}
 
   /**
@@ -330,15 +333,44 @@ export class SabrinaSdrService {
   }
 
   /**
-   * Generate AI response
+   * Generate AI response using AI Orchestrator
+   * Routes to appropriate agent personality (GIANNA/CATHY/SABRINA)
    */
   async generateResponse(
     assignment: SabrinaAssignment,
     incomingMessage: string,
     leadFirstName?: string | null,
+    conversationHistory?: string[],
+    agentPersonality?: "gianna" | "cathy" | "sabrina",
   ): Promise<string> {
-    const greeting = leadFirstName ? `Hi ${leadFirstName}!` : "Hi there!";
-    return `${greeting} Thanks for getting back to me! I'd love to help you explore your options. What questions do you have?`;
+    try {
+      const context = {
+        teamId: "system", // Will be overridden by actual team context
+        traceId: uuid(),
+        userId: assignment.sdrId,
+      };
+
+      const result = await this.aiOrchestrator.generateSmsResponse(context, {
+        incomingMessage,
+        conversationHistory: conversationHistory || [],
+        leadName: leadFirstName || "there",
+        intent: "positive",
+      });
+
+      // If AI suggests escalation, log it
+      if (result.shouldEscalate) {
+        this.logger.log(
+          `AI suggests escalation for message: "${incomingMessage}"`,
+        );
+      }
+
+      return result.response;
+    } catch (error) {
+      this.logger.warn(`AI response generation failed, using fallback: ${error}`);
+      // Fallback to simple template if AI fails
+      const greeting = leadFirstName ? `Hi ${leadFirstName}!` : "Hi there!";
+      return `${greeting} Thanks for getting back to me! I'd love to help you explore your options. What questions do you have?`;
+    }
   }
 
   /**
