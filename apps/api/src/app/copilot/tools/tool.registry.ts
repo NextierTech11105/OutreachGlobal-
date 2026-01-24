@@ -27,10 +27,10 @@ export interface ToolResult {
 
 // Cost constants - NEXTIER wholesale costs
 const COSTS = {
-  PERSON_TRACE: 0.02,      // $0.02/lead with first+last name
-  COMPANY_TRACE: 0.15,     // $0.15/lead with company only (7.5x more!)
-  PHONE_VALIDATE: 0.015,   // $0.015/phone (Trestle)
-  SMS: 0.01,               // $0.01/message
+  PERSON_TRACE: 0.02, // $0.02/lead with first+last name
+  COMPANY_TRACE: 0.15, // $0.15/lead with company only (7.5x more!)
+  PHONE_VALIDATE: 0.015, // $0.015/phone (Trestle)
+  SMS: 0.01, // $0.01/message
 };
 
 @Injectable()
@@ -51,13 +51,15 @@ export class ToolRegistry {
     return [
       {
         name: "analyze_datalake",
-        description: "Analyze leads in the data lake. Returns counts by vertical, state, and cost estimates. FREE - no API calls.",
+        description:
+          "Analyze leads in the data lake. Returns counts by vertical, state, and cost estimates. FREE - no API calls.",
         parameters: {
           type: "object",
           properties: {
             vertical: {
               type: "string",
-              description: "Filter by vertical: realtors, plumbing, consultants",
+              description:
+                "Filter by vertical: realtors, plumbing, consultants",
               enum: ["realtors", "plumbing", "consultants"],
             },
             state: {
@@ -123,7 +125,8 @@ export class ToolRegistry {
       },
       {
         name: "backfill_to_target",
-        description: "If block has fewer than target contactable leads, pull more from datalake. Uses smart rounding (996 → 1000 → 2000).",
+        description:
+          "If block has fewer than target contactable leads, pull more from datalake. Uses smart rounding (996 → 1000 → 2000).",
         parameters: {
           type: "object",
           properties: {
@@ -167,7 +170,8 @@ export class ToolRegistry {
       case "validate_phones":
         return count * COSTS.PHONE_VALIDATE;
       case "backfill_to_target":
-        const needed = (args.targetSize || 2000) - (args.currentContactable || 0);
+        const needed =
+          (args.targetSize || 2000) - (args.currentContactable || 0);
         return needed * COSTS.PERSON_TRACE; // Assume person trace
       default:
         return 0;
@@ -230,7 +234,7 @@ export class ToolRegistry {
     // Filter if specified
     let filtered = stats;
     if (vertical) {
-      filtered = stats.filter(s => s.vertical === vertical);
+      filtered = stats.filter((s) => s.vertical === vertical);
     }
 
     const total = filtered.reduce((sum, s) => sum + s.total, 0);
@@ -308,8 +312,8 @@ export class ToolRegistry {
         city: lead.city || "",
         state: lead.state || "",
         zip: lead.zip || "",
-        first_name: isCompanyTrace ? "" : (lead.firstName || ""),
-        last_name: isCompanyTrace ? "" : (lead.lastName || ""),
+        first_name: isCompanyTrace ? "" : lead.firstName || "",
+        last_name: isCompanyTrace ? "" : lead.lastName || "",
         mail_address: lead.mailingAddress || lead.address || "",
         mail_city: lead.mailingCity || lead.city || "",
         mail_state: lead.mailingState || lead.state || "",
@@ -343,7 +347,7 @@ export class ToolRegistry {
       const completedQueue = await this.tracerfy.waitForQueue(
         traceResult.queue_id,
         300000, // 5 min max
-        5000,   // poll every 5 sec
+        5000, // poll every 5 sec
       );
 
       if (onProgress) onProgress(70);
@@ -368,7 +372,9 @@ export class ToolRegistry {
         if (emails.length > 0) emailsFound++;
       }
 
-      const cost = leads.length * (isCompanyTrace ? COSTS.COMPANY_TRACE : COSTS.PERSON_TRACE);
+      const cost =
+        leads.length *
+        (isCompanyTrace ? COSTS.COMPANY_TRACE : COSTS.PERSON_TRACE);
 
       if (onProgress) onProgress(100);
 
@@ -470,7 +476,9 @@ export class ToolRegistry {
           gradeD: batchResult.summary.gradeDistribution.D,
           gradeF: batchResult.summary.gradeDistribution.F,
           smsReady: batchResult.summary.smsReadyCount,
-          avgContactabilityScore: Math.round(batchResult.summary.avgContactabilityScore),
+          avgContactabilityScore: Math.round(
+            batchResult.summary.avgContactabilityScore,
+          ),
           cost,
           message: `Validated ${batchResult.totalRecords} phones. ${batchResult.summary.smsReadyCount} are SMS-ready (Grade A/B with activity ≥70).`,
         },

@@ -40,7 +40,9 @@ export class CopilotController {
     @TenantContext("teamId") teamId: string,
     @Body() body: ChatRequestBody,
   ): Promise<ChatResponse> {
-    this.logger.log(`Chat from team ${teamId}: "${body.message.substring(0, 50)}..."`);
+    this.logger.log(
+      `Chat from team ${teamId}: "${body.message.substring(0, 50)}..."`,
+    );
 
     return this.copilotService.chat(teamId, body.message, {
       conversationId: body.conversationId,

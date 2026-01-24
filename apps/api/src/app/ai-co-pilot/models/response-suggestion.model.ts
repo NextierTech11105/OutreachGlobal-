@@ -1,4 +1,10 @@
-import { ObjectType, Field, Float, ID, registerEnumType } from "@nestjs/graphql";
+import {
+  ObjectType,
+  Field,
+  Float,
+  ID,
+  registerEnumType,
+} from "@nestjs/graphql";
 
 export enum SuggestionStatus {
   PENDING = "PENDING",

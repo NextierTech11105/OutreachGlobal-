@@ -6,7 +6,13 @@ description: Handles lead list creation, segmentation, and management
 # List Management Handler
 
 ## Overview
-Provides comprehensive lead list management capabilities for the OutreachGlobal platform. Enables creation, segmentation, filtering, and maintenance of lead lists with advanced criteria, dynamic updates, and integration with campaigns and workflows.
+Handle CRUD operations for lead lists, including segmentation, deduplication, import/export, and tagging. Provides comprehensive lead list management capabilities for the OutreachGlobal platform. Enables creation, segmentation, filtering, and maintenance of lead lists with advanced criteria, dynamic updates, and integration with campaigns and workflows.
+
+## Code References
+- Raw Data Lake: `apps/api/src/app/raw-data-lake/`
+- Lead Module: `apps/api/src/app/lead/`
+- Campaign Module: `apps/api/src/app/campaign/`
+- Team Business Lists UI: `apps/front/src/features/team/components/business-list-settings.tsx`
 
 ## Key Features
 - Dynamic list creation with complex filtering
@@ -15,10 +21,14 @@ Provides comprehensive lead list management capabilities for the OutreachGlobal 
 - Integration with campaign targeting
 - List performance analytics and optimization
 - Automated list maintenance and cleanup
+- Filtering logic and bulk operations
+- Integration with external data sources
+- Multi-tenant isolation with teamId filtering
 
 ## Current State
 
 ### What Already Exists
+- **Raw Data Lake**: `apps/api/src/app/raw-data-lake/` - Data storage and querying infrastructure
 - **Team Business Lists**: `apps/front/src/features/team/components/business-list-settings.tsx` - Basic list management UI
 - **Lead Segmentation**: Basic filtering in existing services
 - **List Queries**: `apps/front/src/features/team/queries/business-list-settings.query.ts` - List data access
@@ -34,11 +44,11 @@ Provides comprehensive lead list management capabilities for the OutreachGlobal 
 ## Implementation Steps
 
 ### 1. Create List Management Service
-Create `app/list-management/services/list-management.service.ts`:
+Create `apps/api/src/app/list-management/services/list-management.service.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/list-management/services/list-management.service.ts
++++ b/apps/api/src/app/list-management/services/list-management.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -55,13 +65,16 @@ export class ListManagementService {
   ) {}
 
   async createList(
-    tenantId: string,
+    teamId: string,
     name: string,
     criteria: ListCriteriaInput,
     parentListId?: string
   ): Promise<LeadList> {
+    // Ensure multi-tenant isolation
+    if (!teamId) throw new Error('teamId required for tenant isolation');
+
     const list = this.listRepo.create({
-      tenantId,
+      teamId,
       name,
       criteria: await this.saveCriteria(criteria),
       parentListId,
@@ -93,21 +106,21 @@ export class ListManagementService {
     return this.listRepo.save(list);
   }
   
-  async getListLeads(listId: string, pagination?: PaginationInput): Promise<Lead[]> {
+  async getListLeads(teamId: string, listId: string, pagination?: PaginationInput): Promise<Lead[]> {
+    // Ensure multi-tenant isolation
+    if (!teamId) throw new Error('teamId required for tenant isolation');
+
     const list = await this.listRepo.findOne({
-      where: { id: listId },
+      where: { id: listId, teamId },
       relations: ['criteria']
     });
-    
+
     if (!list) throw new Error('List not found');
-    
-    const query = this.buildLeadQuery(list.criteria);
-    
-    if (pagination) {
-      query.skip(pagination.offset).take(pagination.limit);
-    }
-    
-    return query.getMany();
+
+    // Use raw-data-lake for lead querying with filtering
+    const leads = await this.rawDataLakeService.queryLeads(teamId, list.criteria, pagination);
+
+    return leads;
   }
   
   async createSegment(
@@ -123,7 +136,7 @@ export class ListManagementService {
     // Combine parent and additional criteria
     const combinedCriteria = this.combineCriteria(parentList.criteria, additionalCriteria);
     
-    return this.createList(parentList.tenantId, name, combinedCriteria, parentListId);
+    return this.createList(parentList.teamId, name, combinedCriteria, parentListId);
   }
   
   private async saveCriteria(criteria: ListCriteriaInput): Promise<ListCriteria> {
@@ -141,13 +154,12 @@ export class ListManagementService {
       where: { id: listId },
       relations: ['criteria']
     });
-    
-    const leadIds = await this.buildLeadQuery(list.criteria)
-      .select('lead.id')
-      .getRawMany();
-    
+
+    // Use raw-data-lake to get lead IDs matching criteria
+    const leadIds = await this.rawDataLakeService.getLeadIdsByCriteria(list.teamId, list.criteria);
+
     // Update list-lead associations
-    await this.updateListLeads(listId, leadIds.map(row => row.lead_id));
+    await this.updateListLeads(listId, leadIds);
   }
   
   private buildLeadQuery(criteria: ListCriteria) {
@@ -195,11 +207,11 @@ export class ListManagementService {
 ```
 
 ### 2. Create List Entities
-Create `app/list-management/entities/lead-list.entity.ts`:
+Create `apps/api/src/app/list-management/entities/lead-list.entity.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/list-management/entities/lead-list.entity.ts
++++ b/apps/api/src/app/list-management/entities/lead-list.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ListCriteria } from './list-criteria.entity';
 
@@ -207,9 +219,9 @@ import { ListCriteria } from './list-criteria.entity';
 export class LeadList {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-  
+
   @Column()
-  tenantId: string;
+  teamId: string;
   
   @Column()
   name: string;
@@ -275,35 +287,35 @@ export interface SortCriteria {
 ```
 
 ### 3. Add List Resolver
-Create `app/list-management/resolvers/list-management.resolver.ts`:
+Create `apps/api/src/app/list-management/resolvers/list-management.resolver.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/list-management/resolvers/list-management.resolver.ts
++++ b/apps/api/src/app/list-management/resolvers/list-management.resolver.ts
 import { Resolver, Query, Mutation, Args, ResolveField, Parent } from '@nestjs/graphql';
 import { ListManagementService } from '../services/list-management.service';
 
 @Resolver('LeadList')
 export class ListManagementResolver {
   constructor(private listService: ListManagementService) {}
-  
+
   @Query(() => [LeadList])
-  async leadLists(@Args('tenantId') tenantId: string) {
-    return this.listService.getListsByTenant(tenantId);
+  async leadLists(@Args('teamId') teamId: string) {
+    return this.listService.getListsByTeam(teamId);
   }
-  
+
   @Query(() => LeadList)
-  async leadList(@Args('id') id: string) {
-    return this.listService.getList(id);
+  async leadList(@Args('teamId') teamId: string, @Args('id') id: string) {
+    return this.listService.getList(teamId, id);
   }
-  
+
   @Mutation(() => LeadList)
   async createLeadList(
-    @Args('tenantId') tenantId: string,
+    @Args('teamId') teamId: string,
     @Args('name') name: string,
     @Args('criteria') criteria: ListCriteriaInput
   ) {
-    return this.listService.createList(tenantId, name, criteria);
+    return this.listService.createList(teamId, name, criteria);
   }
   
   @Mutation(() => LeadList)
@@ -325,7 +337,7 @@ export class ListManagementResolver {
   
   @ResolveField(() => [Lead])
   async leads(@Parent() list: LeadList, @Args('pagination', { nullable: true }) pagination: PaginationInput) {
-    return this.listService.getListLeads(list.id, pagination);
+    return this.listService.getListLeads(list.teamId, list.id, pagination);
   }
   
   @ResolveField(() => Int)
@@ -341,7 +353,7 @@ export class ListManagementResolver {
 ```
 
 ### 4. Integrate with Campaign Service
-Update `app/campaign/services/campaign.service.ts`:
+Update `apps/api/src/app/campaign/services/campaign.service.ts`:
 
 ```typescript
 --- a/app/campaign/services/campaign.service.ts
@@ -382,7 +394,7 @@ Update `app/campaign/services/campaign.service.ts`:
 ```
 
 ### 5. Add List Analytics
-Create `app/list-management/services/list-analytics.service.ts`:
+Create `apps/api/src/app/list-management/services/list-analytics.service.ts`:
 
 ```typescript
 --- /dev/null
@@ -445,10 +457,17 @@ export class ListAnalyticsService {
 ```
 
 ## Dependencies
-- `lead-management-orchestrator` - For lead data access
-- `data-export-enrichment-engine` - For list export capabilities
-- `campaign` - For campaign targeting integration
-- `lead-state-manager` - For state-based filtering
+
+### Prerequisite Skills
+- data-lake-orchestration-agent - For raw data lake querying and storage
+
+### Existing Services Used
+- apps/api/src/app/raw-data-lake/ - Data storage and querying infrastructure
+- apps/api/src/app/campaign/ - Campaign targeting integration
+- apps/api/src/app/lead/ - Lead data models
+
+### External APIs Required
+- None
 
 ## Testing
 - Unit tests for list creation and filtering logic

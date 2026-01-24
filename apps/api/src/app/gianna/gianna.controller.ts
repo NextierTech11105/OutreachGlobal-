@@ -60,7 +60,9 @@ export class GiannaController {
    * Generate an opener message for cold outreach
    */
   @Post("opener")
-  async generateOpener(@Body() request: OpenerRequest): Promise<GiannaResponse> {
+  async generateOpener(
+    @Body() request: OpenerRequest,
+  ): Promise<GiannaResponse> {
     this.logger.log(`[GIANNA] Generating opener for lead ${request.leadId}`);
 
     const context: GiannaContext = {
@@ -88,7 +90,9 @@ export class GiannaController {
    * Process incoming response and generate reply
    */
   @Post("respond")
-  async processResponse(@Body() request: RespondRequest): Promise<GiannaResponse> {
+  async processResponse(
+    @Body() request: RespondRequest,
+  ): Promise<GiannaResponse> {
     this.logger.log(
       `[GIANNA] Processing response from ${request.fromPhone}: "${request.incomingMessage}"`,
     );
@@ -141,7 +145,9 @@ export class GiannaController {
    * Send SMS via GIANNA
    */
   @Post("send")
-  async sendSms(@Body() request: SendSmsRequest): Promise<{ jobId: string; success: boolean }> {
+  async sendSms(
+    @Body() request: SendSmsRequest,
+  ): Promise<{ jobId: string; success: boolean }> {
     this.logger.log(`[GIANNA] Queueing SMS to ${request.toPhone}`);
 
     const result = await this.giannaService.sendSms(
@@ -202,7 +208,11 @@ export class GiannaController {
    * Health check
    */
   @Get("health")
-  async healthCheck(): Promise<{ status: string; agent: string; timestamp: string }> {
+  async healthCheck(): Promise<{
+    status: string;
+    agent: string;
+    timestamp: string;
+  }> {
     return {
       status: "healthy",
       agent: "GIANNA",

@@ -13,22 +13,22 @@ import { ulid } from "ulid";
  */
 const USBIZDATA_COLUMNS: Record<string, string> = {
   "Company Name": "company",
-  "Address": "address",
-  "City": "city",
-  "State": "state",
-  "Zip": "zipCode",
-  "County": "county",
-  "Phone": "phone",
+  Address: "address",
+  City: "city",
+  State: "state",
+  Zip: "zipCode",
+  County: "county",
+  Phone: "phone",
   "Contact First": "firstName",
   "Contact Last": "lastName",
-  "Title": "title",
+  Title: "title",
   "Direct Phone": "primaryPhone",
-  "Email": "email",
-  "Website": "website",
+  Email: "email",
+  Website: "website",
   "Employee Range": "employees",
   "Annual Sales": "annualSales",
   "SIC Code": "sicCode",
-  "Industry": "sicDescription",
+  Industry: "sicDescription",
 };
 
 // Vertical detection from SIC codes
@@ -75,7 +75,7 @@ export class RawDataLakeService {
       vertical?: string;
       sourceTag?: string;
       fileName?: string;
-    }
+    },
   ): Promise<ImportStats> {
     const stats: ImportStats = {
       total: 0,
@@ -87,7 +87,8 @@ export class RawDataLakeService {
 
     try {
       // Parse CSV using built-in parser (USBizData format)
-      const content = typeof csvBuffer === "string" ? csvBuffer : csvBuffer.toString("utf-8");
+      const content =
+        typeof csvBuffer === "string" ? csvBuffer : csvBuffer.toString("utf-8");
       const records = this.parseCSV(content);
 
       stats.total = records.length;
@@ -139,7 +140,7 @@ export class RawDataLakeService {
 
       stats.vertical = detectedVertical || options?.vertical;
       this.logger.log(
-        `Imported ${stats.imported}/${stats.total} leads (${stats.errors} errors)`
+        `Imported ${stats.imported}/${stats.total} leads (${stats.errors} errors)`,
       );
 
       return stats;
@@ -181,7 +182,9 @@ export class RawDataLakeService {
   /**
    * Get all verticals with counts
    */
-  async getVerticals(teamId: string): Promise<{ vertical: string; count: number }[]> {
+  async getVerticals(
+    teamId: string,
+  ): Promise<{ vertical: string; count: number }[]> {
     const result = await this.db
       .select({
         vertical: leads.sectorTag,
@@ -210,7 +213,7 @@ export class RawDataLakeService {
       status?: string;
       page?: number;
       perPage?: number;
-    }
+    },
   ): Promise<{ leads: any[]; total: number; page: number; perPage: number }> {
     const page = options.page || 1;
     const perPage = Math.min(options.perPage || 100, 500);
@@ -284,7 +287,7 @@ export class RawDataLakeService {
       city?: string;
       leadIds?: string[];
       blockSize: 10 | 50 | 100 | 500 | 1000 | 2000;
-    }
+    },
   ): Promise<{ blockId: string; count: number; estimatedCost: number }> {
     const blockId = `block_${ulid()}`;
     let updatedCount = 0;
@@ -354,7 +357,7 @@ export class RawDataLakeService {
    * Simple CSV parser (handles quoted fields with commas)
    */
   private parseCSV(content: string): Record<string, string>[] {
-    const lines = content.split(/\r?\n/).filter(line => line.trim());
+    const lines = content.split(/\r?\n/).filter((line) => line.trim());
     if (lines.length < 2) return [];
 
     const headers = this.parseCSVLine(lines[0]);
@@ -404,7 +407,7 @@ export class RawDataLakeService {
   private mapRecordToLead(
     record: Record<string, string>,
     teamId: string,
-    options?: { sourceTag?: string; fileName?: string; vertical?: string }
+    options?: { sourceTag?: string; fileName?: string; vertical?: string },
   ): Record<string, any> {
     const lead: Record<string, any> = {
       id: `lead_${ulid()}`,

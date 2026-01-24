@@ -367,7 +367,9 @@ export class SabrinaSdrService {
 
       return result.response;
     } catch (error) {
-      this.logger.warn(`AI response generation failed, using fallback: ${error}`);
+      this.logger.warn(
+        `AI response generation failed, using fallback: ${error}`,
+      );
       // Fallback to simple template if AI fails
       const greeting = leadFirstName ? `Hi ${leadFirstName}!` : "Hi there!";
       return `${greeting} Thanks for getting back to me! I'd love to help you explore your options. What questions do you have?`;

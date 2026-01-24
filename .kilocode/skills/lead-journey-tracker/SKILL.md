@@ -6,7 +6,13 @@ description: Tracks lead interactions and journey analytics across all touchpoin
 # Lead Journey Tracker
 
 ## Overview
-Provides comprehensive tracking and analytics of lead interactions across all communication channels (SMS, email, calls, web visits). Creates detailed journey maps showing lead progression through the sales funnel with timeline visualization and conversion attribution.
+Track and visualize lead state transitions, events, and analytics across the lifecycle. Provides comprehensive tracking and analytics of lead interactions across all communication channels (SMS, email, calls, web visits). Creates detailed journey maps showing lead progression through the sales funnel with timeline visualization and conversion attribution, including event logging with timestamps, journey visualization dashboards, and performance analytics (e.g., conversion rates).
+
+## Code References
+- Lead Module: `apps/api/src/app/lead/`
+- Lead Repositories: `apps/api/src/app/lead/repositories/`
+- Campaign Module: `apps/api/src/app/campaign/`
+- Inbox Service: `apps/api/src/app/inbox/services/inbox.service.ts`
 
 ## Key Features
 - Multi-channel interaction tracking
@@ -15,14 +21,16 @@ Provides comprehensive tracking and analytics of lead interactions across all co
 - Touchpoint attribution modeling
 - Lead scoring based on engagement
 - Automated journey insights and recommendations
+- Event logging with timestamps
+- Multi-tenant isolation with teamId filtering
 
 ## Current State
 
 ### What Already Exists
-- **Campaign Tracking**: `app/campaign/resolvers/campaign-execution.resolver.ts` - Campaign execution tracking
-- **Inbox Service**: `app/inbox/services/inbox.service.ts` - Message interaction logging
-- **Lead Cards**: `app/enrichment/repositories/lead-card.repository.ts` - Lead data storage
-- **Initial Messages**: `app/initial-messages/services/initial-message.service.ts` - First touch tracking
+- **Lead Module**: `apps/api/src/app/lead/` - Lead data models and services
+- **Campaign Tracking**: `apps/api/src/app/campaign/resolvers/campaign-execution.resolver.ts` - Campaign execution tracking
+- **Inbox Service**: `apps/api/src/app/inbox/services/inbox.service.ts` - Message interaction logging
+- **Initial Messages**: `apps/api/src/app/initial-messages/services/initial-message.service.ts` - First touch tracking
 
 ### What Still Needs to be Built
 - Unified journey aggregation across channels
@@ -35,11 +43,11 @@ Provides comprehensive tracking and analytics of lead interactions across all co
 ## Implementation Steps
 
 ### 1. Create Journey Tracking Service
-Create `app/lead-journey/services/journey-tracker.service.ts`:
+Create `apps/api/src/app/lead-journey/services/journey-tracker.service.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-journey/services/journey-tracker.service.ts
++++ b/apps/api/src/app/lead-journey/services/journey-tracker.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -52,8 +60,11 @@ export class JourneyTrackerService {
     private journeyRepo: Repository<LeadJourney>
   ) {}
 
-  async trackInteraction(interaction: InteractionEvent) {
-    const journey = await this.getOrCreateJourney(interaction.leadId);
+  async trackInteraction(teamId: string, interaction: InteractionEvent) {
+    // Ensure multi-tenant isolation
+    if (!teamId) throw new Error('teamId required for tenant isolation');
+
+    const journey = await this.getOrCreateJourney(teamId, interaction.leadId);
     
     // Add interaction to journey
     journey.interactions.push({
@@ -78,18 +89,19 @@ export class JourneyTrackerService {
     await this.generateInsights(journey);
   }
   
-  async getJourney(leadId: string): Promise<LeadJourney> {
+  async getJourney(teamId: string, leadId: string): Promise<LeadJourney> {
     return await this.journeyRepo.findOne({
-      where: { leadId },
+      where: { teamId, leadId },
       relations: ['interactions']
     });
   }
-  
-  private async getOrCreateJourney(leadId: string): Promise<LeadJourney> {
+
+  private async getOrCreateJourney(teamId: string, leadId: string): Promise<LeadJourney> {
     let journey = await this.journeyRepo.findOne({ where: { leadId } });
     
     if (!journey) {
       journey = this.journeyRepo.create({
+        teamId,
         leadId,
         startDate: new Date(),
         interactions: [],
@@ -135,11 +147,11 @@ export class JourneyTrackerService {
 ```
 
 ### 2. Create Journey Entity
-Create `app/lead-journey/entities/lead-journey.entity.ts`:
+Create `apps/api/src/app/lead-journey/entities/lead-journey.entity.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-journey/entities/lead-journey.entity.ts
++++ b/apps/api/src/app/lead-journey/entities/lead-journey.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { JourneyInteraction } from './journey-interaction.entity';
 
@@ -147,7 +159,10 @@ import { JourneyInteraction } from './journey-interaction.entity';
 export class LeadJourney {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-  
+
+  @Column()
+  teamId: string;
+
   @Column()
   leadId: string;
   
@@ -172,26 +187,26 @@ export class LeadJourney {
 ```
 
 ### 3. Add Journey Resolver
-Create `app/lead-journey/resolvers/lead-journey.resolver.ts`:
+Create `apps/api/src/app/lead-journey/resolvers/lead-journey.resolver.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-journey/resolvers/lead-journey.resolver.ts
++++ b/apps/api/src/app/lead-journey/resolvers/lead-journey.resolver.ts
 import { Resolver, Query, ResolveField, Parent } from '@nestjs/graphql';
 import { JourneyTrackerService } from '../services/journey-tracker.service';
 
 @Resolver('LeadJourney')
 export class LeadJourneyResolver {
   constructor(private journeyTracker: JourneyTrackerService) {}
-  
+
   @Query(() => LeadJourney)
-  async leadJourney(@Args('leadId') leadId: string) {
-    return this.journeyTracker.getJourney(leadId);
+  async leadJourney(@Args('teamId') teamId: string, @Args('leadId') leadId: string) {
+    return this.journeyTracker.getJourney(teamId, leadId);
   }
-  
+
   @Query(() => [LeadJourney])
-  async leadJourneys(@Args('tenantId') tenantId: string) {
-    return this.journeyTracker.getJourneysByTenant(tenantId);
+  async leadJourneys(@Args('teamId') teamId: string) {
+    return this.journeyTracker.getJourneysByTeam(teamId);
   }
   
   @ResolveField(() => [String])
@@ -207,16 +222,16 @@ export class LeadJourneyResolver {
 ```
 
 ### 4. Integrate with Existing Services
-Update `app/inbox/services/inbox.service.ts` to track interactions:
+Update `apps/api/src/app/inbox/services/inbox.service.ts` to track interactions:
 
 ```typescript
---- a/app/inbox/services/inbox.service.ts
-+++ b/app/inbox/services/inbox.service.ts
-  async processMessage(message: Message) {
+--- a/apps/api/src/app/inbox/services/inbox.service.ts
++++ b/apps/api/src/app/inbox/services/inbox.service.ts
+  async processMessage(teamId: string, message: Message) {
     // Existing processing...
-    
-    // Track journey interaction
-    await this.journeyTracker.trackInteraction({
+
+    // Track journey interaction with teamId isolation
+    await this.journeyTracker.trackInteraction(teamId, {
       id: message.id,
       leadId: message.leadId,
       type: 'message',
@@ -231,7 +246,7 @@ Update `app/inbox/services/inbox.service.ts` to track interactions:
 ```
 
 ### 5. Create Analytics Service
-Create `app/lead-journey/services/journey-analytics.service.ts`:
+Create `apps/api/src/app/lead-journey/services/journey-analytics.service.ts`:
 
 ```typescript
 --- /dev/null
@@ -266,10 +281,18 @@ export class JourneyAnalyticsService {
 ```
 
 ## Dependencies
-- `lead-management-orchestrator` - For lead data access
-- `campaign-execution` - For campaign interaction tracking
-- `inbox` - For message interaction data
-- `data-export-enrichment-engine` - For journey data export
+
+### Prerequisite Skills
+- lead-state-manager - For lead lifecycle state management
+- list-management-handler - For lead list operations
+
+### Existing Services Used
+- apps/api/src/app/lead/ - Lead data models and repositories
+- apps/api/src/app/inbox/services/inbox.service.ts - Message interaction logging
+- apps/api/src/app/campaign/ - Campaign execution tracking
+
+### External APIs Required
+- None
 
 ## Testing
 - Unit tests for journey calculation logic

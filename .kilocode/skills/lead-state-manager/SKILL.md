@@ -6,7 +6,13 @@ description: Manages lead status and state transitions throughout the sales proc
 # Lead State Manager
 
 ## Overview
-Manages lead lifecycle states and transitions in the OutreachGlobal platform. Provides a state machine for lead progression through qualification, nurturing, conversion, and post-sale phases with automated transitions based on interactions and business rules.
+Implement a state machine for lead lifecycle management (raw → traced → scored → contacted → converted), enforcing transition rules and validations. Manages lead lifecycle states and transitions in the OutreachGlobal platform. Provides a state machine for lead progression through qualification, nurturing, conversion, and post-sale phases with automated transitions based on interactions and business rules.
+
+## Code References
+- LUCI Pipeline: `apps/api/src/app/luci/`
+- Lead Module: `apps/api/src/app/lead/`
+- Campaign Module: `apps/api/src/app/campaign/`
+- Inbox Service: `apps/api/src/app/inbox/services/inbox.service.ts`
 
 ## Key Features
 - Finite state machine for lead lifecycle
@@ -15,14 +21,17 @@ Manages lead lifecycle states and transitions in the OutreachGlobal platform. Pr
 - Custom state workflows per tenant
 - Integration with campaign and interaction data
 - State-based lead scoring and prioritization
+- Transition rules (e.g., prerequisites for scoring)
+- Validation checks and error handling for invalid states
+- Multi-tenant isolation with teamId filtering
 
 ## Current State
 
 ### What Already Exists
-- **Lead Cards**: `app/enrichment/repositories/lead-card.repository.ts` - Lead data storage
-- **Campaign Leads**: `app/campaign/resolvers/campaign-lead.resolver.ts` - Campaign lead associations
-- **Inbox Service**: `app/inbox/services/inbox.service.ts` - Lead interaction processing
-- **Initial Messages**: `app/initial-messages/models/initial-message.model.ts` - Lead qualification states
+- **LUCI Pipeline**: `apps/api/src/app/luci/` - Tracing and scoring stages
+- **Lead Module**: `apps/api/src/app/lead/` - Lead data models
+- **Campaign Leads**: `apps/api/src/app/campaign/resolvers/campaign-lead.resolver.ts` - Campaign lead associations
+- **Inbox Service**: `apps/api/src/app/inbox/services/inbox.service.ts` - Lead interaction processing
 
 ### What Still Needs to be Built
 - State machine definition and management
@@ -35,11 +44,11 @@ Manages lead lifecycle states and transitions in the OutreachGlobal platform. Pr
 ## Implementation Steps
 
 ### 1. Create State Machine Service
-Create `app/lead-state/services/state-machine.service.ts`:
+Create `apps/api/src/app/lead-state/services/state-machine.service.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-state/services/state-machine.service.ts
++++ b/apps/api/src/app/lead-state/services/state-machine.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -48,6 +57,45 @@ import { StateTransition } from '../entities/state-transition.entity';
 
 @Injectable()
 export class StateMachineService {
+  async transitionState(teamId: string, leadId: string, newState: string, context?: any) {
+    // Ensure multi-tenant isolation
+    if (!teamId) throw new Error('teamId required for tenant isolation');
+
+    // Validate transition rules
+    const currentState = await this.getCurrentState(teamId, leadId);
+    if (!this.canTransition(currentState, newState)) {
+      throw new Error(`Invalid transition from ${currentState} to ${newState}`);
+    }
+
+    // Execute transition with LUCI integration for scoring
+    await this.executeTransition(teamId, leadId, currentState, newState, context);
+  }
+
+  private canTransition(fromState: string, toState: string): boolean {
+    // Define transition rules based on LUCI pipeline stages
+    const validTransitions = {
+      'raw': ['traced'],
+      'traced': ['scored'],
+      'scored': ['contacted'],
+      'contacted': ['converted', 'qualified', 'nurtured'],
+      'qualified': ['contacted', 'converted'],
+      'nurtured': ['contacted'],
+      'converted': [] // Terminal state
+    };
+
+    return validTransitions[fromState]?.includes(toState) || false;
+  }
+
+  private async executeTransition(teamId: string, leadId: string, fromState: string, toState: string, context?: any) {
+    // Log transition
+    await this.logTransition(teamId, leadId, fromState, toState, context);
+
+    // Update lead state
+    await this.updateLeadState(teamId, leadId, toState);
+
+    // Trigger post-transition actions (e.g., LUCI scoring)
+    await this.triggerPostTransitionActions(teamId, leadId, toState);
+  }
   constructor(
     @InjectRepository(LeadState)
     private stateRepo: Repository<LeadState>,
@@ -55,20 +103,21 @@ export class StateMachineService {
     private transitionRepo: Repository<StateTransition>
   ) {}
 
-  async getLeadState(leadId: string): Promise<LeadState> {
+  async getLeadState(teamId: string, leadId: string): Promise<LeadState> {
     return await this.stateRepo.findOne({
-      where: { leadId },
+      where: { teamId, leadId },
       relations: ['transitions']
     });
   }
 
   async transitionLead(
+    teamId: string,
     leadId: string,
     newState: string,
     trigger: string,
     metadata?: any
   ): Promise<boolean> {
-    const currentState = await this.getLeadState(leadId);
+    const currentState = await this.getLeadState(teamId, leadId);
     
     // Validate transition
     if (!this.canTransition(currentState.currentState, newState)) {
@@ -104,8 +153,16 @@ export class StateMachineService {
   }
   
   private canTransition(fromState: string, toState: string): boolean {
+    // Transition rules based on LUCI pipeline stages
     const validTransitions = {
-      'new': ['qualified', 'nurturing', 'disqualified'],
+      'raw': ['traced'],
+      'traced': ['scored'],
+      'scored': ['contacted'],
+      'contacted': ['converted', 'qualified', 'nurtured'],
+      'qualified': ['contacted', 'converted'],
+      'nurtured': ['contacted'],
+      'converted': [] // Terminal state
+    };
       'qualified': ['nurturing', 'proposal', 'disqualified'],
       'nurturing': ['qualified', 'proposal', 'disqualified'],
       'proposal': ['negotiation', 'won', 'lost'],
@@ -163,11 +220,11 @@ export class StateMachineService {
 ```
 
 ### 2. Create State Entities
-Create `app/lead-state/entities/lead-state.entity.ts`:
+Create `apps/api/src/app/lead-state/entities/lead-state.entity.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-state/entities/lead-state.entity.ts
++++ b/apps/api/src/app/lead-state/entities/lead-state.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { StateTransition } from './state-transition.entity';
 
@@ -175,7 +232,10 @@ import { StateTransition } from './state-transition.entity';
 export class LeadState {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-  
+
+  @Column()
+  teamId: string;
+
   @Column()
   leadId: string;
   
@@ -193,11 +253,11 @@ export class LeadState {
 }
 ```
 
-Create `app/lead-state/entities/state-transition.entity.ts`:
+Create `apps/api/src/app/lead-state/entities/state-transition.entity.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-state/entities/state-transition.entity.ts
++++ b/apps/api/src/app/lead-state/entities/state-transition.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { LeadState } from './lead-state.entity';
 
@@ -230,43 +290,44 @@ export class StateTransition {
 ```
 
 ### 3. Add State Resolver
-Create `app/lead-state/resolvers/lead-state.resolver.ts`:
+Create `apps/api/src/app/lead-state/resolvers/lead-state.resolver.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-state/resolvers/lead-state.resolver.ts
++++ b/apps/api/src/app/lead-state/resolvers/lead-state.resolver.ts
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { StateMachineService } from '../services/state-machine.service';
 
 @Resolver()
 export class LeadStateResolver {
   constructor(private stateMachine: StateMachineService) {}
-  
+
   @Query(() => LeadState)
-  async leadState(@Args('leadId') leadId: string) {
-    return this.stateMachine.getLeadState(leadId);
+  async leadState(@Args('teamId') teamId: string, @Args('leadId') leadId: string) {
+    return this.stateMachine.getLeadState(teamId, leadId);
   }
-  
+
   @Mutation(() => Boolean)
   async transitionLead(
+    @Args('teamId') teamId: string,
     @Args('leadId') leadId: string,
     @Args('newState') newState: string,
     @Args('trigger') trigger: string,
     @Args('metadata', { nullable: true }) metadata: any
   ) {
-    return this.stateMachine.transitionLead(leadId, newState, trigger, metadata);
+    return this.stateMachine.transitionLead(teamId, leadId, newState, trigger, metadata);
   }
-  
+
   @Query(() => [String])
-  async availableTransitions(@Args('leadId') leadId: string) {
-    const state = await this.stateMachine.getLeadState(leadId);
+  async availableTransitions(@Args('teamId') teamId: string, @Args('leadId') leadId: string) {
+    const state = await this.stateMachine.getLeadState(teamId, leadId);
     return this.stateMachine.getAvailableTransitions(state.currentState);
   }
 }
 ```
 
 ### 4. Integrate with Campaign Service
-Update `app/campaign/services/campaign.service.ts`:
+Update `apps/api/src/app/campaign/services/campaign.service.ts`:
 
 ```typescript
 --- a/app/campaign/services/campaign.service.ts
@@ -301,11 +362,11 @@ Update `app/campaign/services/campaign.service.ts`:
 ```
 
 ### 5. Add Automated Transitions
-Create `app/lead-state/services/automated-transitions.service.ts`:
+Create `apps/api/src/app/lead-state/services/automated-transitions.service.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/lead-state/services/automated-transitions.service.ts
++++ b/apps/api/src/app/lead-state/services/automated-transitions.service.ts
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { StateMachineService } from './state-machine.service';
@@ -313,31 +374,33 @@ import { StateMachineService } from './state-machine.service';
 @Injectable()
 export class AutomatedTransitionsService {
   constructor(private stateMachine: StateMachineService) {}
-  
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async processStaleLeads() {
     // Move leads that haven't been touched in 30 days to nurturing
     const staleLeads = await this.findStaleLeads(30);
-    
+
     for (const lead of staleLeads) {
       await this.stateMachine.transitionLead(
+        lead.teamId,
         lead.id,
-        'nurturing',
+        'nurtured',
         'automated_stale',
         { daysStale: 30 }
       );
     }
   }
-  
+
   @Cron(CronExpression.EVERY_WEEK)
   async reEngageLostLeads() {
     // Move lost leads back to re-engage after 90 days
     const lostLeads = await this.findLostLeadsOlderThan(90);
-    
+
     for (const lead of lostLeads) {
       await this.stateMachine.transitionLead(
+        lead.teamId,
         lead.id,
-        're_engage',
+        'contacted',
         'automated_reengage',
         { daysSinceLost: 90 }
       );
@@ -356,10 +419,18 @@ export class AutomatedTransitionsService {
 ```
 
 ## Dependencies
-- `lead-management-orchestrator` - For lead data access
-- `campaign` - For campaign-based state transitions
-- `inbox` - For interaction-based transitions
-- `lead-journey-tracker` - For journey context in state decisions
+
+### Prerequisite Skills
+- luci-research-agent - For LUCI pipeline integration and scoring
+
+### Existing Services Used
+- apps/api/src/app/luci/ - Tracing and scoring stages for state transitions
+- apps/api/src/app/lead/ - Lead data models and repositories
+- apps/api/src/app/campaign/ - Campaign execution for state triggers
+- apps/api/src/app/inbox/services/inbox.service.ts - Interaction processing
+
+### External APIs Required
+- None
 
 ## Testing
 - Unit tests for state machine logic

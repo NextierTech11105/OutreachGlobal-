@@ -3,7 +3,10 @@ import { orFail } from "@/database/exceptions";
 import { DrizzleClient } from "@/database/types";
 import { Injectable, Logger } from "@nestjs/common";
 import { and, eq, or } from "drizzle-orm";
-import { teamsTable as teams, teamMembersTable as teamMembers } from "@/database/schema-alias";
+import {
+  teamsTable as teams,
+  teamMembersTable as teamMembers,
+} from "@/database/schema-alias";
 import { SignalHouseProvisioningService } from "@/app/auth/services/signalhouse-provisioning.service";
 
 export interface CreateTeamInput {
@@ -64,11 +67,12 @@ export class TeamService {
     // Create SignalHouse SubGroup for this team
     // This ensures proper multi-tenant isolation for white-label clients
     try {
-      const subGroupResult = await this.signalhouseProvisioning.createSubGroupForTenant(
-        teamId, // Using teamId as tenant identifier for SignalHouse
-        input.name,
-        input.slug
-      );
+      const subGroupResult =
+        await this.signalhouseProvisioning.createSubGroupForTenant(
+          teamId, // Using teamId as tenant identifier for SignalHouse
+          input.name,
+          input.slug,
+        );
 
       if (subGroupResult.success && subGroupResult.subGroupId) {
         // Update team with SignalHouse SubGroup ID
@@ -80,14 +84,21 @@ export class TeamService {
           })
           .where(eq(teams.id, teamId));
 
-        this.logger.log(`Created SignalHouse SubGroup ${subGroupResult.subGroupId} for team ${teamId}`);
+        this.logger.log(
+          `Created SignalHouse SubGroup ${subGroupResult.subGroupId} for team ${teamId}`,
+        );
       } else {
-        this.logger.error(`Failed to create SignalHouse SubGroup for team ${teamId}: ${subGroupResult.error}`);
+        this.logger.error(
+          `Failed to create SignalHouse SubGroup for team ${teamId}: ${subGroupResult.error}`,
+        );
         // Don't fail team creation if SignalHouse fails - log and continue
         // SubGroup can be created later via onboarding service
       }
     } catch (error) {
-      this.logger.error(`Error creating SignalHouse SubGroup for team ${teamId}:`, error);
+      this.logger.error(
+        `Error creating SignalHouse SubGroup for team ${teamId}:`,
+        error,
+      );
       // Continue with team creation - SignalHouse setup can be retried
     }
 

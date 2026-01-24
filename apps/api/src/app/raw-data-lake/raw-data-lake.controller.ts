@@ -43,13 +43,15 @@ export class RawDataLakeController {
       vertical?: string; // plumbing, consultants, realtors
       sourceTag?: string;
       fileName?: string;
-    }
+    },
   ) {
     if (!body.csvContent) {
       throw new BadRequestException("csvContent is required");
     }
 
-    this.logger.log(`Importing CSV for team ${teamId}, vertical: ${body.vertical || "auto-detect"}`);
+    this.logger.log(
+      `Importing CSV for team ${teamId}, vertical: ${body.vertical || "auto-detect"}`,
+    );
 
     const stats = await this.service.importCSV(teamId, body.csvContent, {
       vertical: body.vertical,
@@ -114,7 +116,7 @@ export class RawDataLakeController {
     @Query("city") city?: string,
     @Query("status") status?: string,
     @Query("page") page?: string,
-    @Query("perPage") perPage?: string
+    @Query("perPage") perPage?: string,
   ) {
     const result = await this.service.browseLeads(teamId, {
       vertical,
@@ -149,11 +151,13 @@ export class RawDataLakeController {
       city?: string;
       leadIds?: string[];
       blockSize: 10 | 50 | 100 | 500 | 1000 | 2000;
-    }
+    },
   ) {
     const validSizes = [10, 50, 100, 500, 1000, 2000];
     if (!body.blockSize || !validSizes.includes(body.blockSize)) {
-      throw new BadRequestException("blockSize must be 10, 50, 100, 500, 1000, or 2000 (10 is Tracerfy minimum)");
+      throw new BadRequestException(
+        "blockSize must be 10, 50, 100, 500, 1000, or 2000 (10 is Tracerfy minimum)",
+      );
     }
 
     const result = await this.service.createBlock(teamId, body);
@@ -188,7 +192,8 @@ export class RawDataLakeController {
     return {
       status: "ok",
       service: "raw-data-lake",
-      description: "CSV import and list management for LUCI enrichment pipeline",
+      description:
+        "CSV import and list management for LUCI enrichment pipeline",
       flow: [
         "1. Import CSV → Creates LIST ITEMS (no leadId)",
         "2. Create Block → Groups items for enrichment",

@@ -126,13 +126,12 @@ export class AgentRouterService {
     });
 
     // Find by matching phone number
-    const allAssignments =
-      await this.db.query.workerPhoneAssignments.findMany({
-        where: and(
-          eq(workerPhoneAssignmentsTable.teamId, teamId),
-          eq(workerPhoneAssignmentsTable.isActive, true),
-        ),
-      });
+    const allAssignments = await this.db.query.workerPhoneAssignments.findMany({
+      where: and(
+        eq(workerPhoneAssignmentsTable.teamId, teamId),
+        eq(workerPhoneAssignmentsTable.isActive, true),
+      ),
+    });
 
     for (const a of allAssignments) {
       const normalizedAssignment = a.phoneNumber.replace(/\D/g, "").slice(-10);
@@ -201,10 +200,15 @@ export class AgentRouterService {
     });
 
     // Analyze conversation
-    const lastInbound = messages.find((m) => m.direction === MessageDirection.INBOUND);
-    const schedulingKeywords = /\b(schedule|meet|call|time|when|calendar|appointment|available)\b/i;
+    const lastInbound = messages.find(
+      (m) => m.direction === MessageDirection.INBOUND,
+    );
+    const schedulingKeywords =
+      /\b(schedule|meet|call|time|when|calendar|appointment|available)\b/i;
     const hasSchedulingIntent = messages.some(
-      (m) => m.direction === MessageDirection.INBOUND && schedulingKeywords.test(m.body || ""),
+      (m) =>
+        m.direction === MessageDirection.INBOUND &&
+        schedulingKeywords.test(m.body || ""),
     );
 
     return {
@@ -328,8 +332,10 @@ export class AgentRouterService {
       case "cathy":
         return `Nurture - ${context.messageCount} messages, building relationship`;
       case "sabrina":
-        if (context.hasSchedulingIntent) return "Closer - scheduling intent detected";
-        if (context.leadStage === "high_intent") return "Closer - high intent lead";
+        if (context.hasSchedulingIntent)
+          return "Closer - scheduling intent detected";
+        if (context.leadStage === "high_intent")
+          return "Closer - high intent lead";
         return `Closer - mature conversation (${context.messageCount} messages)`;
       default:
         return "Default routing";
@@ -362,7 +368,8 @@ export class AgentRouterService {
     // Fill in from env vars if missing
     if (!result.gianna) result.gianna = process.env.GIANNA_PHONE_NUMBER || "";
     if (!result.cathy) result.cathy = process.env.CATHY_PHONE_NUMBER || "";
-    if (!result.sabrina) result.sabrina = process.env.SABRINA_PHONE_NUMBER || "";
+    if (!result.sabrina)
+      result.sabrina = process.env.SABRINA_PHONE_NUMBER || "";
 
     return result;
   }

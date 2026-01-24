@@ -18,10 +18,10 @@ Monitor, control, and optimize costs across OutreachGlobal's multi-tenant platfo
 ## Cost Landscape Analysis
 
 ### Primary Cost Drivers (From Audit)
-1. **Apollo.io Enrichment**: $0.10 per record
-2. **SignalHouse SMS**: $0.015 per message
-3. **Twilio Voice**: $0.025 per minute
-4. **Anthropic AI**: $0.003 per token
+1. **SignalHouse SMS**: $0.015 per message
+2. **Twilio Voice**: $0.025 per minute
+3. **Anthropic AI**: $0.003 per token
+4. **OpenAI AI**: $0.002 per 1K tokens
 5. **Digital Ocean Infrastructure**: $350-450/month
 
 ### Risk Areas
@@ -179,11 +179,10 @@ const leadCard = {
 **Per campaign calculation:**
 ```
 500-record campaign:
-- Apollo enrichment: 500 × $0.10 = $50
 - SignalHouse SMS: 500 × $0.015 = $7.50
 - AI processing: 500 × $0.10 = $50
 - Infrastructure: $10
-Total: ~$117.50
+Total: ~$67.50
 ```
 
 ### Budget Allocation

@@ -1,0 +1,446 @@
+{
+  "version": "2.0.0",
+  "consolidatedFrom": "1.0.0 (67 skills)",
+  "lastUpdated": "2026-01-24",
+  "skills": [
+    {
+      "id": "nextier-app-architect",
+      "name": "NextTier App Architect",
+      "tier": 0,
+      "category": "meta",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/nextier-app-architect/SKILL.md",
+        "summary": "Complete codebase context for NestJS + Next.js + Nx architecture"
+      },
+      "execution": {
+        "type": "documentation-only"
+      },
+      "tags": ["architecture", "patterns", "codebase-context"]
+    },
+    {
+      "id": "gianna-sdr-agent",
+      "name": "GIANNA SDR Agent",
+      "tier": 1,
+      "category": "agent",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/gianna-sdr-agent/SKILL.md",
+        "summary": "SMS opener agent for cold outreach with personality-driven messaging"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/gianna/gianna.service.ts",
+        "modulePath": "apps/api/src/app/gianna/gianna.module.ts",
+        "queueName": "gianna"
+      },
+      "toolDefinition": {
+        "name": "send_sms_opener",
+        "description": "Generate and send SMS opener message to a lead",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "teamId": { "type": "string" },
+            "leadId": { "type": "string" },
+            "category": { "type": "string", "enum": ["property", "business", "general"] }
+          },
+          "required": ["teamId", "leadId"]
+        }
+      },
+      "tags": ["sms", "outreach", "cold-calling", "sdr"]
+    },
+    {
+      "id": "cathy-nurture-agent",
+      "name": "CATHY Nurture Agent",
+      "tier": 1,
+      "category": "agent",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/cathy-nurture-agent/SKILL.md",
+        "summary": "Conversational nurture agent with human-in-loop oversight"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/cathy/cathy.service.ts",
+        "modulePath": "apps/api/src/app/cathy/cathy.module.ts",
+        "queueName": "cathy"
+      },
+      "tags": ["nurture", "conversation", "human-in-loop"]
+    },
+    {
+      "id": "luci-enrichment-agent",
+      "name": "LUCI Enrichment Agent",
+      "tier": 1,
+      "category": "agent",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/luci-enrichment-agent/SKILL.md",
+        "summary": "Lead enrichment with skip tracing (Tracerfy) and phone validation (Trestle)"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/luci/luci.service.ts",
+        "modulePath": "apps/api/src/app/luci/luci.module.ts",
+        "queueName": "luci"
+      },
+      "toolDefinition": {
+        "name": "enrich_lead",
+        "description": "Enrich a lead with phone numbers and contact info via skip tracing",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "teamId": { "type": "string" },
+            "leadId": { "type": "string" },
+            "includePhoneValidation": { "type": "boolean", "default": true }
+          },
+          "required": ["teamId", "leadId"]
+        }
+      },
+      "dependencies": {
+        "externalApis": ["tracerfy.com", "trestleiq.com"]
+      },
+      "access": {
+        "costPerCall": 0.05
+      },
+      "tags": ["enrichment", "skip-trace", "phone-validation"]
+    },
+    {
+      "id": "neva-research-copilot",
+      "name": "NEVA Research Copilot",
+      "tier": 1,
+      "category": "agent",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/neva-research-copilot/SKILL.md",
+        "summary": "Perplexity-powered research for business intelligence and personalization"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/neva/neva.service.ts",
+        "modulePath": "apps/api/src/app/neva/neva.module.ts"
+      },
+      "dependencies": {
+        "externalApis": ["perplexity.ai"]
+      },
+      "tags": ["research", "perplexity", "business-intel"]
+    },
+    {
+      "id": "ai-co-pilot-response-generator",
+      "name": "AI Co-Pilot Response Generator",
+      "tier": 1,
+      "category": "agent",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/ai-co-pilot-response-generator/SKILL.md",
+        "summary": "COPILOT response suggestions with intent classification"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/copilot/copilot.service.ts",
+        "modulePath": "apps/api/src/app/copilot/copilot.module.ts"
+      },
+      "tags": ["copilot", "response-generation", "intent-classification"]
+    },
+    {
+      "id": "data-lake-orchestration-agent",
+      "name": "Data Lake Orchestration Agent",
+      "tier": 2,
+      "category": "data_pipeline",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/data-lake-orchestration-agent/SKILL.md",
+        "summary": "Data ingestion, storage, export, and CSV processing"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/raw-data-lake/raw-data-lake.service.ts",
+        "modulePath": "apps/api/src/app/raw-data-lake/raw-data-lake.module.ts"
+      },
+      "consolidatedFrom": [
+        "data-lake-manager",
+        "data-pipeline-orchestration",
+        "csv-processing-engine",
+        "data-export-enrichment-engine",
+        "usbizdata-import-export-handler",
+        "data-query-optimization-coordinator",
+        "database-management-engine"
+      ],
+      "tags": ["data-lake", "ingestion", "csv", "export"]
+    },
+    {
+      "id": "list-management-handler",
+      "name": "List Management Handler",
+      "tier": 2,
+      "category": "data_pipeline",
+      "status": "beta",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/list-management-handler/SKILL.md",
+        "summary": "Lead list CRUD, segmentation, and filtering operations"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/lead/services/lead.service.ts",
+        "modulePath": "apps/api/src/app/lead/lead.module.ts"
+      },
+      "tags": ["lists", "segmentation", "filtering"]
+    },
+    {
+      "id": "lead-state-manager",
+      "name": "Lead State Manager",
+      "tier": 2,
+      "category": "data_pipeline",
+      "status": "beta",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/lead-state-manager/SKILL.md",
+        "summary": "State machine for lead lifecycle transitions"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/lead/services/lead.service.ts",
+        "modulePath": "apps/api/src/app/lead/lead.module.ts"
+      },
+      "tags": ["state-machine", "lifecycle", "transitions"]
+    },
+    {
+      "id": "lead-journey-tracker",
+      "name": "Lead Journey Tracker",
+      "tier": 2,
+      "category": "data_pipeline",
+      "status": "beta",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/lead-journey-tracker/SKILL.md",
+        "summary": "Interaction analytics and attribution modeling"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/message/services/message.service.ts",
+        "modulePath": "apps/api/src/app/message/message.module.ts"
+      },
+      "tags": ["analytics", "journey", "attribution"]
+    },
+    {
+      "id": "signalhouse-integration",
+      "name": "SignalHouse Integration",
+      "tier": 3,
+      "category": "infrastructure",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/signalhouse-integration/SKILL.md",
+        "summary": "SMS/MMS delivery via SignalHouse with 10DLC, webhooks, number mapping"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/lib/signalhouse/signalhouse.service.ts",
+        "modulePath": "apps/api/src/lib/signalhouse/signalhouse.module.ts"
+      },
+      "consolidatedFrom": [
+        "sms-integration-module",
+        "signalhouse-number-mapping-manager",
+        "inbound-call-sms-router",
+        "signalhouse-scalability-audit"
+      ],
+      "dependencies": {
+        "externalApis": ["signalhouse.io"]
+      },
+      "tags": ["sms", "signalhouse", "10dlc", "webhooks"]
+    },
+    {
+      "id": "devops-platform-engineer",
+      "name": "DevOps Platform Engineer",
+      "tier": 3,
+      "category": "infrastructure",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/devops-platform-engineer/SKILL.md",
+        "summary": "Digital Ocean infrastructure, deployment, CI/CD, monitoring"
+      },
+      "execution": {
+        "type": "documentation-only"
+      },
+      "consolidatedFrom": [
+        "devops-infrastructure-expert",
+        "digitalocean-hosting-handler",
+        "infrastructure-as-code-builder",
+        "cloud-resource-manager",
+        "infra-capacity",
+        "scalability-and-monitoring-hub",
+        "backup-and-recovery-validator",
+        "devops-reference-template"
+      ],
+      "tags": ["devops", "digitalocean", "cicd", "monitoring"]
+    },
+    {
+      "id": "campaign-optimizer",
+      "name": "Campaign Optimizer",
+      "tier": 3,
+      "category": "infrastructure",
+      "status": "beta",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/campaign-optimizer/SKILL.md",
+        "summary": "Outreach optimization with ML scheduling and A/B testing"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/campaign/services/campaign.service.ts",
+        "modulePath": "apps/api/src/app/campaign/campaign.module.ts"
+      },
+      "consolidatedFrom": [
+        "sms-campaign-data-preparator",
+        "cadence-scheduler",
+        "ml-intelligence-engine"
+      ],
+      "tags": ["campaigns", "optimization", "ab-testing", "ml"]
+    },
+    {
+      "id": "cost-guardian",
+      "name": "Cost Guardian",
+      "tier": 3,
+      "category": "infrastructure",
+      "status": "beta",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/cost-guardian/SKILL.md",
+        "summary": "Budget control, usage metering, and cost tracking"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/billing/services/subscription.service.ts",
+        "modulePath": "apps/api/src/app/billing/billing.module.ts"
+      },
+      "consolidatedFrom": [
+        "ai-cost-guardian",
+        "ai-resource-capacity-planning"
+      ],
+      "tags": ["billing", "costs", "usage", "budget"]
+    },
+    {
+      "id": "workflow-orchestration-engine",
+      "name": "Workflow Orchestration Engine",
+      "tier": 4,
+      "category": "orchestration",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/workflow-orchestration-engine/SKILL.md",
+        "summary": "Multi-step workflows, agent coordination, error recovery"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/ai-orchestrator/ai-orchestrator.service.ts",
+        "modulePath": "apps/api/src/app/ai-orchestrator/ai-orchestrator.module.ts"
+      },
+      "consolidatedFrom": [
+        "contextual-orchestrator",
+        "service-orchestration-hub",
+        "event-driven-coordination",
+        "multi-channel-integration-hub",
+        "orchestration-failure-recovery",
+        "platform-engineering-orchestrator"
+      ],
+      "tags": ["workflows", "orchestration", "coordination"]
+    },
+    {
+      "id": "ai-agent-lifecycle-management",
+      "name": "AI Agent Lifecycle Management",
+      "tier": 4,
+      "category": "orchestration",
+      "status": "beta",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/ai-agent-lifecycle-management/SKILL.md",
+        "summary": "Agent deployment, scaling, monitoring, and versioning"
+      },
+      "execution": {
+        "type": "service",
+        "servicePath": "apps/api/src/app/ai-orchestrator/ai-orchestrator.service.ts",
+        "modulePath": "apps/api/src/app/ai-orchestrator/ai-orchestrator.module.ts"
+      },
+      "tags": ["agents", "lifecycle", "deployment", "scaling"]
+    },
+    {
+      "id": "code-quality-enforcer",
+      "name": "Code Quality Enforcer",
+      "tier": 5,
+      "category": "quality",
+      "status": "production",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/code-quality-enforcer/SKILL.md",
+        "summary": "Pattern validation, initialization fixes, linting"
+      },
+      "execution": {
+        "type": "documentation-only"
+      },
+      "consolidatedFrom": [
+        "code-quality",
+        "schema-audit",
+        "security-scan",
+        "api-integration-test",
+        "multi-tenant-audit"
+      ],
+      "tags": ["quality", "linting", "patterns", "validation"]
+    },
+    {
+      "id": "technical-documentation-agent",
+      "name": "Technical Documentation Agent",
+      "tier": 5,
+      "category": "quality",
+      "status": "beta",
+      "documentation": {
+        "skillMdPath": ".kilocode/skills/technical-documentation-agent/SKILL.md",
+        "summary": "PRDs, SOPs, API docs, and skill documentation generation"
+      },
+      "execution": {
+        "type": "documentation-only"
+      },
+      "tags": ["documentation", "prd", "sop", "api-docs"]
+    }
+  ],
+  "deprecated": [
+    "front-end-routing-engine",
+    "ui-component-library",
+    "state-management-coordinator",
+    "responsive-design-validator",
+    "wireframe-to-code-converter",
+    "cross-platform-compatibility-checker",
+    "ai-performance-optimizer",
+    "ai-service-integration-validator",
+    "multi-tenant-ai-isolation",
+    "back-end-api-bridge",
+    "data-lake-manager",
+    "data-pipeline-orchestration",
+    "csv-processing-engine",
+    "data-export-enrichment-engine",
+    "data-batching-enrichment-preparer",
+    "usbizdata-import-export-handler",
+    "data-query-optimization-coordinator",
+    "database-management-engine",
+    "sms-integration-module",
+    "signalhouse-number-mapping-manager",
+    "inbound-call-sms-router",
+    "signalhouse-scalability-audit",
+    "inbound-response-handler",
+    "auto-response-engine",
+    "cadence-scheduler",
+    "lead-management-orchestrator",
+    "sms-campaign-data-preparator",
+    "ai-cost-guardian",
+    "ai-resource-capacity-planning",
+    "service-orchestration-hub",
+    "event-driven-coordination",
+    "multi-channel-integration-hub",
+    "orchestration-failure-recovery",
+    "orchestration-quality-assurance",
+    "platform-engineering-orchestrator",
+    "infrastructure-as-code-builder",
+    "cloud-resource-manager",
+    "digitalocean-hosting-handler",
+    "scalability-and-monitoring-hub",
+    "backup-and-recovery-validator",
+    "devops-reference-template",
+    "code-quality",
+    "schema-audit",
+    "security-scan",
+    "api-integration-test",
+    "multi-tenant-audit",
+    "ai-security-scanner",
+    "ml-intelligence-engine",
+    "contextual-orchestrator"
+  ]
+}

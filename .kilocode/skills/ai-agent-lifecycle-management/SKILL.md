@@ -6,7 +6,7 @@ description: Handles deployment, scaling, monitoring, and retirement of AI agent
 # AI Agent Lifecycle Management Instructions
 
 ## Purpose
-Manage the complete lifecycle of AI agents (Gianna, LUCI, Cathy, Sabrina, Neva) in OutreachGlobal's multi-tenant platform, ensuring reliable deployment, scaling, monitoring, and secure retirement while maintaining tenant isolation and resource efficiency.
+EXTEND existing AI Orchestrator at `apps/api/src/app/ai-orchestrator/` to manage the complete lifecycle of AI agents in OutreachGlobal's multi-tenant platform, ensuring reliable deployment, scaling, monitoring, and secure retirement while maintaining tenant isolation and resource efficiency.
 
 ## When to Use This Skill
 - Deploying new AI agent instances
@@ -19,12 +19,14 @@ Manage the complete lifecycle of AI agents (Gianna, LUCI, Cathy, Sabrina, Neva) 
 
 ## Agent Architecture
 
-### Core AI Agents
-- **Gianna**: AI SDR for outbound campaigns
-- **LUCI**: Search and research agent
-- **Cathy**: Customer support agent
-- **Sabrina**: Sales intelligence agent
-- **Neva**: Negotiation and deal closing agent
+### Existing AI Agents
+- **LUCI**: Search and research agent (FULLY IMPLEMENTED at `apps/api/src/app/luci/`)
+- **Sabrina**: Sales intelligence agent (FULLY IMPLEMENTED at `apps/api/src/app/inbox/services/sabrina-sdr.service.ts`)
+- **Cathy**: Customer support agent (PARTIAL - templates only at `apps/front/src/lib/gianna/`)
+
+### Agents Needing Creation
+- **Gianna**: AI SDR for outbound campaigns (DOES NOT EXIST - needs creation)
+- **Neva**: Negotiation and deal closing agent (DOES NOT EXIST - needs creation)
 
 ### Lifecycle Stages
 - **Development**: Agent creation and testing
@@ -40,17 +42,17 @@ Manage the complete lifecycle of AI agents (Gianna, LUCI, Cathy, Sabrina, Neva) 
 ```typescript
 const registerAgent = async (agentConfig: AgentConfig) => {
   // Validate tenant permissions
-  const tenantId = await validateTenantAccess(agentConfig.tenantId);
+  const teamId = await validateTenantAccess(agentConfig.teamId);
 
   // Create agent instance
   const agent = await agentFactory.create(agentConfig.type, {
-    tenantId,
+    teamId,
     version: agentConfig.version,
     resources: agentConfig.resources
   });
 
-  // Register with orchestration service
-  await orchestrationService.registerAgent(agent);
+  // Register with existing AI orchestrator
+  await aiOrchestratorService.registerAgent(agent);
 
   return agent.id;
 };
@@ -95,8 +97,8 @@ const deployAgentVersion = async (agentId: string, version: string) => {
 **Distribute requests across agent instances:**
 ```typescript
 const loadBalancer = {
-  selectInstance: (agentType: string, tenantId: string) => {
-    const instances = agentPool.getActiveInstances(agentType, tenantId);
+  selectInstance: (agentType: string, teamId: string) => {
+    const instances = agentPool.getActiveInstances(agentType, teamId);
     return instances.sort((a, b) => a.load - b.load)[0];
   }
 };
@@ -190,6 +192,20 @@ When managing agent lifecycles, provide:
 3. **Health assessment** with failure points
 4. **Scaling recommendations** based on usage patterns
 5. **Security audit** results
+
+## Dependencies
+
+### Prerequisite Skills
+- None (extends existing AI Orchestrator)
+
+### Existing Services Used
+- apps/api/src/app/ai-orchestrator/ - Full provider management (OpenAI, Anthropic) and AI processing
+- apps/api/src/app/luci/ - LUCI agent implementation
+- apps/api/src/app/inbox/services/sabrina-sdr.service.ts - Sabrina agent implementation
+
+### External APIs Required
+- OpenAI API ($0.002/1K tokens) - For AI agent processing
+- Anthropic API - Alternative AI provider
 
 ## Related Skills
 - Use with `ai-resource-capacity-planning` for infrastructure scaling

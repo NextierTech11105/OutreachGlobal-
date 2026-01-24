@@ -155,13 +155,19 @@ export class NevaService {
       const research = await this.aiOrchestrator.researchDeep(aiContext, query);
 
       if (!research.summary) {
-        this.logger.warn(`[NEVA] Research returned empty for: ${business.name}`);
+        this.logger.warn(
+          `[NEVA] Research returned empty for: ${business.name}`,
+        );
         return null;
       }
 
       // Calculate confidence based on findings
-      const confidence = research.keyFindings.length > 3 ? 0.8 :
-                         research.keyFindings.length > 1 ? 0.6 : 0.4;
+      const confidence =
+        research.keyFindings.length > 3
+          ? 0.8
+          : research.keyFindings.length > 1
+            ? 0.6
+            : 0.4;
 
       // Parse research response into structured packet
       const packet = this.parseResearchResponse(
@@ -188,7 +194,10 @@ export class NevaService {
   /**
    * Get cached context if available
    */
-  async getContext(leadId: string, teamId: string): Promise<NevaContextPacket | null> {
+  async getContext(
+    leadId: string,
+    teamId: string,
+  ): Promise<NevaContextPacket | null> {
     const cacheKey = `neva:${teamId}:${leadId}`;
 
     // Try memory cache first
@@ -208,8 +217,20 @@ export class NevaService {
 
       if (research) {
         // Reconstruct packet from stored fields
-        const companyIntel = research.companyIntel as { name?: string; size?: string; employeeCount?: number; founded?: string; recentNews?: Array<{ title: string }>; buyingSignals?: string[] } | null;
-        const realtimeContext = research.realtimeContext as { lastUpdated?: string; companyStatus?: { operational: boolean; majorChanges: string[] }; riskFactors?: string[]; recommendedAction?: string } | null;
+        const companyIntel = research.companyIntel as {
+          name?: string;
+          size?: string;
+          employeeCount?: number;
+          founded?: string;
+          recentNews?: Array<{ title: string }>;
+          buyingSignals?: string[];
+        } | null;
+        const realtimeContext = research.realtimeContext as {
+          lastUpdated?: string;
+          companyStatus?: { operational: boolean; majorChanges: string[] };
+          riskFactors?: string[];
+          recommendedAction?: string;
+        } | null;
 
         const packet: NevaContextPacket = {
           leadId,
@@ -217,14 +238,20 @@ export class NevaService {
           confidence: (research.confidenceScore || 50) / 100,
           summary: {
             company: companyIntel?.name || "Unknown",
-            sizeSignal: (companyIntel?.size?.includes("small") ? "small" :
-                        companyIntel?.size?.includes("medium") ? "medium" :
-                        companyIntel?.size?.includes("large") ? "large" : "unknown") as "small" | "medium" | "large" | "unknown",
-            yearsInBusiness: companyIntel?.founded ? new Date().getFullYear() - parseInt(companyIntel.founded) : null,
+            sizeSignal: (companyIntel?.size?.includes("small")
+              ? "small"
+              : companyIntel?.size?.includes("medium")
+                ? "medium"
+                : companyIntel?.size?.includes("large")
+                  ? "large"
+                  : "unknown") as "small" | "medium" | "large" | "unknown",
+            yearsInBusiness: companyIntel?.founded
+              ? new Date().getFullYear() - parseInt(companyIntel.founded)
+              : null,
             employeeEstimate: companyIntel?.employeeCount?.toString() || null,
           },
           signals: {
-            recentActivity: companyIntel?.recentNews?.map(n => n.title) || [],
+            recentActivity: companyIntel?.recentNews?.map((n) => n.title) || [],
             negativeSignals: realtimeContext?.riskFactors || [],
             timingSignals: companyIntel?.buyingSignals || [],
           },
@@ -243,7 +270,8 @@ export class NevaService {
           riskFlags: {
             reputation: false,
             legal: false,
-            financialDistress: realtimeContext?.companyStatus?.operational === false,
+            financialDistress:
+              realtimeContext?.companyStatus?.operational === false,
           },
           researchedAt: research.enrichedAt || new Date(),
           sources: ["perplexity"],
@@ -264,7 +292,9 @@ export class NevaService {
   /**
    * Prepare discovery call questions based on NEVA research
    */
-  async prepareDiscovery(packet: NevaContextPacket): Promise<NevaDiscoveryPrep> {
+  async prepareDiscovery(
+    packet: NevaContextPacket,
+  ): Promise<NevaDiscoveryPrep> {
     const questions: NevaDiscoveryPrep["openingQuestions"] = [];
 
     // Generate questions based on signals
@@ -280,7 +310,8 @@ export class NevaService {
     // Industry-specific question
     if (packet.summary.sizeSignal !== "unknown") {
       questions.push({
-        question: "What's the biggest challenge you're facing with growth right now?",
+        question:
+          "What's the biggest challenge you're facing with growth right now?",
         signalSource: "Size signal",
         priority: 2,
       });
@@ -298,7 +329,8 @@ export class NevaService {
     // Default question if no signals
     if (questions.length === 0) {
       questions.push({
-        question: "What's the main thing you'd like to accomplish in the next 90 days?",
+        question:
+          "What's the main thing you'd like to accomplish in the next 90 days?",
         signalSource: "Default",
         priority: 1,
       });
@@ -331,15 +363,35 @@ export class NevaService {
     const score = packet.confidence;
 
     if (score >= 0.8) {
-      return { level: "HIGH", score, usePersonalization: true, requiresReview: false };
+      return {
+        level: "HIGH",
+        score,
+        usePersonalization: true,
+        requiresReview: false,
+      };
     }
     if (score >= 0.5) {
-      return { level: "MEDIUM", score, usePersonalization: true, requiresReview: false };
+      return {
+        level: "MEDIUM",
+        score,
+        usePersonalization: true,
+        requiresReview: false,
+      };
     }
     if (score >= 0.3) {
-      return { level: "LOW", score, usePersonalization: false, requiresReview: true };
+      return {
+        level: "LOW",
+        score,
+        usePersonalization: false,
+        requiresReview: true,
+      };
     }
-    return { level: "NONE", score, usePersonalization: false, requiresReview: true };
+    return {
+      level: "NONE",
+      score,
+      usePersonalization: false,
+      requiresReview: true,
+    };
   }
 
   /**
@@ -386,11 +438,17 @@ export class NevaService {
     baseConfidence: number,
   ): NevaContextPacket {
     // Parse the research response
-    const hasNegative = /lawsuit|complaint|bbb|negative|problem/i.test(research);
-    const hasGrowth = /expand|growth|hiring|new location|raised/i.test(research);
+    const hasNegative = /lawsuit|complaint|bbb|negative|problem/i.test(
+      research,
+    );
+    const hasGrowth = /expand|growth|hiring|new location|raised/i.test(
+      research,
+    );
 
     // Extract years in business
-    const yearsMatch = research.match(/(\d+)\s*years?\s*(in business|operating|established)/i);
+    const yearsMatch = research.match(
+      /(\d+)\s*years?\s*(in business|operating|established)/i,
+    );
     const yearsInBusiness = yearsMatch ? parseInt(yearsMatch[1]) : null;
 
     // Adjust confidence based on research quality
@@ -422,7 +480,9 @@ export class NevaService {
 
       signals: {
         recentActivity: hasGrowth ? this.extractRecentActivity(research) : [],
-        negativeSignals: hasNegative ? this.extractNegativeSignals(research) : [],
+        negativeSignals: hasNegative
+          ? this.extractNegativeSignals(research)
+          : [],
         timingSignals: this.extractTimingSignals(research),
       },
 
@@ -452,10 +512,13 @@ export class NevaService {
     };
   }
 
-  private estimateSize(research: string): "small" | "medium" | "large" | "unknown" {
+  private estimateSize(
+    research: string,
+  ): "small" | "medium" | "large" | "unknown" {
     if (/enterprise|large|500\+|1000\+/i.test(research)) return "large";
     if (/medium|mid-size|50-|100-/i.test(research)) return "medium";
-    if (/small|local|family|1-10|owner-operated/i.test(research)) return "small";
+    if (/small|local|family|1-10|owner-operated/i.test(research))
+      return "small";
     return "unknown";
   }
 
@@ -528,15 +591,18 @@ export class NevaService {
     return [
       {
         objection: "I'm too busy right now",
-        response: "I totally get it - that's exactly why I keep these calls to 15 minutes max.",
+        response:
+          "I totally get it - that's exactly why I keep these calls to 15 minutes max.",
       },
       {
         objection: "I'm not interested",
-        response: "No problem at all. Mind if I ask what you're currently using to handle this?",
+        response:
+          "No problem at all. Mind if I ask what you're currently using to handle this?",
       },
       {
         objection: "Send me more info",
-        response: "Happy to! What specifically would be most helpful for you to see?",
+        response:
+          "Happy to! What specifically would be most helpful for you to see?",
       },
     ];
   }
@@ -581,7 +647,9 @@ export class NevaService {
           riskFactors: [
             ...(packet.riskFlags.reputation ? ["Reputation concerns"] : []),
             ...(packet.riskFlags.legal ? ["Legal issues"] : []),
-            ...(packet.riskFlags.financialDistress ? ["Financial distress"] : []),
+            ...(packet.riskFlags.financialDistress
+              ? ["Financial distress"]
+              : []),
           ],
           recommendedAction: packet.recommendations.cta,
         },

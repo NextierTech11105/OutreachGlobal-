@@ -50,7 +50,11 @@ export class ResponseGeneratorService {
     conversationId: string,
     options: GenerateOptions = {},
   ): Promise<CoPilotResponse> {
-    const { maxSuggestions = 3, preferredTone, includeReasoning = true } = options;
+    const {
+      maxSuggestions = 3,
+      preferredTone,
+      includeReasoning = true,
+    } = options;
 
     this.logger.log(
       `Generating responses for phone: ${phoneNumber}, conversation: ${conversationId}`,
@@ -130,7 +134,9 @@ export class ResponseGeneratorService {
         phoneNumber,
         teamId: workerAssignment.teamId,
         aiAgent: workerAssignment.workerId,
-        responseStyle: this.getResponseStyleForWorker(workerAssignment.workerId),
+        responseStyle: this.getResponseStyleForWorker(
+          workerAssignment.workerId,
+        ),
         coPilotEnabled: true,
         signalhouseSubGroupId: team?.signalhouseSubGroupId || undefined,
       };
@@ -209,13 +215,11 @@ export class ResponseGeneratorService {
       limit,
     });
 
-    return messages
-      .reverse()
-      .map((msg) => ({
-        role: msg.direction === "INBOUND" ? "user" : "assistant",
-        content: msg.body || "",
-        timestamp: msg.createdAt || new Date(),
-      })) as ConversationMessage[];
+    return messages.reverse().map((msg) => ({
+      role: msg.direction === "INBOUND" ? "user" : "assistant",
+      content: msg.body || "",
+      timestamp: msg.createdAt || new Date(),
+    })) as ConversationMessage[];
   }
 
   /**
@@ -330,12 +334,14 @@ Respond in JSON format:
     try {
       const result = await this.aiOrchestrator.execute<
         { prompt: string },
-        { suggestions: Array<{
-          content: string;
-          confidence: number;
-          tone: string;
-          reasoning?: string;
-        }> }
+        {
+          suggestions: Array<{
+            content: string;
+            confidence: number;
+            tone: string;
+            reasoning?: string;
+          }>;
+        }
       >({
         task: "sms_generate",
         priority: "interactive",

@@ -6,7 +6,7 @@ description: Manages complex multi-step workflows involving multiple AI agents, 
 # Workflow Orchestration Engine Instructions
 
 ## Purpose
-Orchestrate complex, multi-step workflows that coordinate AI agents (Gianna, LUCI, Cathy, Sabrina, Neva) with external integrations, ensuring reliable execution, state management, and conditional logic in OutreachGlobal's multi-tenant platform.
+EXTEND existing BullMQ queues and AI Orchestrator at `apps/api/src/app/ai-orchestrator/` to orchestrate complex, multi-step workflows that coordinate AI agents with external integrations, ensuring reliable execution, state management, and conditional logic in OutreachGlobal's multi-tenant platform.
 
 ## When to Use This Skill
 - Designing new agent interaction flows
@@ -19,7 +19,7 @@ Orchestrate complex, multi-step workflows that coordinate AI agents (Gianna, LUC
 ## Workflow Architecture
 
 ### Core Workflow Types
-- **Sequential**: LUCI research → Gianna outreach → Cathy follow-up
+- **Sequential**: LUCI research → AI Orchestrator processing → Sabrina follow-up
 - **Parallel**: Multiple agents processing different aspects simultaneously
 - **Conditional**: Branch based on agent responses or external events
 - **Event-driven**: Triggered by webhooks or scheduled events
@@ -38,7 +38,7 @@ Orchestrate complex, multi-step workflows that coordinate AI agents (Gianna, LUC
 ```typescript
 const outreachWorkflow = {
   id: 'outreach-campaign',
-  tenantId: 'tenant_123',
+  teamId: 'team_123',
   steps: [
     {
       id: 'research',
@@ -49,14 +49,14 @@ const outreachWorkflow = {
     },
     {
       id: 'outreach',
-      agent: 'GIANNA',
+      agent: 'AI_ORCHESTRATOR',
       action: 'generate_message',
       inputs: { research: '{{steps.research.output}}' },
       condition: '{{steps.research.output.confidence > 0.7}}'
     },
     {
       id: 'followup',
-      agent: 'CATHY',
+      agent: 'SABRINA',
       action: 'schedule_followup',
       inputs: { conversation: '{{steps.outreach.output}}' },
       dependsOn: ['research', 'outreach']
@@ -72,11 +72,11 @@ const outreachWorkflow = {
 class WorkflowEngine {
   async executeStep(workflowId: string, stepId: string, state: WorkflowState) {
     const step = this.getStep(workflowId, stepId);
-    const agent = await agentPool.getAgent(step.agent, state.tenantId);
+    const agent = await aiOrchestrator.getAgent(step.agent, state.teamId);
 
     try {
       const result = await agent.execute(step.action, step.inputs, state);
-      await stateManager.update(workflowId, { [stepId]: result });
+      await bullMQStateManager.update(workflowId, { [stepId]: result });
       return result;
     } catch (error) {
       await errorHandler.handle(step, error, state);
@@ -94,7 +94,7 @@ const evaluateCondition = (condition: string, state: WorkflowState) => {
   const context = {
     steps: state.steps,
     trigger: state.trigger,
-    tenant: state.tenantId
+    team: state.teamId
   };
 
   return evaluateExpression(condition, context);
@@ -104,10 +104,10 @@ const evaluateCondition = (condition: string, state: WorkflowState) => {
 ## Integration Coordination
 
 ### External Service Integration
-- **SignalHouse**: SMS delivery coordination
-- **Twilio**: Voice call orchestration
-- **Apollo**: Data enrichment workflows
-- **SendGrid**: Email sequence management
+- **SignalHouse**: SMS delivery coordination at `apps/api/src/lib/signalhouse/signalhouse.service.ts`
+- **Twilio**: Voice call orchestration at `apps/api/src/lib/twilio/`
+- **Tracerfy**: Data enrichment workflows at `apps/api/src/app/luci/clients/tracerfy.client.ts`
+- **Trestle**: Data enrichment workflows at `apps/api/src/app/luci/clients/trestle.client.ts`
 
 ### Data Flow Management
 **Ensure data consistency across integrations:**
@@ -220,6 +220,21 @@ When orchestrating workflows, provide:
 3. **Error analysis** with failure points
 4. **Optimization recommendations** for bottlenecks
 5. **Security assessment** of data flows
+
+## Dependencies
+
+### Prerequisite Skills
+- ai-agent-lifecycle-management - For AI agent coordination and scaling
+- data-lake-orchestration-agent - For data access and querying
+
+### Existing Services Used
+- apps/api/src/app/ai-orchestrator/ - AI processing and agent management
+- BullMQ queues - For job processing and workflow state management
+
+### External APIs Required
+- OpenAI API ($0.002/1K tokens) - For AI agent processing
+- SignalHouse API - For SMS coordination
+- Twilio API - For voice orchestration
 
 ## Related Skills
 - Use with `event-driven-coordination` for trigger management

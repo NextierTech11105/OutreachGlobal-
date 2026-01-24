@@ -2,11 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { eq, and } from "drizzle-orm";
-import {
-  leadsTable,
-  messagesTable,
-  teamsTable,
-} from "@/database/schema-alias";
+import { leadsTable, messagesTable, teamsTable } from "@/database/schema-alias";
 import { ConfigService } from "@nestjs/config";
 import { SignalHouseService } from "@/lib/signalhouse/signalhouse.service";
 import { ResponseGeneratorService } from "./response-generator.service";
@@ -99,20 +95,91 @@ const REBUTTAL_TEMPLATES: Record<ObjectionType, string[]> = {
 
 // Keywords for classification
 const OBJECTION_KEYWORDS: Record<ObjectionType, string[]> = {
-  [ObjectionType.TOO_BUSY]: ["busy", "swamped", "no time", "hectic", "slammed", "crazy week"],
-  [ObjectionType.NOT_INTERESTED]: ["not interested", "no thanks", "pass", "don't need", "not for me"],
-  [ObjectionType.NEED_TO_THINK]: ["think about", "consider", "decide", "sleep on", "mull over", "get back to you"],
-  [ObjectionType.BAD_TIMING]: ["bad time", "not now", "later", "wrong time", "next month", "next quarter"],
-  [ObjectionType.ALREADY_HAVE]: ["already have", "working with", "got someone", "using", "have a guy"],
-  [ObjectionType.TOO_EXPENSIVE]: ["expensive", "cost", "afford", "budget", "price", "money"],
-  [ObjectionType.SPOUSE_DECISION]: ["spouse", "wife", "husband", "partner", "together", "we need to"],
-  [ObjectionType.POSITIVE]: ["yes", "interested", "sure", "sounds good", "tell me more", "let's do it", "I'm in"],
-  [ObjectionType.BOOKING_CONSENT]: ["ok", "okay", "sure", "yes", "send it", "sounds good", "go ahead", "please do"],
+  [ObjectionType.TOO_BUSY]: [
+    "busy",
+    "swamped",
+    "no time",
+    "hectic",
+    "slammed",
+    "crazy week",
+  ],
+  [ObjectionType.NOT_INTERESTED]: [
+    "not interested",
+    "no thanks",
+    "pass",
+    "don't need",
+    "not for me",
+  ],
+  [ObjectionType.NEED_TO_THINK]: [
+    "think about",
+    "consider",
+    "decide",
+    "sleep on",
+    "mull over",
+    "get back to you",
+  ],
+  [ObjectionType.BAD_TIMING]: [
+    "bad time",
+    "not now",
+    "later",
+    "wrong time",
+    "next month",
+    "next quarter",
+  ],
+  [ObjectionType.ALREADY_HAVE]: [
+    "already have",
+    "working with",
+    "got someone",
+    "using",
+    "have a guy",
+  ],
+  [ObjectionType.TOO_EXPENSIVE]: [
+    "expensive",
+    "cost",
+    "afford",
+    "budget",
+    "price",
+    "money",
+  ],
+  [ObjectionType.SPOUSE_DECISION]: [
+    "spouse",
+    "wife",
+    "husband",
+    "partner",
+    "together",
+    "we need to",
+  ],
+  [ObjectionType.POSITIVE]: [
+    "yes",
+    "interested",
+    "sure",
+    "sounds good",
+    "tell me more",
+    "let's do it",
+    "I'm in",
+  ],
+  [ObjectionType.BOOKING_CONSENT]: [
+    "ok",
+    "okay",
+    "sure",
+    "yes",
+    "send it",
+    "sounds good",
+    "go ahead",
+    "please do",
+  ],
   [ObjectionType.UNKNOWN]: [],
 };
 
 // Opt-out keywords - never auto-respond, immediately comply
-const OPT_OUT_KEYWORDS = ["stop", "unsubscribe", "remove", "opt out", "do not contact", "leave me alone"];
+const OPT_OUT_KEYWORDS = [
+  "stop",
+  "unsubscribe",
+  "remove",
+  "opt out",
+  "do not contact",
+  "leave me alone",
+];
 
 @Injectable()
 export class AutoRespondService {
@@ -143,11 +210,15 @@ export class AutoRespondService {
     message: string,
     leadId?: string,
   ): Promise<AutoRespondResult> {
-    this.logger.log(`Processing auto-respond for ${fromPhone}: "${message.substring(0, 50)}..."`);
+    this.logger.log(
+      `Processing auto-respond for ${fromPhone}: "${message.substring(0, 50)}..."`,
+    );
 
     // 1. Classify the message
     const classification = this.classifyMessage(message);
-    this.logger.log(`Classification: ${classification.objectionType} (${classification.confidence}%) -> ${classification.intent}`);
+    this.logger.log(
+      `Classification: ${classification.objectionType} (${classification.confidence}%) -> ${classification.intent}`,
+    );
 
     // 2. Check if we should auto-respond
     if (!classification.shouldAutoRespond) {
@@ -156,9 +227,10 @@ export class AutoRespondService {
         intent: classification.intent,
         objectionType: classification.objectionType,
         sentCalendarLink: false,
-        error: classification.intent === ResponseIntent.OPT_OUT
-          ? "Opt-out detected - compliance required"
-          : "Requires human review",
+        error:
+          classification.intent === ResponseIntent.OPT_OUT
+            ? "Opt-out detected - compliance required"
+            : "Requires human review",
       };
     }
 
@@ -166,7 +238,8 @@ export class AutoRespondService {
     const response = this.getResponse(classification, message);
 
     // 4. Check if this response includes calendar link
-    const sentCalendarLink = response.includes(this.calendarLink) ||
+    const sentCalendarLink =
+      response.includes(this.calendarLink) ||
       classification.objectionType === ObjectionType.BOOKING_CONSENT ||
       classification.objectionType === ObjectionType.POSITIVE;
 
@@ -203,9 +276,18 @@ export class AutoRespondService {
     }
 
     // 8. Log the message
-    await this.logMessage(teamId, fromPhone, toPhone, response, leadId, classification);
+    await this.logMessage(
+      teamId,
+      fromPhone,
+      toPhone,
+      response,
+      leadId,
+      classification,
+    );
 
-    this.logger.log(`Auto-responded to ${fromPhone}: "${response.substring(0, 50)}..."`);
+    this.logger.log(
+      `Auto-responded to ${fromPhone}: "${response.substring(0, 50)}..."`,
+    );
 
     return {
       success: true,
@@ -224,7 +306,7 @@ export class AutoRespondService {
     const lowerMessage = message.toLowerCase();
 
     // Check for opt-out first - highest priority
-    if (OPT_OUT_KEYWORDS.some(kw => lowerMessage.includes(kw))) {
+    if (OPT_OUT_KEYWORDS.some((kw) => lowerMessage.includes(kw))) {
       return {
         objectionType: ObjectionType.UNKNOWN,
         confidence: 95,
@@ -234,7 +316,11 @@ export class AutoRespondService {
     }
 
     // Check for booking consent (after we've offered a calendar link)
-    if (OBJECTION_KEYWORDS[ObjectionType.BOOKING_CONSENT].some(kw => lowerMessage.includes(kw))) {
+    if (
+      OBJECTION_KEYWORDS[ObjectionType.BOOKING_CONSENT].some((kw) =>
+        lowerMessage.includes(kw),
+      )
+    ) {
       // Short affirmative responses likely mean consent to send calendar
       if (message.length < 30) {
         return {
@@ -247,7 +333,11 @@ export class AutoRespondService {
     }
 
     // Check for positive/interested
-    if (OBJECTION_KEYWORDS[ObjectionType.POSITIVE].some(kw => lowerMessage.includes(kw))) {
+    if (
+      OBJECTION_KEYWORDS[ObjectionType.POSITIVE].some((kw) =>
+        lowerMessage.includes(kw),
+      )
+    ) {
       return {
         objectionType: ObjectionType.POSITIVE,
         confidence: 80,
@@ -258,11 +348,15 @@ export class AutoRespondService {
 
     // Check each objection type
     for (const [type, keywords] of Object.entries(OBJECTION_KEYWORDS)) {
-      if (type === ObjectionType.POSITIVE || type === ObjectionType.BOOKING_CONSENT || type === ObjectionType.UNKNOWN) {
+      if (
+        type === ObjectionType.POSITIVE ||
+        type === ObjectionType.BOOKING_CONSENT ||
+        type === ObjectionType.UNKNOWN
+      ) {
         continue;
       }
 
-      const matches = keywords.filter(kw => lowerMessage.includes(kw));
+      const matches = keywords.filter((kw) => lowerMessage.includes(kw));
       if (matches.length > 0) {
         const confidence = Math.min(90, 60 + matches.length * 10);
         return {
@@ -286,7 +380,10 @@ export class AutoRespondService {
   /**
    * Get response based on classification
    */
-  private getResponse(classification: ClassificationResult, originalMessage: string): string {
+  private getResponse(
+    classification: ClassificationResult,
+    originalMessage: string,
+  ): string {
     const templates = REBUTTAL_TEMPLATES[classification.objectionType];
 
     // Rotate through templates
@@ -304,14 +401,28 @@ export class AutoRespondService {
 
     // Short affirmative responses
     const consentPhrases = [
-      "ok", "okay", "sure", "yes", "yeah", "yep", "yup",
-      "send it", "sounds good", "go ahead", "please", "please do",
-      "that works", "perfect", "great", "cool", "fine",
+      "ok",
+      "okay",
+      "sure",
+      "yes",
+      "yeah",
+      "yep",
+      "yup",
+      "send it",
+      "sounds good",
+      "go ahead",
+      "please",
+      "please do",
+      "that works",
+      "perfect",
+      "great",
+      "cool",
+      "fine",
     ];
 
     // Check if it's a short consent-like response
     if (message.length < 30) {
-      return consentPhrases.some(phrase => lowerMessage.includes(phrase));
+      return consentPhrases.some((phrase) => lowerMessage.includes(phrase));
     }
 
     return false;

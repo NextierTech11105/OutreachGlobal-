@@ -171,7 +171,13 @@ export interface GiannaResponse {
   intent?: string;
   requiresHumanReview: boolean;
   nextAction?: {
-    type: "wait" | "follow_up" | "schedule_call" | "escalate_cathy" | "escalate_sabrina" | "add_to_dnc";
+    type:
+      | "wait"
+      | "follow_up"
+      | "schedule_call"
+      | "escalate_cathy"
+      | "escalate_sabrina"
+      | "add_to_dnc";
     delayMinutes?: number;
     metadata?: Record<string, unknown>;
   };
@@ -224,7 +230,10 @@ export class GiannaService {
     context: GiannaContext,
   ): Promise<GiannaResponse> {
     // Step 1: Classify the incoming message
-    const classification = this.classifyResponse(incomingMessage, context.messageNumber);
+    const classification = this.classifyResponse(
+      incomingMessage,
+      context.messageNumber,
+    );
     this.logger.log(
       `[GIANNA] Classification: ${classification.intent} (${classification.confidence}%) - ${classification.sentiment}`,
     );
@@ -236,7 +245,11 @@ export class GiannaService {
 
     // Step 3: Check for objection
     if (classification.objectionType) {
-      return this.handleObjection(classification.objectionType, context, classification);
+      return this.handleObjection(
+        classification.objectionType,
+        context,
+        classification,
+      );
     }
 
     // Step 4: Route based on classification
@@ -249,7 +262,10 @@ export class GiannaService {
     }
 
     // Step 5: Generate template-based response
-    const strategy = RESPONSE_STRATEGIES[classification.intent as keyof typeof RESPONSE_STRATEGIES];
+    const strategy =
+      RESPONSE_STRATEGIES[
+        classification.intent as keyof typeof RESPONSE_STRATEGIES
+      ];
     if (strategy) {
       const templates = strategy.templates;
       const template = templates[Math.floor(Math.random() * templates.length)];
@@ -261,7 +277,9 @@ export class GiannaService {
         intent: classification.intent,
         requiresHumanReview: classification.confidence < 70,
         nextAction: this.determineNextAction(classification, context),
-        alternatives: templates.slice(0, 3).map((t) => this.applyTemplate(t, context)),
+        alternatives: templates
+          .slice(0, 3)
+          .map((t) => this.applyTemplate(t, context)),
       };
     }
 
@@ -277,7 +295,9 @@ export class GiannaService {
 
     // Opt-out detection (highest priority - compliance)
     if (
-      /\b(stop|unsubscribe|cancel|end|quit|optout|opt out|remove|no more|don't text|dont text)\b/i.test(lower)
+      /\b(stop|unsubscribe|cancel|end|quit|optout|opt out|remove|no more|don't text|dont text)\b/i.test(
+        lower,
+      )
     ) {
       return {
         intent: "opt_out",
@@ -288,7 +308,9 @@ export class GiannaService {
     }
 
     // Angry/upset detection
-    if (/\b(fuck|shit|scam|spam|fraud|leave me alone|piss off)\b/i.test(lower)) {
+    if (
+      /\b(fuck|shit|scam|spam|fraud|leave me alone|piss off)\b/i.test(lower)
+    ) {
       return {
         intent: "anger",
         confidence: 95,
@@ -299,7 +321,9 @@ export class GiannaService {
 
     // Positive/interested detection → escalate to SABRINA
     if (
-      /\b(yes|yeah|yep|interested|call|info|more|details|help|please|sounds good|tell me|okay|ok|sure)\b/i.test(lower)
+      /\b(yes|yeah|yep|interested|call|info|more|details|help|please|sounds good|tell me|okay|ok|sure)\b/i.test(
+        lower,
+      )
     ) {
       return {
         intent: "interested",
@@ -310,7 +334,11 @@ export class GiannaService {
     }
 
     // Schedule request → SABRINA
-    if (/\b(schedule|meet|call me|time|when|calendar|appointment|available|book)\b/i.test(lower)) {
+    if (
+      /\b(schedule|meet|call me|time|when|calendar|appointment|available|book)\b/i.test(
+        lower,
+      )
+    ) {
       return {
         intent: "wants_call",
         confidence: 90,
@@ -320,7 +348,10 @@ export class GiannaService {
     }
 
     // Question detection
-    if (lower.includes("?") || /\b(what|how|when|where|why|who|which)\b/i.test(lower)) {
+    if (
+      lower.includes("?") ||
+      /\b(what|how|when|where|why|who|which)\b/i.test(lower)
+    ) {
       return {
         intent: "question",
         confidence: 75,
@@ -342,7 +373,9 @@ export class GiannaService {
     }
 
     // Soft no
-    if (/\b(not interested|no thanks|pass|not now|maybe later)\b/i.test(lower)) {
+    if (
+      /\b(not interested|no thanks|pass|not now|maybe later)\b/i.test(lower)
+    ) {
       return {
         intent: "soft_no",
         confidence: 80,
@@ -385,7 +418,10 @@ export class GiannaService {
     if (/\b(send|email)\b/i.test(lower) && lower.includes("email")) {
       return "send_email";
     }
-    if (/\b(how|got my|find me|number)\b/i.test(lower) && lower.includes("number")) {
+    if (
+      /\b(how|got my|find me|number)\b/i.test(lower) &&
+      lower.includes("number")
+    ) {
       return "how_got_number";
     }
     if (/\b(scam|fraud|fake)\b/i.test(lower)) {
@@ -403,7 +439,8 @@ export class GiannaService {
     context: GiannaContext,
     classification: ClassificationResult,
   ): GiannaResponse {
-    const responses = OBJECTION_RESPONSES[objectionType as keyof typeof OBJECTION_RESPONSES];
+    const responses =
+      OBJECTION_RESPONSES[objectionType as keyof typeof OBJECTION_RESPONSES];
 
     if (!responses) {
       return {
@@ -425,7 +462,9 @@ export class GiannaService {
       confidence: 75,
       intent: `objection_${objectionType}`,
       requiresHumanReview,
-      alternatives: responses.slice(0, 3).map((r) => this.applyTemplate(r, context)),
+      alternatives: responses
+        .slice(0, 3)
+        .map((r) => this.applyTemplate(r, context)),
       nextAction:
         objectionType === "not_interested" && context.messageNumber >= 3
           ? { type: "follow_up", delayMinutes: 90 * 24 * 60 } // 90 days
@@ -612,7 +651,10 @@ export class GiannaService {
       .replace(/\{lastName\}/g, context.lastName || "")
       .replace(/\{companyName\}/g, context.companyName || "your business")
       .replace(/\{industry\}/g, context.industry || "your industry")
-      .replace(/\{propertyAddress\}/g, context.propertyAddress || "your property")
+      .replace(
+        /\{propertyAddress\}/g,
+        context.propertyAddress || "your property",
+      )
       .replace(/\{phone\}/g, context.phone || "");
   }
 
@@ -657,7 +699,10 @@ export class GiannaService {
       teamId,
       leadId,
       type: MessageType.SMS,
-      direction: direction === "inbound" ? MessageDirection.INBOUND : MessageDirection.OUTBOUND,
+      direction:
+        direction === "inbound"
+          ? MessageDirection.INBOUND
+          : MessageDirection.OUTBOUND,
       body: message,
       fromAddress,
       toAddress,
@@ -673,7 +718,10 @@ export class GiannaService {
   /**
    * Get lead context for conversation
    */
-  async getLeadContext(teamId: string, leadId: string): Promise<GiannaContext | null> {
+  async getLeadContext(
+    teamId: string,
+    leadId: string,
+  ): Promise<GiannaContext | null> {
     const lead = await this.db.query.leads.findFirst({
       where: and(eq(leadsTable.id, leadId), eq(leadsTable.teamId, teamId)),
     });

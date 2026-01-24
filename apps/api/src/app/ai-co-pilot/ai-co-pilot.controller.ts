@@ -9,7 +9,10 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { ResponseGeneratorService } from "./services/response-generator.service";
-import { AutoRespondService, AutoRespondResult } from "./services/auto-respond.service";
+import {
+  AutoRespondService,
+  AutoRespondResult,
+} from "./services/auto-respond.service";
 import {
   CoPilotResponse,
   PhoneConfig,
@@ -134,7 +137,9 @@ export class AiCoPilotController {
    */
   @Post("auto-respond")
   @HttpCode(HttpStatus.OK)
-  async autoRespondToMessage(@Body() body: AutoRespondRequestBody): Promise<AutoRespondResult> {
+  async autoRespondToMessage(
+    @Body() body: AutoRespondRequestBody,
+  ): Promise<AutoRespondResult> {
     this.logger.log(
       `Auto-responding to ${body.fromPhone}: "${body.message.substring(0, 50)}..."`,
     );
@@ -154,9 +159,9 @@ export class AiCoPilotController {
    */
   @Post("detect-consent")
   @HttpCode(HttpStatus.OK)
-  detectBookingConsent(
-    @Body() body: { message: string },
-  ): { hasConsent: boolean } {
+  detectBookingConsent(@Body() body: { message: string }): {
+    hasConsent: boolean;
+  } {
     return {
       hasConsent: this.autoRespond.detectBookingConsent(body.message),
     };

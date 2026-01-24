@@ -6,23 +6,34 @@ description: Generates co-pilot style AI responses for inbound messages mapped b
 # AI Co-Pilot Response Generator
 
 ## Overview
-Creates intelligent, context-aware AI responses for inbound communications (SMS/calls) received through SignalHouse integration. Acts as a co-pilot system that assists human agents by generating suggested responses based on conversation history, lead context, and business rules.
+Enable COPILOT to suggest context-aware SMS responses in the inbox, integrating AI for personalized outreach. Creates intelligent, context-aware AI responses for inbound communications (SMS/calls) received through SignalHouse integration. Acts as a co-pilot system that assists human agents by generating suggested responses based on conversation history, lead context, and business rules, with user feedback loops and multi-tenant isolation.
+
+## Code References
+- Copilot Service: `apps/api/src/app/copilot/copilot.service.ts`
+- Copilot Controller: `apps/api/src/app/copilot/copilot.controller.ts`
+- Tool Registry: `apps/api/src/app/copilot/tools/`
+- AI Orchestrator: `apps/api/src/app/ai-orchestrator/`
+- Sabrina SDR Service: `apps/api/src/app/inbox/services/sabrina-sdr.service.ts`
+- SignalHouse Integration: `apps/api/src/lib/signalhouse/signalhouse.service.ts`
 
 ## Key Features
 - Context-aware response generation using conversation history
 - SignalHouse phone number mapping for tenant-specific responses
 - Multi-modal response suggestions (SMS, voice scripts)
-- Integration with existing AI agents (Gianna, LUCI, Cathy)
+- Integration with existing AI orchestrator and SABRINA SDR service
 - Response quality scoring and human override capabilities
 - Real-time response generation with low latency
+- User feedback loops for continuous improvement
+- Multi-tenant isolation with teamId filtering
 
 ## Current State
 
 ### What Already Exists
-- **AI Orchestrator**: `app/ai-orchestrator/consumers/ai.consumer.ts` - Handles AI processing requests
-- **SignalHouse Integration**: `lib/signalhouse/signalhouse.service.ts` - SMS/call handling infrastructure
-- **Inbound Processing**: `app/inbox/services/inbox.service.ts` - Message processing framework
-- **Usage Metering**: `app/ai-orchestrator/usage/usage-meter.service.ts` - AI usage tracking
+- **AI Orchestrator**: `apps/api/src/app/ai-orchestrator/` - Handles AI processing requests
+- **SignalHouse Integration**: `apps/api/src/lib/signalhouse/signalhouse.service.ts` - SMS/call handling infrastructure
+- **Inbound Processing**: `apps/api/src/app/inbox/services/inbox.service.ts` - Message processing framework
+- **SABRINA SDR Service**: `apps/api/src/app/inbox/services/sabrina-sdr.service.ts` - SDR integration
+- **Usage Metering**: `apps/api/src/app/ai-orchestrator/usage/usage-meter.service.ts` - AI usage tracking
 
 ### What Still Needs to be Built
 - Co-pilot response generation logic
@@ -35,14 +46,14 @@ Creates intelligent, context-aware AI responses for inbound communications (SMS/
 ## Implementation Steps
 
 ### 1. Create Response Generation Service
-Create `app/ai-co-pilot/services/response-generator.service.ts`:
+Create `apps/api/src/app/ai-co-pilot/services/response-generator.service.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/ai-co-pilot/services/response-generator.service.ts
++++ b/apps/api/src/app/ai-co-pilot/services/response-generator.service.ts
 import { Injectable } from '@nestjs/common';
-import { AiOrchestratorService } from '../ai-orchestrator/ai-orchestrator.service';
-import { SignalhouseService } from '../../lib/signalhouse/signalhouse.service';
+import { AiOrchestratorService } from '@kilo-code/api/ai-orchestrator';
+import { SignalhouseService } from '@kilo-code/api/lib/signalhouse';
 
 @Injectable()
 export class ResponseGeneratorService {
@@ -52,31 +63,36 @@ export class ResponseGeneratorService {
   ) {}
 
   async generateResponses(
+    teamId: string,
     phoneNumber: string,
     message: string,
     conversationHistory: Message[]
   ): Promise<ResponseSuggestion[]> {
+    // Ensure multi-tenant isolation
+    if (!teamId) throw new Error('teamId required for tenant isolation');
+
     // Get tenant configuration for phone number
-    const config = await this.getTenantConfig(phoneNumber);
-    
+    const config = await this.getTenantConfig(teamId, phoneNumber);
+
     // Aggregate conversation context
     const context = await this.buildContext(conversationHistory);
-    
+
     // Generate AI responses using existing orchestrator
     const suggestions = await this.aiOrchestrator.generateSuggestions({
+      teamId,
       message,
       context,
       config
     });
-    
+
     return this.rankAndFilter(suggestions);
   }
-  
-  private async getTenantConfig(phoneNumber: string) {
-    // Map phone number to tenant response settings
-    return await this.signalhouse.getPhoneConfig(phoneNumber);
+
+  private async getTenantConfig(teamId: string, phoneNumber: string) {
+    // Map phone number to tenant response settings with teamId filtering
+    return await this.signalhouse.getPhoneConfig(teamId, phoneNumber);
   }
-  
+
   private async buildContext(history: Message[]) {
     // Build conversation context for AI
     return history.map(msg => ({
@@ -84,7 +100,7 @@ export class ResponseGeneratorService {
       content: msg.content
     }));
   }
-  
+
   private rankAndFilter(suggestions: any[]): ResponseSuggestion[] {
     // Rank suggestions by relevance and filter inappropriate ones
     return suggestions
@@ -96,93 +112,104 @@ export class ResponseGeneratorService {
 ```
 
 ### 2. Add Phone Number Mapping
-Enhance `lib/signalhouse/signalhouse.service.ts`:
+Enhance `apps/api/src/lib/signalhouse/signalhouse.service.ts`:
 
 ```typescript
---- a/lib/signalhouse/signalhouse.service.ts
-+++ b/lib/signalhouse/signalhouse.service.ts
-  async getPhoneConfig(phoneNumber: string) {
-    // Map SignalHouse phone number to tenant response configuration
-    const mapping = await this.phoneMappingRepository.findByPhone(phoneNumber);
+--- a/apps/api/src/lib/signalhouse/signalhouse.service.ts
++++ b/apps/api/src/lib/signalhouse/signalhouse.service.ts
+  async getPhoneConfig(teamId: string, phoneNumber: string) {
+    // Map SignalHouse phone number to tenant response configuration with teamId isolation
+    const mapping = await this.phoneMappingRepository.findByPhoneAndTeam(phoneNumber, teamId);
     return {
-      tenantId: mapping.tenantId,
+      teamId: mapping.teamId,
       responseStyle: mapping.responseStyle,
-      aiAgent: mapping.aiAgent, // Gianna, LUCI, Cathy
+      aiAgent: mapping.aiAgent, // Existing AI orchestrator integration
       businessRules: mapping.businessRules
     };
   }
 ```
 
 ### 3. Create Co-Pilot Resolver
-Create `app/ai-co-pilot/resolvers/co-pilot.resolver.ts`:
+Create `apps/api/src/app/ai-co-pilot/resolvers/co-pilot.resolver.ts`:
 
 ```typescript
 --- /dev/null
-+++ b/app/ai-co-pilot/resolvers/co-pilot.resolver.ts
++++ b/apps/api/src/app/ai-co-pilot/resolvers/co-pilot.resolver.ts
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { ResponseGeneratorService } from '../services/response-generator.service';
 
 @Resolver()
 export class CoPilotResolver {
   constructor(private responseGenerator: ResponseGeneratorService) {}
-  
+
   @Query(() => [ResponseSuggestion])
   async generateResponses(
+    @Args('teamId') teamId: string,
     @Args('phoneNumber') phoneNumber: string,
     @Args('message') message: string,
     @Args('conversationId') conversationId: string
   ) {
-    const history = await this.getConversationHistory(conversationId);
-    return this.responseGenerator.generateResponses(phoneNumber, message, history);
+    const history = await this.getConversationHistory(teamId, conversationId);
+    return this.responseGenerator.generateResponses(teamId, phoneNumber, message, history);
   }
-  
+
   @Mutation(() => Boolean)
-  async acceptSuggestion(@Args('suggestionId') suggestionId: string) {
-    // Track accepted suggestions for learning
-    return await this.trackAcceptance(suggestionId);
+  async acceptSuggestion(@Args('teamId') teamId: string, @Args('suggestionId') suggestionId: string) {
+    // Track accepted suggestions for learning with teamId isolation
+    return await this.trackAcceptance(teamId, suggestionId);
   }
-  
-  private async getConversationHistory(conversationId: string) {
-    // Get recent messages from inbox service
-    return await this.inboxService.getConversationHistory(conversationId);
+
+  private async getConversationHistory(teamId: string, conversationId: string) {
+    // Get recent messages from inbox service with teamId filtering
+    return await this.inboxService.getConversationHistory(teamId, conversationId);
   }
 }
 ```
 
 ### 4. Integrate with Inbound Processing
-Update `app/inbox/services/inbox.service.ts`:
+Update `apps/api/src/app/inbox/services/inbox.service.ts`:
 
 ```typescript
---- a/app/inbox/services/inbox.service.ts
-+++ b/app/inbox/services/inbox.service.ts
-  async processInboundMessage(message: InboundMessage) {
+--- a/apps/api/src/app/inbox/services/inbox.service.ts
++++ b/apps/api/src/app/inbox/services/inbox.service.ts
+  async processInboundMessage(teamId: string, message: InboundMessage) {
     // Existing processing logic...
-    
-    // Add co-pilot response generation
-    if (this.shouldGenerateSuggestions(message)) {
+
+    // Add co-pilot response generation with teamId isolation
+    if (this.shouldGenerateSuggestions(teamId, message)) {
       const suggestions = await this.responseGenerator.generateResponses(
+        teamId,
         message.phoneNumber,
         message.content,
         message.conversationHistory
       );
-      
+
       // Store suggestions for real-time delivery
-      await this.storeSuggestions(message.id, suggestions);
+      await this.storeSuggestions(teamId, message.id, suggestions);
     }
   }
-  
-  private shouldGenerateSuggestions(message: InboundMessage): boolean {
-    // Check if co-pilot is enabled for this phone number
-    const config = await this.signalhouse.getPhoneConfig(message.phoneNumber);
+
+  private shouldGenerateSuggestions(teamId: string, message: InboundMessage): boolean {
+    // Check if co-pilot is enabled for this phone number with teamId filtering
+    const config = await this.signalhouse.getPhoneConfig(teamId, message.phoneNumber);
     return config.coPilotEnabled;
   }
 ```
 
 ## Dependencies
-- `ai-agent-lifecycle-management` - For AI agent coordination
-- `signalhouse-number-mapping-manager` - For phone number configuration
-- `inbound-response-handler` - For message processing integration
-- `inbox` - For conversation history access
+
+### Prerequisite Skills
+- ai-agent-lifecycle-management - For AI orchestrator management
+- workflow-orchestration-engine - For response workflow coordination
+
+### Existing Services Used
+- apps/api/src/app/ai-orchestrator/ - AI processing and response generation
+- apps/api/src/app/inbox/services/sabrina-sdr.service.ts - SDR integration
+- apps/api/src/lib/signalhouse/signalhouse.service.ts - SMS handling infrastructure
+- apps/api/src/app/inbox/services/inbox.service.ts - Message processing framework
+
+### External APIs Required
+- OpenAI API ($0.002/1K tokens) - For AI response generation
 
 ## Testing
 - Unit tests for response generation logic

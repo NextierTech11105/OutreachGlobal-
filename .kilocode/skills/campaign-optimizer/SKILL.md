@@ -115,7 +115,7 @@ const campaignHealth = {
 **Progressive filtering:**
 ```
 Raw Leads (10000)
-  ↓ Enrichment (Apollo.io)
+  ↓ Enrichment (LUCI)
 Qualified Leads (3000)
   ↓ AI Scoring
 High-Priority (500)

@@ -89,7 +89,9 @@ export class CopilotService {
 
   private isConfirmation(message: string): boolean {
     const lower = message.toLowerCase().trim();
-    return ["yes", "y", "confirm", "proceed", "ok", "go", "do it"].includes(lower);
+    return ["yes", "y", "confirm", "proceed", "ok", "go", "do it"].includes(
+      lower,
+    );
   }
 
   private async executePendingAction(
@@ -155,22 +157,25 @@ export class CopilotService {
     }
 
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openaiKey}`,
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...context.messages,
+            ],
+            tools: tools.map((t) => ({ type: "function", function: t })),
+            tool_choice: "auto",
+          }),
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...context.messages,
-          ],
-          tools: tools.map(t => ({ type: "function", function: t })),
-          tool_choice: "auto",
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -222,7 +227,7 @@ export class CopilotService {
           response: this.formatToolPreview(toolName, args, results),
           requiresConfirmation: true,
           pendingAction: toolName,
-          toolCalls: results.map(r => ({ name: r.tool, result: r.data })),
+          toolCalls: results.map((r) => ({ name: r.tool, result: r.data })),
         };
       }
     }
@@ -231,7 +236,7 @@ export class CopilotService {
     return {
       response: this.formatToolResults(results),
       requiresConfirmation: false,
-      toolCalls: results.map(r => ({ name: r.tool, result: r.data })),
+      toolCalls: results.map((r) => ({ name: r.tool, result: r.data })),
     };
   }
 
@@ -307,7 +312,8 @@ export class CopilotService {
     context: ConversationContext,
     teamId: string,
   ): Promise<Omit<ChatResponse, "conversationId">> {
-    const lastMessage = context.messages[context.messages.length - 1].content.toLowerCase();
+    const lastMessage =
+      context.messages[context.messages.length - 1].content.toLowerCase();
 
     // Simple pattern matching
     if (lastMessage.includes("realtor") || lastMessage.includes("florida")) {
