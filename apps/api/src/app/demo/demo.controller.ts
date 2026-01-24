@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBody, ApiQuery } from "@nestjs/swagger";
 import { DemoService, DemoLead, SmsPreview, SmsBatchResult, ConversationResult } from "./demo.service";
+import { TemplateService, TemplateCreate } from "./template.service";
 
 /**
  * DEMO CONTROLLER - Full Demo-Ready SMS Platform
@@ -33,7 +34,10 @@ import { DemoService, DemoLead, SmsPreview, SmsBatchResult, ConversationResult }
 export class DemoController {
   private readonly logger = new Logger(DemoController.name);
 
-  constructor(private readonly demoService: DemoService) {}
+  constructor(
+    private readonly demoService: DemoService,
+    private readonly templateService: TemplateService,
+  ) {}
 
   // ===========================================================================
   // LEAD GENERATION & IMPORT
@@ -427,8 +431,61 @@ export class DemoController {
         "sms_batch_execution",
         "conversational_auto_response",
         "stratton_oakmont_templates",
+        "response_templates",
       ],
       timestamp: new Date().toISOString(),
     };
+  }
+
+  // ===========================================================================
+  // RESPONSE TEMPLATES
+  // ===========================================================================
+
+  @Post("templates/create")
+  @ApiOperation({ summary: "Create a response template" })
+  async createTemplate(@Body() body: TemplateCreate) {
+    return this.templateService.create(body);
+  }
+
+  @Get("templates/list")
+  @ApiOperation({ summary: "Get all templates for a team" })
+  @ApiQuery({ name: "teamId", required: true })
+  @ApiQuery({ name: "agentType", required: false })
+  @ApiQuery({ name: "category", required: false })
+  async listTemplates(
+    @Query("teamId") teamId: string,
+    @Query("agentType") agentType?: string,
+    @Query("category") category?: string,
+  ) {
+    return this.templateService.getByTeam(teamId, agentType, category);
+  }
+
+  @Post("templates/update/:id")
+  @ApiOperation({ summary: "Update a template" })
+  async updateTemplate(
+    @Query("id") id: string,
+    @Body() body: { name?: string; template?: string; isActive?: boolean; priority?: number },
+  ) {
+    return this.templateService.update(id, body);
+  }
+
+  @Post("templates/toggle/:id")
+  @ApiOperation({ summary: "Toggle template active status" })
+  async toggleTemplate(@Query("id") id: string) {
+    return this.templateService.toggle(id);
+  }
+
+  @Post("templates/delete/:id")
+  @ApiOperation({ summary: "Delete a template" })
+  async deleteTemplate(@Query("id") id: string) {
+    await this.templateService.delete(id);
+    return { success: true };
+  }
+
+  @Post("templates/seed")
+  @ApiOperation({ summary: "Seed default templates for a team" })
+  async seedTemplates(@Body() body: { teamId: string }) {
+    const count = await this.templateService.seedDefaults(body.teamId);
+    return { seeded: count };
   }
 }

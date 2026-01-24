@@ -10,6 +10,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { DemoService } from "./demo.service";
 import { DemoController } from "./demo.controller";
 import { DemoConsumer } from "./demo.consumer";
+import { TemplateService } from "./template.service";
 
 export const DEMO_QUEUE = "demo-sms";
 
@@ -26,7 +27,7 @@ export const DEMO_QUEUE = "demo-sms";
       name: DEMO_QUEUE,
     }),
   ],
-  providers: [DemoService, DemoConsumer],
+  providers: [DemoService, DemoConsumer, TemplateService],
   controllers: [DemoController],
   exports: [DemoService],
 })
