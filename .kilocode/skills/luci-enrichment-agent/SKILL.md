@@ -11,22 +11,120 @@ LUCI (Lead Utility & Contact Intelligence) is NEXTIER's core data enrichment eng
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         LUCI ORCHESTRATION                          │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐     │
-│  │   RAW    │───▶│  TRACED  │───▶│  SCORED  │───▶│  READY   │     │
-│  │  Import  │    │ SkipTrace│    │  Trestle │    │ Campaign │     │
-│  └──────────┘    └──────────┘    └──────────┘    └──────────┘     │
-│       │               │               │               │            │
-│       ▼               ▼               ▼               ▼            │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐     │
-│  │ CSV/API  │    │ Tracerfy │    │  Phone   │    │ SignalHouse   │
-│  │  Ingest  │    │   API    │    │ Scoring  │    │   SMS    │     │
-│  └──────────┘    └──────────┘    └──────────┘    └──────────┘     │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           LUCI ORCHESTRATION                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────┐    ┌──────────────┐    ┌────────────────┐    ┌──────────┐    │
+│  │   RAW    │───▶│   TRACERFY   │───▶│ TRESTLE REAL   │───▶│  READY   │    │
+│  │  Import  │    │  FIRST ($0.02)│    │ CONTACT ($0.03)│    │ Campaign │    │
+│  └──────────┘    └──────────────┘    └────────────────┘    └──────────┘    │
+│       │                 │                    │                   │          │
+│       ▼                 ▼                    ▼                   ▼          │
+│  ┌──────────┐    ┌──────────────┐    ┌────────────────┐    ┌──────────┐    │
+│  │USBizData │    │ Skip Trace   │    │ Name Verify    │    │SignalHouse│   │
+│  │ Apollo.io│    │ Get Phones   │    │ Activity Score │    │   SMS     │   │
+│  │ CSV/API  │    │ Find Mobiles │    │ SMS-Ready Flag │    │ Outreach  │   │
+│  └──────────┘    └──────────────┘    └────────────────┘    └──────────┘    │
+│                         │                                                   │
+│                         ▼                                                   │
+│               ┌──────────────────┐                                          │
+│               │ HAS MOBILE?      │                                          │
+│               │ Yes → Skip       │                                          │
+│               │ No  → Tracerfy   │                                          │
+│               └──────────────────┘                                          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Smart Enrichment Flow
+
+```
+Lead Arrives
+     │
+     ▼
+┌─────────────────────┐
+│ Has Mobile Already? │
+└─────────────────────┘
+     │
+     ├── YES ──▶ CHOOSE YOUR LEVEL:
+     │              │
+     │              ├── BASIC: Phone Validation ($0.015)
+     │              │          └── Scoring + Line Type
+     │              │
+     │              └── PREMIUM: Real Contact ($0.03) ⭐ THE BEST
+     │                          └── Name Verify + Activity Score + Full Intel
+     │
+     └── NO ───▶ Tracerfy FIRST ($0.02)
+                        │
+                        └── Then Real Contact ($0.03)
+                                    │
+                                    └── Total: $0.05 All-In
+```
+
+### Pricing Tiers — $0.05 NET COST
+
+| Scenario | Service | Net Cost | What You Get |
+| -------- | ------- | -------- | ------------ |
+| **No mobile** | Tracerfy + Real Contact | **$0.05** | Full discovery + verification |
+| **Has mobile (basic)** | Phone Validation only | $0.015 | Line type, scoring, carrier |
+| **Has mobile (premium)** | Real Contact | $0.03 | Name match, activity score, SMS-ready |
+
+**$0.05 is our NET COST** for full premium enrichment (Tracerfy $0.02 + Trestle Real Contact $0.03).
+
+### Business Model — Markup Potential
+
+| Cost Type | Amount | Notes |
+| --------- | ------ | ----- |
+| **Net Cost** | $0.05 | Our wholesale cost |
+| **Customer Price** | $0.15 - $0.30 | Retail markup |
+| **Margin** | 200% - 500% | Per enriched lead |
+
+```text
+Example: 10,000 leads enriched
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Net Cost:     10,000 × $0.05 = $500
+Revenue:      10,000 × $0.20 = $2,000  (at $0.20/lead)
+Gross Profit: $1,500 (300% margin)
+```
+
+### Strategic Use Cases
+
+| Strategy | Description | Value |
+| -------- | ----------- | ----- |
+| **Markup** | Charge $0.15-$0.30/lead | 200-500% margin |
+| **Leverage** | Give away as value-add | Customer acquisition |
+| **Bundled** | Include in subscription | Increase perceived value |
+
+**Low cost = Strategic flexibility.** Use enrichment as a profit center OR as leverage to attract/retain customers.
+
+## Data Sources
+
+### US BizData Import
+Primary B2B lead source for business data:
+- **Location**: `apps/front/src/lib/data/usbizdata-registry.ts`
+- **API Routes**: `apps/front/src/app/api/enrichment/usbiz-skip-trace/route.ts`
+- **Fields**: Company name, address, SIC codes, employee count, revenue
+- **Import**: CSV upload or API batch import
+
+### Apollo.io Integration
+Executive and company enrichment:
+- **Service**: `apps/api/src/app/enrichment/services/apollo-enrichment.service.ts`
+- **API Routes**: `apps/front/src/app/api/apollo/` (search, enrich, bulk-enrich)
+- **Features**:
+  - Company enrichment (website, revenue, employees, SIC/NAICS)
+  - Executive search (owners, founders, C-suite, VPs, directors)
+  - Persona creation with emails and phone numbers
+  - Auto-queues to SkipTrace for additional data
+
+```typescript
+// Apollo enrichment flow
+const result = await apolloEnrichmentService.enrichBusiness({
+  teamId: 'team_xxx',
+  businessId: 'business_yyy',
+  domain: 'example.com',
+});
+// Returns: { executivesFound: 5, personasCreated: 5 }
 ```
 
 ## Core Components
@@ -62,19 +160,71 @@ interface TracerfyCompanyRequest {
 }
 ```
 
-### 3. TrestleClient (`clients/trestle.client.ts`)
-Phone validation and scoring:
-- **Cost**: $0.03/phone
-- **Returns**: Grade A-F, line type, carrier info
-- **Grades**: A (best) → F (invalid)
+### 3. TrestleClient (`clients/trestle.client.ts`) — THE BEST FOR ENRICHMENT
+
+Trestle Real Contact API is **the premier enrichment endpoint** for deep contact intelligence:
+
+#### Real Contact Endpoint (Recommended)
+- **Cost**: $0.03/contact
+- **What You Get**:
+  - ✅ **Name Verification** — Confirms contact identity
+  - ✅ **All Phone Numbers** — Mobile, landline, VoIP with line types
+  - ✅ **Mobile Prioritization** — SMS-ready numbers flagged first
+  - ✅ **Activity Score** — 0-100 contactability rating (100 = highly active)
+  - ✅ **Contact Grade** — A-F quality tier for prioritization
+  - ✅ **SMS-Ready Flag** — Instant mobile qualification
 
 ```typescript
-interface TrestleScoreResult {
-  phone: string;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  lineType: 'mobile' | 'landline' | 'voip' | 'unknown';
-  carrier: string;
-  valid: boolean;
+interface TrestleRealContactResult {
+  // Identity Verification
+  nameMatch: boolean;           // Does name match phone owner?
+
+  // Phone Intelligence
+  phones: Array<{
+    number: string;
+    lineType: 'mobile' | 'landline' | 'voip';
+    carrier: string;
+    isSmsCapable: boolean;      // Can receive SMS?
+  }>;
+
+  // Contactability Scoring
+  activityScore: number;        // 0-100 (100 = most contactable)
+  contactGrade: 'A' | 'B' | 'C' | 'D' | 'F';
+
+  // SMS Qualification
+  bestMobile: string | null;    // Top mobile number for outreach
+  smsReady: boolean;            // Has verified mobile + good score
+}
+```
+
+#### Why Real Contact is THE BEST
+| Feature | Basic Phone Validation | Real Contact |
+|---------|------------------------|--------------|
+| Phone valid? | ✅ | ✅ |
+| Line type | ✅ | ✅ |
+| Name verification | ❌ | ✅ |
+| Activity scoring | ❌ | ✅ (0-100) |
+| Multiple phones | ❌ | ✅ |
+| SMS-ready flag | ❌ | ✅ |
+| Contact grading | Basic | A-F with scoring |
+
+#### Usage Pattern
+```typescript
+// Deep enrichment with Real Contact
+const result = await trestleClient.scoreContact({
+  firstName: lead.firstName,
+  lastName: lead.lastName,
+  phone: lead.phone,
+  address: lead.address,
+});
+
+// Prioritize by activity score
+if (result.activityScore >= 70 && result.smsReady) {
+  // TIER 1: Immediate SMS outreach
+  await pushToCampaign(lead, result.bestMobile);
+} else if (result.contactGrade <= 'B') {
+  // TIER 2: Same-day outreach
+  await queueForOutreach(lead);
 }
 ```
 
@@ -194,7 +344,20 @@ LUCI uses BullMQ for async processing:
 | `luci:score_contacts` | Trestle phone validation | 5 |
 | `luci:enrich_selected` | Selective re-enrichment | 2 |
 
-## Cost Calculations
+## Cost Calculations — $0.05 All-In Premium Enrichment
+
+NextTier has **FLEXIBLE AND VERY HIGH STANDARDS** for enrichment when it comes to **CONTACTABILITY** and **VERIFICATION**. Trestle enables this at scale.
+
+### Premium Enrichment Stack Pricing
+
+| Service | Cost | What You Get |
+|---------|------|--------------|
+| **Tracerfy Skip Trace** | $0.02/lead | Phone numbers, emails, addresses |
+| **Trestle Real Contact** | $0.03/contact | Name verification, activity scoring, SMS-ready qualification |
+| **Total "All-In"** | **$0.05/lead** | Complete contactability verification |
+| **Apollo.io** | Per-plan | Executive search, company enrichment |
+
+### Cost Calculator
 
 ```typescript
 function calculateEnrichmentCost(block: Block): CostEstimate {
@@ -202,17 +365,39 @@ function calculateEnrichmentCost(block: Block): CostEstimate {
   const companyLeads = block.leads.filter(l => !l.firstName && l.company);
 
   return {
+    // Step 1: Skip Trace (Tracerfy)
     skipTrace: {
-      person: personLeads.length * 0.02,
-      company: companyLeads.length * 0.15,
+      person: personLeads.length * 0.02,      // $0.02/person
+      company: companyLeads.length * 0.15,    // $0.15/company
     },
-    validation: block.leads.length * 0.03,
+
+    // Step 2: Real Contact Verification (Trestle) - THE BEST
+    realContact: block.leads.length * 0.03,   // $0.03/contact
+
+    // All-In Total
+    allInPerLead: 0.05,  // Tracerfy ($0.02) + Trestle ($0.03)
+
     total: (personLeads.length * 0.02) +
            (companyLeads.length * 0.15) +
            (block.leads.length * 0.03),
   };
 }
+
+// Example: 10,000 person leads
+// Skip Trace: 10,000 × $0.02 = $200
+// Real Contact: 10,000 × $0.03 = $300
+// Total: $500 for fully verified, SMS-ready leads
 ```
+
+### Why $0.05 All-In is Worth It
+
+| Without Real Contact | With Real Contact ($0.05 All-In) |
+|----------------------|----------------------------------|
+| Phone might be valid | Phone verified + owner confirmed |
+| Unknown contactability | Activity score 0-100 |
+| Unknown line type | Mobile/Landline/VoIP identified |
+| Wasted SMS on dead numbers | SMS only to verified mobiles |
+| Low conversion rates | Higher ROI from quality contacts |
 
 ## Integration with Other Agents
 

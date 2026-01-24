@@ -54,6 +54,7 @@ import { CopilotModule } from "./copilot/copilot.module";
 import { GiannaModule } from "./gianna/gianna.module";
 import { NevaModule } from "./neva/neva.module";
 import { CathyModule } from "./cathy/cathy.module";
+import { DemoModule } from "./demo/demo.module";
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { CathyModule } from "./cathy/cathy.module";
     GiannaModule,
     NevaModule,
     CathyModule,
+    DemoModule,
   ],
   providers: [
     AppRunner,
