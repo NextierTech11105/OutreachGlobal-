@@ -51,6 +51,7 @@ import { LuciModule } from "./luci/luci.module";
 import { AiCoPilotModule } from "./ai-co-pilot/ai-co-pilot.module";
 import { RawDataLakeModule } from "./raw-data-lake/raw-data-lake.module";
 import { CopilotModule } from "./copilot/copilot.module";
+import { GiannaModule } from "./gianna/gianna.module";
 
 @Module({
   imports: [
@@ -110,6 +111,7 @@ import { CopilotModule } from "./copilot/copilot.module";
     AiCoPilotModule,
     RawDataLakeModule,
     CopilotModule,
+    GiannaModule,
   ],
   providers: [
     AppRunner,
