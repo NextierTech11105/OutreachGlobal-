@@ -7,6 +7,7 @@ import {
   messagesTable,
   workerPhoneAssignmentsTable,
 } from "@/database/schema-alias";
+import { MessageDirection } from "@nextier/common";
 
 /**
  * AGENT ROUTER SERVICE
@@ -73,18 +74,18 @@ export class AgentRouterService {
 
     // SECOND: Find the last outbound message to this lead
     const lastOutbound = await this.getLastOutboundMessage(leadId);
-    if (lastOutbound?.fromPhone) {
+    if (lastOutbound?.fromAddress) {
       const agentFromLastMessage = await this.getAgentFromPhone(
         teamId,
-        lastOutbound.fromPhone,
+        lastOutbound.fromAddress,
       );
       if (agentFromLastMessage) {
         this.logger.log(
-          `Routing to ${agentFromLastMessage.toUpperCase()} - sent last outbound from: ${lastOutbound.fromPhone}`,
+          `Routing to ${agentFromLastMessage.toUpperCase()} - sent last outbound from: ${lastOutbound.fromAddress}`,
         );
         return {
           agent: agentFromLastMessage,
-          agentPhone: lastOutbound.fromPhone,
+          agentPhone: lastOutbound.fromAddress,
           reason: `Conversation continuity - ${agentFromLastMessage.toUpperCase()} sent last message`,
         };
       }
@@ -164,17 +165,17 @@ export class AgentRouterService {
    */
   private async getLastOutboundMessage(
     leadId: string,
-  ): Promise<{ fromPhone: string } | undefined> {
+  ): Promise<{ fromAddress: string } | undefined> {
     const lastOutbound = await this.db.query.messages.findFirst({
       where: and(
         eq(messagesTable.leadId, leadId),
-        eq(messagesTable.direction, "outbound"),
+        eq(messagesTable.direction, MessageDirection.OUTBOUND),
       ),
       orderBy: [desc(messagesTable.createdAt)],
     });
 
-    if (lastOutbound?.fromPhone) {
-      return { fromPhone: lastOutbound.fromPhone };
+    if (lastOutbound?.fromAddress) {
+      return { fromAddress: lastOutbound.fromAddress };
     }
 
     return undefined;
@@ -200,10 +201,10 @@ export class AgentRouterService {
     });
 
     // Analyze conversation
-    const lastInbound = messages.find((m) => m.direction === "inbound");
+    const lastInbound = messages.find((m) => m.direction === MessageDirection.INBOUND);
     const schedulingKeywords = /\b(schedule|meet|call|time|when|calendar|appointment|available)\b/i;
     const hasSchedulingIntent = messages.some(
-      (m) => m.direction === "inbound" && schedulingKeywords.test(m.body || ""),
+      (m) => m.direction === MessageDirection.INBOUND && schedulingKeywords.test(m.body || ""),
     );
 
     return {

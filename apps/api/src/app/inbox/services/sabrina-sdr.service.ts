@@ -348,6 +348,7 @@ export class SabrinaSdrService {
         teamId: "system", // Will be overridden by actual team context
         traceId: uuid(),
         userId: assignment.sdrId,
+        channel: "sms" as const,
       };
 
       const result = await this.aiOrchestrator.generateSmsResponse(context, {
