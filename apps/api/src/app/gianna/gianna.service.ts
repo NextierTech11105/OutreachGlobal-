@@ -10,7 +10,7 @@ import {
   campaignsTable,
 } from "@/database/schema-alias";
 import { MessageDirection, MessageType } from "@nextier/common";
-import { GIANNA_QUEUE } from "./gianna.module";
+import { GIANNA_QUEUE } from "./gianna.constants";
 import { AiOrchestratorService } from "../ai-orchestrator/ai-orchestrator.service";
 import { v4 as uuid } from "uuid";
 

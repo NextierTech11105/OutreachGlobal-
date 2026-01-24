@@ -7,7 +7,7 @@ import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { messagesTable } from "@/database/schema-alias";
 import { MessageDirection, MessageType } from "@nextier/common";
-import { GIANNA_QUEUE } from "./gianna.module";
+import { GIANNA_QUEUE } from "./gianna.constants";
 
 /**
  * GIANNA CONSUMER - Processes GIANNA Queue Jobs

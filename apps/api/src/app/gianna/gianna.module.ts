@@ -8,8 +8,9 @@ import { GiannaController } from "./gianna.controller";
 import { GiannaConsumer } from "./gianna.consumer";
 import { BullModule } from "@nestjs/bullmq";
 import { ConfigModule } from "@nestjs/config";
+import { GIANNA_QUEUE } from "./gianna.constants";
 
-export const GIANNA_QUEUE = "gianna";
+export { GIANNA_QUEUE };
 
 @CustomModule({
   imports: [
