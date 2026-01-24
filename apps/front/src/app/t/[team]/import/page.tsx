@@ -207,62 +207,44 @@ export default function ImportPage() {
     }, 500);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Read CSV file as text
+      const csvContent = await file.text();
 
-      // Use SMS pipeline or standard import
-      if (smsPipeline) {
-        formData.append("name", `${vertical} - ${file.name}`);
-        formData.append("config", JSON.stringify({
-          blockSize: 2000,
-          minGrade: "B",
-          minActivityScore: 70,
-          requireMobile: true,
-          requireNameMatch: true,
-          blockLitigators: true,
-        }));
+      // Call the BACKEND API directly (raw-data-lake module)
+      // This uses the correct schema and inserts into the right tables
+      const response = await fetch("/api/raw-data-lake/import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          csvContent,
+          vertical: vertical.toLowerCase(),
+          sourceTag: "csv_import",
+          fileName: file.name,
+        }),
+      });
 
-        const response = await fetch("/api/pipeline/data-to-sms", {
-          method: "POST",
-          body: formData,
+      const data = await response.json();
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      if (data.success) {
+        setResult({
+          success: true,
+          message: data.message,
+          stats: {
+            totalRows: data.stats?.imported || 0,
+            inserted: data.stats?.imported || 0,
+            errors: data.stats?.errors || 0,
+            duplicates: data.stats?.skipped || 0,
+          },
         });
-
-        const data = await response.json();
-
-        clearInterval(progressInterval);
-        setProgress(100);
-
-        if (data.success) {
-          setPipelineResult(data);
-          setStep("complete");
-        } else {
-          setError(data.error || "Pipeline processing failed");
-          setStep("configure");
-        }
+        setStep("complete");
       } else {
-        // Standard import
-        formData.append("type", importType);
-        formData.append("vertical", vertical);
-        formData.append("autoEnrich", String(autoEnrich));
-        formData.append("batchSize", batchSize);
-
-        const response = await fetch("/api/datalake/import", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        clearInterval(progressInterval);
-        setProgress(100);
-
-        if (data.success) {
-          setResult(data);
-          setStep("complete");
-        } else {
-          setError(data.error || "Import failed");
-          setStep("configure");
-        }
+        setError(data.error || data.message || "Import failed");
+        setStep("configure");
       }
     } catch (err) {
       clearInterval(progressInterval);
