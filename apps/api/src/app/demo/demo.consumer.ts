@@ -2,12 +2,13 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { ConfigService } from "@nestjs/config";
+import { SignalHouseService } from "@/lib/signalhouse/signalhouse.service";
 import { DEMO_QUEUE } from "./demo.module";
 
 /**
  * DEMO CONSUMER - Processes SMS sending jobs
  *
- * Handles the actual SMS delivery via SignalHouse API
+ * Uses the SignalHouse service for actual SMS delivery
  */
 
 interface SendSmsJob {
@@ -23,62 +24,46 @@ interface SendSmsJob {
 @Processor(DEMO_QUEUE)
 export class DemoConsumer extends WorkerHost {
   private readonly logger = new Logger(DemoConsumer.name);
-  private readonly signalhouseApiKey: string;
-  private readonly signalhouseApiUrl: string;
+  private readonly defaultCampaignId: string;
 
-  constructor(private config: ConfigService) {
+  constructor(
+    private config: ConfigService,
+    private signalHouse: SignalHouseService,
+  ) {
     super();
-    this.signalhouseApiKey = this.config.get("SIGNALHOUSE_API_KEY") || "";
-    this.signalhouseApiUrl = this.config.get("SIGNALHOUSE_API_URL") || "https://api.signalhouse.io/v1";
+    this.defaultCampaignId = this.config.get("SIGNALHOUSE_CAMPAIGN_ID") || "";
   }
 
   async process(job: Job<SendSmsJob>): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const { teamId, leadId, toPhone, fromPhone, message, batchId } = job.data;
+    const { toPhone, fromPhone, message, campaignId, batchId } = job.data;
 
     this.logger.log(`[DEMO] Processing SMS job ${job.id} - to: ${toPhone}, batch: ${batchId || "none"}`);
 
     try {
-      // Check if we have API credentials
-      if (!this.signalhouseApiKey) {
-        this.logger.warn(`[DEMO] No SignalHouse API key - simulating send`);
-        // Simulate success for demo purposes
-        await this.simulateSend(toPhone, message);
-        return { success: true, messageId: `sim_${Date.now()}` };
-      }
-
-      // Real SignalHouse API call
-      const response = await fetch(`${this.signalhouseApiUrl}/messages/send`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.signalhouseApiKey}`,
-        },
-        body: JSON.stringify({
-          to: this.formatPhone(toPhone),
-          from: this.formatPhone(fromPhone),
-          body: message,
-          metadata: {
-            teamId,
-            leadId,
-            batchId,
-            source: "demo_platform",
-          },
-        }),
+      // Use the SignalHouse service for actual delivery
+      const result = await this.signalHouse.sendSms({
+        to: this.formatPhone(toPhone),
+        from: this.formatPhone(fromPhone),
+        message,
+        campaignId: campaignId || this.defaultCampaignId,
       });
 
-      if (!response.ok) {
-        const error = await response.text();
-        this.logger.error(`[DEMO] SignalHouse error: ${error}`);
-        throw new Error(`SignalHouse API error: ${response.status}`);
+      if (result.success) {
+        this.logger.log(`[DEMO] SMS sent successfully: ${result.messageId}`);
+        return {
+          success: true,
+          messageId: result.messageId,
+        };
+      } else {
+        this.logger.error(`[DEMO] SMS send failed: ${result.error}`);
+
+        // For demo mode, we can still mark as "sent" to not block the flow
+        if (this.config.get("DEMO_MODE") === "true") {
+          return { success: true, messageId: `demo_${Date.now()}` };
+        }
+
+        return { success: false, error: result.error };
       }
-
-      const result = await response.json();
-      this.logger.log(`[DEMO] SMS sent successfully: ${result.messageId || result.id}`);
-
-      return {
-        success: true,
-        messageId: result.messageId || result.id,
-      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       this.logger.error(`[DEMO] SMS send failed: ${errorMsg}`);
@@ -101,11 +86,5 @@ export class DemoConsumer extends WorkerHost {
       return `+${digits}`;
     }
     return `+${digits}`;
-  }
-
-  private async simulateSend(toPhone: string, message: string): Promise<void> {
-    // Simulate network latency
-    await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
-    this.logger.debug(`[DEMO SIMULATE] Would send to ${toPhone}: "${message.substring(0, 50)}..."`);
   }
 }

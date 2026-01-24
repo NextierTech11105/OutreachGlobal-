@@ -77,20 +77,24 @@ export class DemoController {
   }
 
   @Post("leads/import-csv")
-  @ApiOperation({ summary: "Import leads from CSV data" })
+  @ApiOperation({ summary: "Import leads from CSV string" })
   @ApiBody({
     schema: {
       type: "object",
       properties: {
-        csvData: { type: "string", description: "Raw CSV string with headers" },
+        csvData: { type: "string", description: "Raw CSV string with headers (first_name,last_name,phone,company,city,state)" },
       },
       required: ["csvData"],
     },
   })
   async importCSV(@Body() body: { csvData: string }): Promise<{ leads: DemoLead[]; count: number }> {
+    if (!body.csvData) {
+      throw new HttpException("csvData is required", HttpStatus.BAD_REQUEST);
+    }
+
     const leads = this.demoService.parseCSVLeads(body.csvData);
 
-    this.logger.log(`[DEMO] Parsed ${leads.length} leads from CSV`);
+    this.logger.log(`[DEMO] Parsed ${leads.length} leads from CSV data`);
 
     return { leads, count: leads.length };
   }
