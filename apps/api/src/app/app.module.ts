@@ -53,6 +53,7 @@ import { RawDataLakeModule } from "./raw-data-lake/raw-data-lake.module";
 import { CopilotModule } from "./copilot/copilot.module";
 import { GiannaModule } from "./gianna/gianna.module";
 import { NevaModule } from "./neva/neva.module";
+import { CathyModule } from "./cathy/cathy.module";
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { NevaModule } from "./neva/neva.module";
     CopilotModule,
     GiannaModule,
     NevaModule,
+    CathyModule,
   ],
   providers: [
     AppRunner,
