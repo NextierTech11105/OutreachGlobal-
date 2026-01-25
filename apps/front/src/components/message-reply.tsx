@@ -140,19 +140,19 @@ Your Name`,
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Reply: {message.subject || "No Subject"}</CardTitle>
-          <div className="flex items-center gap-2">
+      <CardHeader className="p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg truncate">Reply: {message.subject || "No Subject"}</CardTitle>
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-1"
+                  className="h-8 flex items-center gap-1"
                 >
                   {getReplyTypeIcon()}
-                  <span>
+                  <span className="hidden sm:inline">
                     {replyType.charAt(0).toUpperCase() + replyType.slice(1)}
                   </span>
                   <ChevronDown className="h-4 w-4" />
@@ -174,24 +174,26 @@ Your Name`,
               variant="outline"
               size="sm"
               onClick={() => setShowTemplates(!showTemplates)}
-              className="flex items-center gap-1"
+              className="h-8 flex items-center gap-1"
+              title="Templates"
             >
               <FileText className="h-4 w-4" />
-              <span>Templates</span>
+              <span className="hidden sm:inline">Templates</span>
             </Button>
             <Button
               variant={useAI ? "default" : "outline-solid"}
               size="sm"
               onClick={handleGenerateAIResponse}
               disabled={isGenerating}
-              className="flex items-center gap-1"
+              className="h-8 flex items-center gap-1"
+              title="AI Assist"
             >
               <Sparkles className="h-4 w-4" />
-              <span>{isGenerating ? "Generating..." : "AI Assist"}</span>
+              <span className="hidden sm:inline">{isGenerating ? "Generating..." : "AI Assist"}</span>
             </Button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground truncate">
           To: {message.from} {message.email && `<${message.email}>`}{" "}
           {message.phone && `(${message.phone})`}
         </p>
@@ -247,13 +249,13 @@ Your Name`,
             <TabsContent value="compose">
               <Textarea
                 placeholder={`Type your ${replyType === "voice" ? "voice script" : "reply"} here...`}
-                className="min-h-[200px] font-mono text-sm"
+                className="min-h-[120px] sm:min-h-[200px] font-mono text-sm"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
               />
             </TabsContent>
             <TabsContent value="preview">
-              <div className="min-h-[200px] p-4 border rounded-md whitespace-pre-line">
+              <div className="min-h-[120px] sm:min-h-[200px] p-4 border rounded-md whitespace-pre-line text-sm">
                 {replyText || (
                   <span className="text-muted-foreground italic">
                     No content to preview
@@ -263,28 +265,30 @@ Your Name`,
             </TabsContent>
           </Tabs>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-muted-foreground">
             <div>
               {replyType === "sms" && (
-                <span>{replyText.length} / 160 characters</span>
+                <span className="text-xs sm:text-sm">{replyText.length} / 160 characters</span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center gap-1"
+                className="h-8 flex items-center gap-1"
+                title="Save Draft"
               >
                 <Save className="h-4 w-4" />
-                <span>Save Draft</span>
+                <span className="hidden sm:inline">Save Draft</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center gap-1"
+                className="h-8 flex items-center gap-1"
+                title="Schedule"
               >
                 <Clock className="h-4 w-4" />
-                <span>Schedule</span>
+                <span className="hidden sm:inline">Schedule</span>
               </Button>
             </div>
           </div>

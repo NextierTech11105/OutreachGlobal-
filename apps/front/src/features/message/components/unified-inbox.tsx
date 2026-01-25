@@ -20,6 +20,7 @@ import {
   Loader2,
   Send,
   Zap,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -38,6 +39,21 @@ import {
 } from "@/components/lead-research-panel";
 import { BulkSMSPanel } from "@/components/bulk-sms-panel";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CREDITS DISPLAY - Easify-style credit counter
+// ═══════════════════════════════════════════════════════════════════════════════
+function CreditsDisplay({ credits }: { credits: number }) {
+  return (
+    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-md">
+      <Coins className="w-4 h-4 text-amber-500" />
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-muted-foreground">Credits</span>
+        <span className="font-semibold text-sm text-amber-500">{credits.toLocaleString()}</span>
+      </div>
+    </div>
+  );
+}
+
 export function UnifiedInbox() {
   const router = useRouter();
   const { team } = useCurrentTeam();
@@ -47,6 +63,7 @@ export function UnifiedInbox() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [replyMode, setReplyMode] = useState(false);
   const [{ activeTab }, dispatch] = useInboxContext();
+  const [credits, setCredits] = useState(0);
 
   // NEVA Research state
   const [researchResult, setResearchResult] =
@@ -77,6 +94,24 @@ export function UnifiedInbox() {
       setShowSidebar(true);
     }
   }, [isMobile]);
+
+  // Load credits on mount
+  useEffect(() => {
+    const loadCredits = async () => {
+      try {
+        const res = await fetch("/api/billing/usage");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.credits) {
+            setCredits(data.credits);
+          }
+        }
+      } catch (error) {
+        // Keep default
+      }
+    };
+    loadCredits();
+  }, []);
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -429,61 +464,66 @@ export function UnifiedInbox() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
+            {/* Credits Display - Always visible */}
+            {credits > 0 && <CreditsDisplay credits={credits} />}
+
             {!selectedMessage && !showCompose && !showBulkSMS && (
               <>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1"
+                  className="h-8 w-8 md:w-auto md:gap-1 p-0 md:px-3"
                   onClick={() => setShowCompose(true)}
+                  title="Compose Email"
                 >
                   <PenSquare className="h-4 w-4" />
-                  Compose
+                  <span className="hidden md:inline">Compose</span>
                 </Button>
                 <Button
                   size="sm"
-                  className="h-8 gap-1 bg-blue-600 hover:bg-blue-700"
+                  className="h-8 w-8 md:w-auto md:gap-1 p-0 md:px-3 bg-blue-600 hover:bg-blue-700"
                   onClick={() => setShowBulkSMS(true)}
+                  title="Bulk SMS"
                 >
                   <Zap className="h-4 w-4" />
-                  Bulk SMS
+                  <span className="hidden md:inline">Bulk SMS</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1"
+                  className="h-8 w-8 md:w-auto md:gap-1 p-0 md:px-3 hidden sm:flex"
                   onClick={() =>
                     router.push(`/t/${team?.slug || ""}/appointments`)
                   }
+                  title="Calendar"
                 >
                   <Calendar className="h-4 w-4" />
-                  Calendar
+                  <span className="hidden md:inline">Calendar</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1"
+                  className="h-8 w-8 md:w-auto md:gap-1 p-0 md:px-3 hidden sm:flex"
                   onClick={() => router.push(`/t/${team?.slug || ""}/leads`)}
+                  title="Leads"
                 >
                   <Users className="h-4 w-4" />
-                  Leads
+                  <span className="hidden md:inline">Leads</span>
                 </Button>
               </>
             )}
             {!selectedMessage && !showCompose && !showBulkSMS && (
               <Button
                 size="sm"
-                className="h-8 gap-1 bg-green-600 hover:bg-green-700"
+                className="h-8 w-8 md:w-auto md:gap-1 p-0 md:px-3 bg-green-600 hover:bg-green-700"
                 onClick={() => {
-                  // Navigate to call center - if a message is selected, pass the phone
-                  const params = new URLSearchParams();
-                  // Could add selected message phone here if needed
                   router.push(`/t/${team?.slug || ""}/call-center`);
                 }}
+                title="Call Center"
               >
                 <Phone className="h-4 w-4" />
-                Call Center
+                <span className="hidden md:inline">Call Center</span>
               </Button>
             )}
             {selectedMessage && (
@@ -493,7 +533,7 @@ export function UnifiedInbox() {
                 onClick={() => handleQuickCall(selectedMessage)}
               >
                 <PhoneCall className="h-4 w-4" />
-                Quick Call
+                <span className="hidden sm:inline">Quick Call</span>
               </Button>
             )}
             <InboxToolbar
