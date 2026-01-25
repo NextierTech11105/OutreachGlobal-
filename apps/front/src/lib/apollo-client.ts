@@ -14,14 +14,17 @@ const httpLink = createHttpLink({
   uri: graphqlUrl,
 });
 
+// Cookie prefix - must match COOKIE_PREFIX in cookie-prefix.ts
+const COOKIE_PREFIX = "nextier_";
+
 // Auth link using setContext helper - reads from cookie (session) or API key
 const authLink = setContext((_, { headers }) => {
   if (typeof window === "undefined") {
     return { headers };
   }
 
-  // Check for JWT token first
-  const token = Cookies.get("session");
+  // Check for JWT token first - use prefixed cookie name
+  const token = Cookies.get(`${COOKIE_PREFIX}session`);
   if (token) {
     return {
       headers: {
