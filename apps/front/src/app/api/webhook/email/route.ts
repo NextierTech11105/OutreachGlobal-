@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, inboxItems, smsMessages } from "@/lib/db/schema";
+import { leads } from "@/lib/db/schema";
 import { eq, or, ilike } from "drizzle-orm";
 
 /**
@@ -151,34 +151,8 @@ export async function POST(request: NextRequest) {
     let leadId = lead?.id;
     let teamId = lead?.teamId;
 
-    // Log the email regardless of lead match
-    const inboxItemId = `inb_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-
     if (lead) {
-      // Create inbox item for this email
-      await db.insert(inboxItems).values({
-        id: inboxItemId,
-        teamId: lead.teamId,
-        leadId: lead.id,
-        channel: "email",
-        direction: "inbound",
-        content: body,
-        subject,
-        senderEmail: fromEmail,
-        recipientEmail: toEmail,
-        externalId: messageId,
-        threadId,
-        status: "unread",
-        priority: detectPriority(subject, body),
-        metadata: {
-          source: "email_webhook",
-          hasAttachments: payload.hasAttachments,
-          attachmentCount: payload.attachmentCount,
-        },
-        createdAt: new Date(timestamp),
-      } as any);
-
-      // Update lead's last contact
+      // Update lead's last contact and status
       await db
         .update(leads)
         .set({
@@ -188,11 +162,14 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(leads.id, lead.id));
 
-      console.log("[Email Webhook] Created inbox item for lead:", lead.id);
+      console.log("[Email Webhook] Updated lead:", lead.id, {
+        from: fromEmail,
+        subject,
+        priority: detectPriority(subject, body),
+      });
 
       // Schedule auto-reply (5 min delay for realism)
       // In production, this would go to a queue like BullMQ
-      // For now, we just log the intent
       console.log(`[Email Webhook] Auto-reply scheduled in ${AUTO_REPLY_DELAY_MS / 1000}s for lead:`, lead.id);
 
     } else {
@@ -201,10 +178,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: lead ? "Email logged to inbox" : "Email received (no matching lead)",
+      message: lead ? "Email logged - lead updated" : "Email received (no matching lead)",
       leadId,
       teamId,
-      inboxItemId: lead ? inboxItemId : null,
     });
 
   } catch (error) {
