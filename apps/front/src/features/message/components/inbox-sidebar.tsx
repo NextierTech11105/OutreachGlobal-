@@ -16,6 +16,15 @@ import {
   Plus,
   X,
   Pencil,
+  MessageSquare,
+  Clock,
+  CalendarClock,
+  Ban,
+  Star,
+  Bot,
+  Mail,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -313,12 +322,25 @@ export function InboxSidebar() {
     <>
       <ScrollArea className="h-full">
         <div className="space-y-1 pr-2">
+          {/* Primary Filters */}
           <div className="space-y-1">
             <SidebarItem
               icon={<Inbox className="h-4 w-4" />}
-              label="Inbox"
+              label="All Chats"
               active={activeItem === "inbox"}
               onClick={() => setActiveItem("inbox")}
+            />
+            <SidebarItem
+              icon={<Mail className="h-4 w-4" />}
+              label="Received"
+              active={activeItem === "received"}
+              onClick={() => setActiveItem("received")}
+            />
+            <SidebarItem
+              icon={<EyeOff className="h-4 w-4" />}
+              label="Unread"
+              active={activeItem === "unread"}
+              onClick={() => setActiveItem("unread")}
             />
             <SidebarItem
               icon={<Send className="h-4 w-4" />}
@@ -327,13 +349,41 @@ export function InboxSidebar() {
               onClick={() => setActiveItem("sent")}
             />
             <SidebarItem
+              icon={<CalendarClock className="h-4 w-4" />}
+              label="Scheduled"
+              active={activeItem === "scheduled"}
+              onClick={() => setActiveItem("scheduled")}
+            />
+            <SidebarItem
+              icon={<Ban className="h-4 w-4" />}
+              label="Blacklist"
+              active={activeItem === "blacklist"}
+              onClick={() => setActiveItem("blacklist")}
+            />
+            <SidebarItem
+              icon={<Star className="h-4 w-4" />}
+              label="Saved"
+              active={activeItem === "saved"}
+              onClick={() => setActiveItem("saved")}
+            />
+            <SidebarItem
+              icon={<Bot className="h-4 w-4" />}
+              label="AI Chats"
+              active={activeItem === "ai_chats"}
+              onClick={() => setActiveItem("ai_chats")}
+            />
+          </div>
+
+          {/* Standard Categories */}
+          <SidebarSection title="Categories">
+            <SidebarItem
               icon={<Archive className="h-4 w-4" />}
               label="Archived"
               active={activeItem === "archived"}
               onClick={() => setActiveItem("archived")}
             />
             <SidebarItem
-              icon={<Flag className="h-4 w-4" />}
+              icon={<Flag className="h-4 w-4 text-yellow-500" />}
               label="Flagged"
               active={activeItem === "flagged"}
               onClick={() => setActiveItem("flagged")}
@@ -344,7 +394,69 @@ export function InboxSidebar() {
               active={activeItem === "trash"}
               onClick={() => setActiveItem("trash")}
             />
-          </div>
+          </SidebarSection>
+
+          {/* Campaign Message Intent - Maps to Deal Pipeline */}
+          <SidebarSection title="Campaign Intent">
+            <SidebarItem
+              icon={<Tag className="h-4 w-4 text-blue-500" />}
+              label="Discovery"
+              active={activeItem === "intent_discovery"}
+              onClick={() => setActiveItem("intent_discovery")}
+            />
+            <SidebarItem
+              icon={<Tag className="h-4 w-4 text-purple-500" />}
+              label="Qualification"
+              active={activeItem === "intent_qualification"}
+              onClick={() => setActiveItem("intent_qualification")}
+            />
+            <SidebarItem
+              icon={<Tag className="h-4 w-4 text-orange-500" />}
+              label="Proposal"
+              active={activeItem === "intent_proposal"}
+              onClick={() => setActiveItem("intent_proposal")}
+            />
+            <SidebarItem
+              icon={<Tag className="h-4 w-4 text-pink-500" />}
+              label="Negotiation"
+              active={activeItem === "intent_negotiation"}
+              onClick={() => setActiveItem("intent_negotiation")}
+            />
+            <SidebarItem
+              icon={<Tag className="h-4 w-4 text-cyan-500" />}
+              label="Contract"
+              active={activeItem === "intent_contract"}
+              onClick={() => setActiveItem("intent_contract")}
+            />
+            <SidebarItem
+              icon={<Tag className="h-4 w-4 text-green-500" />}
+              label="Closing"
+              active={activeItem === "intent_closing"}
+              onClick={() => setActiveItem("intent_closing")}
+            />
+          </SidebarSection>
+
+          {/* Contact Made / No Contact - Contactability */}
+          <SidebarSection title="Contactability">
+            <SidebarItem
+              icon={<MessageSquare className="h-4 w-4 text-green-500" />}
+              label="Contact Made"
+              active={activeItem === "contact_made"}
+              onClick={() => setActiveItem("contact_made")}
+            />
+            <SidebarItem
+              icon={<Clock className="h-4 w-4 text-yellow-500" />}
+              label="No Contact - High Score"
+              active={activeItem === "no_contact_high"}
+              onClick={() => setActiveItem("no_contact_high")}
+            />
+            <SidebarItem
+              icon={<Clock className="h-4 w-4 text-orange-500" />}
+              label="No Contact - Nurture"
+              active={activeItem === "no_contact_nurture"}
+              onClick={() => setActiveItem("no_contact_nurture")}
+            />
+          </SidebarSection>
 
           <SidebarSection title="Labels">
             {labels.map((label) => (

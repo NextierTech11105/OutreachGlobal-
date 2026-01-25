@@ -24,7 +24,8 @@ LUCI (Lead Utility & Contact Intelligence) is NEXTIER's core data enrichment eng
 │  ┌──────────┐    ┌──────────────┐    ┌────────────────┐    ┌──────────┐    │
 │  │USBizData │    │ Skip Trace   │    │ Name Verify    │    │SignalHouse│   │
 │  │ Apollo.io│    │ Get Phones   │    │ Activity Score │    │   SMS     │   │
-│  │ CSV/API  │    │ Find Mobiles │    │ SMS-Ready Flag │    │ Outreach  │   │
+│  │ (NEEDS   │    │ Find Mobiles │    │ SMS-Ready Flag │    │ Outreach  │   │
+│  │ INTEGRATION)  │              │    │                │    │          │   │
 │  └──────────┘    └──────────────┘    └────────────────┘    └──────────┘    │
 │                         │                                                   │
 │                         ▼                                                   │
@@ -107,10 +108,10 @@ Primary B2B lead source for business data:
 - **Fields**: Company name, address, SIC codes, employee count, revenue
 - **Import**: CSV upload or API batch import
 
-### Apollo.io Integration
-Executive and company enrichment:
-- **Service**: `apps/api/src/app/enrichment/services/apollo-enrichment.service.ts`
-- **API Routes**: `apps/front/src/app/api/apollo/` (search, enrich, bulk-enrich)
+### Apollo.io Integration (NEEDS BACKEND IMPLEMENTATION)
+Executive and company enrichment (frontend config only, no backend client exists):
+- **Service**: `apps/api/src/app/enrichment/services/apollo-enrichment.service.ts` (TO BE CREATED)
+- **API Routes**: `apps/front/src/app/api/apollo/` (search, enrich, bulk-enrich) (TO BE CREATED)
 - **Features**:
   - Company enrichment (website, revenue, employees, SIC/NAICS)
   - Executive search (owners, founders, C-suite, VPs, directors)

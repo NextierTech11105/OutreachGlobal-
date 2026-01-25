@@ -1,6 +1,6 @@
 ---
 name: ai-agent-lifecycle-management
-description: Handles deployment, scaling, monitoring, and retirement of AI agents across tenants, ensuring proper resource allocation and version control
+description: Extends existing AI Orchestrator for deployment, scaling, monitoring, and retirement of AI agents across tenants, ensuring proper resource allocation and version control
 ---
 
 # AI Agent Lifecycle Management Instructions

@@ -28,7 +28,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { message, source, limit = 100, fromNumber } = body;
+    const {
+      message,
+      source,
+      limit = 100,
+      fromNumber,
+      label,
+      scheduledAt,
+      pushToHotQueue,
+      webhookUrl,
+    } = body;
 
     if (!message?.trim()) {
       return NextResponse.json(
@@ -105,9 +114,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process in batches
+    // Handle scheduled sends - queue for later instead of sending now
+    if (scheduledAt) {
+      const scheduledTime = new Date(scheduledAt);
+      if (scheduledTime < new Date()) {
+        return NextResponse.json(
+          { error: "Scheduled time must be in the future" },
+          { status: 400 }
+        );
+      }
+
+      // Queue all messages for scheduled delivery
+      const queuedMessages = await Promise.all(
+        targetLeads.map(async (lead) => {
+          const personalizedMessage = message
+            .replace(/{firstName}/gi, lead.firstName || "")
+            .replace(/{lastName}/gi, lead.lastName || "")
+            .replace(/{company}/gi, lead.company || "")
+            .replace(/{phone}/gi, lead.phone || "")
+            .trim();
+
+          return db.insert(smsMessages).values({
+            leadId: lead.id,
+            userId,
+            direction: "outbound",
+            fromNumber: from,
+            toNumber: lead.phone!,
+            body: personalizedMessage,
+            status: "scheduled",
+            provider: "signalhouse",
+            scheduledFor: scheduledTime,
+            sentAt: null,
+            metadata: {
+              bulk: true,
+              source,
+              label: label || "initial",
+              pushToHotQueue,
+              webhookUrl,
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        })
+      );
+
+      console.log(
+        `[Bulk SMS] Scheduled ${targetLeads.length} messages for ${scheduledTime.toISOString()} by ${userId}`
+      );
+
+      return NextResponse.json({
+        success: true,
+        total: targetLeads.length,
+        queued: targetLeads.length,
+        scheduledFor: scheduledAt,
+        label,
+        source,
+      });
+    }
+
+    // Process in batches (immediate send)
     let sent = 0;
     let failed = 0;
+    let hotLeadsCreated = 0;
     const results: { leadId: string; success: boolean; error?: string }[] = [];
 
     for (let i = 0; i < targetLeads.length; i += BATCH_SIZE) {
@@ -144,10 +212,27 @@ export async function POST(request: NextRequest) {
               providerMessageId: result.data?.messageId || null,
               sentAt: result.success ? new Date() : null,
               errorMessage: result.error || null,
-              metadata: { bulk: true, source },
+              metadata: {
+                bulk: true,
+                source,
+                label: label || "initial",
+                pushToHotQueue,
+                webhookUrl,
+              },
               createdAt: new Date(),
               updatedAt: new Date(),
             });
+
+            // Push to hot lead queue if enabled and send successful
+            if (result.success && pushToHotQueue) {
+              await db
+                .update(leads)
+                .set({
+                  status: "hot_lead",
+                  updatedAt: new Date(),
+                })
+                .where(eq(leads.id, lead.id));
+            }
 
             return { leadId: lead.id, success: result.success, error: result.error };
           } catch (error) {
@@ -165,6 +250,9 @@ export async function POST(request: NextRequest) {
         if (result.status === "fulfilled") {
           if (result.value.success) {
             sent++;
+            if (pushToHotQueue) {
+              hotLeadsCreated++;
+            }
           } else {
             failed++;
           }
@@ -186,7 +274,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Bulk SMS] Sent ${sent}/${targetLeads.length} messages (${failed} failed) by ${userId}`
+      `[Bulk SMS] Sent ${sent}/${targetLeads.length} messages (${failed} failed) by ${userId}` +
+        (hotLeadsCreated > 0 ? ` - ${hotLeadsCreated} hot leads created` : "")
     );
 
     return NextResponse.json({
@@ -195,6 +284,9 @@ export async function POST(request: NextRequest) {
       sent,
       failed,
       source,
+      label: label || "initial",
+      hotLeadsCreated: pushToHotQueue ? hotLeadsCreated : 0,
+      webhookConfigured: !!webhookUrl,
       results: results.slice(0, 10), // Return first 10 results for debugging
     });
   } catch (error) {

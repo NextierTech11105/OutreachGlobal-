@@ -272,7 +272,21 @@ export async function getSubscriptionSummary(userId: string) {
     orderBy: (usage, { desc }) => [desc(usage.periodStart)],
   });
 
+  // Calculate remaining credits (SMS credits as primary display)
+  const smsLimit = subscription.plan?.maxSmsPerMonth || 500;
+  const smsUsed = currentUsage?.smsSent || 0;
+  const smsRemaining = Math.max(0, smsLimit - smsUsed);
+
+  // Also track skip trace credits (Tracerfy integration)
+  const skipTraceLimit = subscription.plan?.maxSkipTraces || 50;
+  const skipTraceUsed = currentUsage?.skipTraces || 0;
+  const skipTraceRemaining = Math.max(0, skipTraceLimit - skipTraceUsed);
+
   return {
+    // Flat credits field for easy UI access (SMS credits)
+    credits: smsRemaining,
+    skipTraceCredits: skipTraceRemaining,
+
     subscription: {
       id: subscription.id,
       plan: subscription.plan?.name,
@@ -293,12 +307,14 @@ export async function getSubscriptionSummary(userId: string) {
             limit: subscription.plan?.maxPropertySearches || 500,
           },
           sms: {
-            used: currentUsage.smsSent || 0,
-            limit: subscription.plan?.maxSmsPerMonth || 500,
+            used: smsUsed,
+            limit: smsLimit,
+            remaining: smsRemaining,
           },
           skipTraces: {
-            used: currentUsage.skipTraces || 0,
-            limit: subscription.plan?.maxSkipTraces || 50,
+            used: skipTraceUsed,
+            limit: skipTraceLimit,
+            remaining: skipTraceRemaining,
           },
         }
       : null,

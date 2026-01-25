@@ -1,14 +1,15 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { KanbanSquare, List } from "lucide-react";
+import { KanbanSquare, List, LayoutGrid } from "lucide-react";
 import { useState } from "react";
 import { LeadsFilter } from "./lead-filters";
 import { LeadKanban } from "./lead-kanban";
 import { LeadTable } from "./lead-table";
+import { LeadCards } from "./lead-cards";
 
 export const LeadList = () => {
-  const [view, setView] = useState("kanban");
+  const [view, setView] = useState<"kanban" | "table" | "cards">("table");
   const [filters, setFilters] = useState<any>({});
 
   return (
@@ -18,24 +19,30 @@ export const LeadList = () => {
         <div className="flex items-center space-x-2">
           <Tabs
             value={view}
-            onValueChange={(v) => setView(v as "kanban" | "table")}
-            className="w-[400px]"
+            onValueChange={(v) => setView(v as "kanban" | "table" | "cards")}
+            className="w-auto"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="kanban" className="flex items-center gap-2">
-                <KanbanSquare className="h-4 w-4" />
-                <span>Kanban</span>
-              </TabsTrigger>
+            <TabsList>
               <TabsTrigger value="table" className="flex items-center gap-2">
                 <List className="h-4 w-4" />
-                <span>Table</span>
+                List
+              </TabsTrigger>
+              <TabsTrigger value="cards" className="flex items-center gap-2">
+                <LayoutGrid className="h-4 w-4" />
+                Cards
+              </TabsTrigger>
+              <TabsTrigger value="kanban" className="flex items-center gap-2">
+                <KanbanSquare className="h-4 w-4" />
+                Kanban
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
       </div>
 
-      {view === "kanban" ? <LeadKanban /> : <LeadTable />}
+      {view === "kanban" && <LeadKanban />}
+      {view === "table" && <LeadTable />}
+      {view === "cards" && <LeadCards />}
     </div>
   );
 };

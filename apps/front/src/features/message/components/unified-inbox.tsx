@@ -32,7 +32,7 @@ import { InboxMessages } from "./inbox-messages";
 import { InboxSidebar } from "./inbox-sidebar";
 import { useInboxContext } from "../inbox.context";
 import { MessageDetail } from "./message-detail";
-import { GmailEmailComposer } from "@/components/gmail-email-composer";
+import { UnifiedMessageComposer } from "@/components/unified-message-composer";
 import {
   LeadResearchPanel,
   type LeadResearchResult,
@@ -573,7 +573,8 @@ export function UnifiedInbox() {
               </div>
             ) : showCompose ? (
               <div className="max-w-2xl mx-auto">
-                <GmailEmailComposer
+                <UnifiedMessageComposer
+                  defaultChannel="sms"
                   onSent={() => setShowCompose(false)}
                   onCancel={() => setShowCompose(false)}
                 />
