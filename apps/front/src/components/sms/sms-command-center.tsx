@@ -228,17 +228,14 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
 
     setSending(true);
     try {
-      // Determine which worker to use based on active tab
-      const worker = activeWorker === "all" ? "gianna" : activeWorker;
-
-      const response = await fetch(`/api/${worker}/respond`, {
+      // Use the direct SMS send endpoint for free-form replies
+      const response = await fetch("/api/sms/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leadId: selectedConversation.leadId,
-          leadPhone: selectedConversation.leadPhone,
+          to: selectedConversation.leadPhone,
           message: replyText,
-          teamId,
+          leadId: selectedConversation.leadId,
         }),
       });
 
@@ -249,6 +246,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
         setReplyText("");
 
         // Add message to local state
+        const worker = activeWorker === "all" ? "manual" : activeWorker;
         setSelectedConversation((prev) =>
           prev
             ? {
@@ -256,7 +254,7 @@ export function SMSCommandCenter({ teamId }: SMSCommandCenterProps) {
                 messages: [
                   ...prev.messages,
                   {
-                    id: `temp_${Date.now()}`,
+                    id: data.dbMessageId || `temp_${Date.now()}`,
                     body: replyText,
                     direction: "OUTBOUND",
                     status: "SENT",
