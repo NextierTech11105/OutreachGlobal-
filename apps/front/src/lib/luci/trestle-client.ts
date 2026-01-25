@@ -308,8 +308,9 @@ function determineRecommendation(
   if (isLitigator) {
     return { recommendation: "REJECT", reason: "Known TCPA litigator" };
   }
-  if (activityScore !== null && activityScore < 30) {
-    return { recommendation: "REJECT", reason: "Low activity score (likely disconnected)" };
+  // RULE: Activity score < 50 = NO SMS (user requirement)
+  if (activityScore !== null && activityScore < 50) {
+    return { recommendation: "REJECT", reason: "Activity score below 50 - NO SMS" };
   }
   if (lineType === "voip") {
     return { recommendation: "REVIEW", reason: "VOIP number - higher risk" };
