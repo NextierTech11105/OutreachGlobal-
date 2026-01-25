@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useCurrentTeam } from "@/features/team/team.context";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -128,6 +129,7 @@ interface PipelineResult {
 }
 
 export default function ImportPage() {
+  const { teamId } = useCurrentTeam();
   const [step, setStep] = useState<ImportStep>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [importType, setImportType] = useState("business");
@@ -248,6 +250,7 @@ export default function ImportPage() {
           industryId: vertical.toLowerCase(),
           campaign: "B2B",
           bucketName: file.name.replace(".csv", ""),
+          teamId: teamId,
         }),
       });
 
