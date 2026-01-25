@@ -196,13 +196,60 @@ export default function CampaignLaunchWizardPage() {
   const handleLaunch = async () => {
     setLaunching(true);
     try {
-      // TODO: Call campaign creation API with execution mode
-      await new Promise((r) => setTimeout(r, 1500));
+      // Map worker to campaign type
+      const campaignTypeMap: Record<WorkerId, string> = {
+        gianna: "initial",
+        cathy: "nudger",
+        sabrina: "nurture",
+      };
 
-      toast.success("Campaign launched successfully!");
+      // Calculate scheduled time if scheduled mode
+      let startsAt: string | undefined;
+      if (executionMode === "scheduled") {
+        if (scheduleType === "specific" && scheduledTime) {
+          startsAt = new Date(scheduledTime).toISOString();
+        } else if (scheduleType === "optimal") {
+          // Optimal: Start at 9 AM tomorrow
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(9, 0, 0, 0);
+          startsAt = tomorrow.toISOString();
+        }
+      }
+
+      // Get recipient count from selected bucket
+      const recipientCount = selectedBucketData?.count || 0;
+
+      // Create campaign via REST API
+      const response = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId: team.id,
+          name: campaignName,
+          description: `${WORKERS[selectedWorker as WorkerId]?.name} ${executionMode} campaign`,
+          campaignType: campaignTypeMap[selectedWorker as WorkerId] || "initial",
+          persona: selectedWorker,
+          message: messageTemplate,
+          recipientCount,
+          status: executionMode === "blast" ? "ACTIVE" : "SCHEDULED",
+          startsAt,
+          category: selectedBucket,
+          template: messageTemplate,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create campaign");
+      }
+
+      const campaign = await response.json();
+      toast.success(`Campaign "${campaignName}" launched!`);
       router.push(`/t/${team.slug}/campaigns`);
     } catch (error) {
-      toast.error("Failed to launch campaign");
+      console.error("Launch error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to launch campaign");
     } finally {
       setLaunching(false);
     }

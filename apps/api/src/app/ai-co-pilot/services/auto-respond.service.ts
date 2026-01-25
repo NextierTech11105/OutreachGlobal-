@@ -255,8 +255,8 @@ export class AutoRespondService {
       };
     }
 
-    // 6. Add human-like delay (3-5 minutes simulated by queue delay)
-    const delaySeconds = Math.floor(Math.random() * 120) + 180; // 3-5 min
+    // 6. Add human-like delay (4-6 minutes centered around 5 min for realism)
+    const delaySeconds = Math.floor(Math.random() * 120) + 240; // 4-6 min
 
     // 7. Send via SignalHouse
     const result = await this.signalHouse.sendSms({
