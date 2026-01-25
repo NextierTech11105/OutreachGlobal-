@@ -221,8 +221,8 @@ async function bootstrap() {
 
   // Run migrations before starting server
   try {
-    const { DRIZZLE_TOKEN } = await import("./database/drizzle.module");
-    const db = app.get(DRIZZLE_TOKEN);
+    const { DEFAULT_DB_PROVIDER_NAME } = await import("@haorama/drizzle-postgres-nestjs");
+    const db = app.get(DEFAULT_DB_PROVIDER_NAME);
     await runMigrations(db);
   } catch (e: any) {
     console.error("[Migrations] Failed:", e.message);
