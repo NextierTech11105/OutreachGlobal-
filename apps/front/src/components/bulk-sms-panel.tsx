@@ -96,7 +96,80 @@ const TEMPLATE_VARS = [
   { key: "{lastName}", desc: "Lead last name", example: "Smith" },
   { key: "{company}", desc: "Company name", example: "Acme Inc" },
   { key: "{phone}", desc: "Phone number", example: "+1234567890" },
+  { key: "{industry}", desc: "Industry/Sector", example: "Technology" },
+  { key: "{city}", desc: "City", example: "Austin" },
+  { key: "{state}", desc: "State", example: "TX" },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEXTIER MODULES - Template categories for messaging
+// ═══════════════════════════════════════════════════════════════════════════════
+const NEXTIER_MODULES = [
+  { id: "ai-consulting", name: "AI Consulting", icon: "🤖", color: "bg-purple-500", desc: "AI strategy & implementation" },
+  { id: "platform-white-label", name: "Platform White Label", icon: "🏷️", color: "bg-blue-500", desc: "Rebrandable platform solutions" },
+  { id: "business-exits", name: "Business Exits", icon: "🚪", color: "bg-green-500", desc: "M&A and exit strategies" },
+  { id: "capital-connect", name: "Capital Connect", icon: "💰", color: "bg-amber-500", desc: "Funding & investment" },
+  { id: "foundational-dataverse", name: "Foundational Dataverse", icon: "📊", color: "bg-cyan-500", desc: "Data infrastructure" },
+  { id: "terminals", name: "Terminals", icon: "🖥️", color: "bg-indigo-500", desc: "Trading & operations" },
+  { id: "blueprints", name: "Blueprints", icon: "📐", color: "bg-orange-500", desc: "System architecture" },
+  { id: "system-mapping", name: "System Mapping", icon: "🗺️", color: "bg-teal-500", desc: "Process documentation" },
+];
+
+// SMS stage types for sequences
+const SMS_STAGES = [
+  { id: "initial", name: "Initial", desc: "First touch", icon: "📤", color: "bg-blue-500" },
+  { id: "reminder_1", name: "Reminder #1", desc: "Gentle follow-up", icon: "🔔", color: "bg-yellow-500" },
+  { id: "reminder_2", name: "Reminder #2", desc: "Second reminder", icon: "🔔", color: "bg-orange-500" },
+  { id: "nudge", name: "Nudge", desc: "Re-engage cold leads", icon: "👋", color: "bg-pink-500" },
+  { id: "nurture", name: "Nurture", desc: "Content/value add", icon: "🌱", color: "bg-green-500" },
+  { id: "follow_up", name: "Follow Up", desc: "Post-response", icon: "🔄", color: "bg-purple-500" },
+  { id: "drip", name: "Drip", desc: "Long-term sequence", icon: "💧", color: "bg-cyan-500" },
+  { id: "hot_lead", name: "Hot Lead", desc: "High-intent push", icon: "🔥", color: "bg-red-500" },
+];
+
+// Skeleton templates by module (for ideation)
+const MODULE_SKELETONS: Record<string, Record<string, string>> = {
+  "ai-consulting": {
+    initial: "Hi {firstName}, I'm reaching out about AI consulting services for {company}. We help businesses implement AI solutions that drive real ROI. Are you exploring AI for your operations?",
+    nudge: "Hey {firstName}, just circling back on AI consulting. Many in {industry} are seeing 40%+ efficiency gains. Worth a quick call?",
+    nurture: "Hi {firstName}, thought you'd find this useful: our latest case study on AI implementation in {industry}. Reply 'INFO' if you'd like the full report.",
+  },
+  "platform-white-label": {
+    initial: "Hi {firstName}, I noticed {company} might benefit from a white-label platform solution. We help businesses launch their own branded tech products. Interested?",
+    nudge: "Hey {firstName}, following up on white-label platforms. Quick question - are you currently reselling any tech solutions?",
+    nurture: "Hi {firstName}, our white-label partners are seeing 3x revenue growth. Reply 'DEMO' if you'd like to see how it works.",
+  },
+  "business-exits": {
+    initial: "Hi {firstName}, I work with business owners planning their exit strategy. Have you thought about your 5-year plan for {company}?",
+    nudge: "Hey {firstName}, just checking in on your exit planning. The market is strong right now for {industry} acquisitions.",
+    nurture: "Hi {firstName}, we just helped a {industry} owner exit at 8x EBITDA. Reply 'LEARN' if you'd like to hear how.",
+  },
+  "capital-connect": {
+    initial: "Hi {firstName}, I help businesses like {company} connect with the right capital partners. Are you exploring funding options?",
+    nudge: "Hey {firstName}, circling back on capital solutions. Many {industry} companies are securing growth capital right now.",
+    nurture: "Hi {firstName}, we just closed a $5M round for a {industry} company. Reply 'FUNDING' to learn about your options.",
+  },
+  "foundational-dataverse": {
+    initial: "Hi {firstName}, I noticed {company} might benefit from better data infrastructure. We help businesses build scalable data foundations. Interested?",
+    nudge: "Hey {firstName}, following up on data infrastructure. Is {company} dealing with data silos or scaling challenges?",
+    nurture: "Hi {firstName}, 67% of {industry} companies struggle with data integration. We can fix that. Reply 'DATA' for a free assessment.",
+  },
+  "terminals": {
+    initial: "Hi {firstName}, I work with {industry} companies on trading terminals and operations platforms. Is {company} looking to upgrade your systems?",
+    nudge: "Hey {firstName}, just checking in on your trading/operations infrastructure. Any pain points with current systems?",
+    nurture: "Hi {firstName}, our terminals process 10M+ transactions daily. Reply 'TERMINAL' if you'd like a demo.",
+  },
+  "blueprints": {
+    initial: "Hi {firstName}, I help businesses like {company} architect their systems for scale. Is your tech stack ready for growth?",
+    nudge: "Hey {firstName}, following up on system architecture. Many {industry} companies hit scaling walls - we can help prevent that.",
+    nurture: "Hi {firstName}, we just blueprinted a system that reduced costs 40% for a {industry} company. Reply 'BLUEPRINT' for details.",
+  },
+  "system-mapping": {
+    initial: "Hi {firstName}, I noticed {company} might benefit from process documentation and system mapping. Do you have clear SOPs for your operations?",
+    nudge: "Hey {firstName}, circling back on system mapping. Is {company} struggling with process consistency or onboarding?",
+    nurture: "Hi {firstName}, companies with mapped systems grow 2x faster. Reply 'MAP' for a free process audit.",
+  },
+};
 
 // Message labels / types
 const MESSAGE_LABELS = [
@@ -124,6 +197,9 @@ export function BulkSMSPanel({ teamId, onClose, onSent }: BulkSMSPanelProps) {
   const [message, setMessage] = useState("");
   const [selectedSource, setSelectedSource] = useState<string>("responded");
   const [selectedLabel, setSelectedLabel] = useState<string>("initial");
+  const [selectedModule, setSelectedModule] = useState<string>("");
+  const [selectedStage, setSelectedStage] = useState<string>("initial");
+  const [showModuleSelector, setShowModuleSelector] = useState(false);
   const [leadCount, setLeadCount] = useState(0);
   const [maxLeads, setMaxLeads] = useState(100);
   const [leads, setLeads] = useState<LeadPreview[]>([]);
@@ -519,6 +595,93 @@ export function BulkSMSPanel({ teamId, onClose, onSent }: BulkSMSPanelProps) {
               </div>
             )}
           </div>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+      {/* MODULE & STAGE SELECTOR - For skeleton template ideation */}
+      {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+      <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">Content Library</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowModuleSelector(!showModuleSelector)}
+            className="text-xs"
+          >
+            {showModuleSelector ? "Hide" : "Show Templates"}
+          </Button>
+        </div>
+
+        {showModuleSelector && (
+          <>
+            {/* Module Selection */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Select Module</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {NEXTIER_MODULES.map((mod) => (
+                  <Button
+                    key={mod.id}
+                    variant={selectedModule === mod.id ? "default" : "outline"}
+                    size="sm"
+                    className={`justify-start gap-2 h-auto py-2 text-left ${selectedModule === mod.id ? mod.color : ""}`}
+                    onClick={() => setSelectedModule(mod.id)}
+                  >
+                    <span className="text-lg">{mod.icon}</span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-xs font-medium">{mod.name}</span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* SMS Stage Selection */}
+            {selectedModule && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Select SMS Stage</Label>
+                <div className="flex flex-wrap gap-2">
+                  {SMS_STAGES.map((stage) => (
+                    <Button
+                      key={stage.id}
+                      variant={selectedStage === stage.id ? "default" : "outline"}
+                      size="sm"
+                      className={`gap-2 ${selectedStage === stage.id ? stage.color : ""}`}
+                      onClick={() => setSelectedStage(stage.id)}
+                    >
+                      <span>{stage.icon}</span>
+                      <span className="text-xs">{stage.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Load Skeleton Template */}
+            {selectedModule && selectedStage && MODULE_SKELETONS[selectedModule]?.[selectedStage] && (
+              <div className="space-y-2 p-3 bg-background rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Skeleton Template</Label>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="gap-2 bg-purple-600 hover:bg-purple-700"
+                    onClick={() => {
+                      setMessage(MODULE_SKELETONS[selectedModule]?.[selectedStage] || "");
+                      toast.success("Template loaded - customize it for your campaign!");
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                    Load & Customize
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground italic whitespace-pre-wrap">
+                  {MODULE_SKELETONS[selectedModule]?.[selectedStage]}
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

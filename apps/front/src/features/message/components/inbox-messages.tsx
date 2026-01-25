@@ -721,6 +721,7 @@ export function InboxMessages({
                 Subject/Content
               </TableHead>
               <TableHead className="w-[80px]">Date</TableHead>
+              <TableHead className="w-[120px] text-center hidden sm:table-cell">Quick Actions</TableHead>
               <TableHead className="w-[50px] text-right"></TableHead>
             </TableRow>
           </TableHeader>
@@ -749,14 +750,15 @@ export function InboxMessages({
                       <Skeleton className="h-4 w-full max-w-[300px]" />
                       <Skeleton className="h-3 w-full max-w-[250px] mt-1" />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-5 w-16" />
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="flex gap-1 justify-center">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-8 w-8 ml-auto" />
@@ -851,6 +853,62 @@ export function InboxMessages({
                   <TableCell className="py-2">
                     <div className="text-xs text-muted-foreground">
                       {formatDate(message.createdAt)}
+                    </div>
+                  </TableCell>
+                  {/* ═══ QUICK ACTION BUTTONS - Visible on each row ═══ */}
+                  <TableCell
+                    className="py-2 hidden sm:table-cell"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      {/* Call Now - Green */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-green-500/20 hover:text-green-500"
+                        onClick={() => {
+                          if (onCallNow) {
+                            onCallNow(message);
+                          } else {
+                            toast.success(`Calling ${message.fromName || message.fromAddress}...`);
+                          }
+                        }}
+                        title="Call Now"
+                      >
+                        <Phone className="h-4 w-4" />
+                      </Button>
+                      {/* SMS - Blue */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-blue-500/20 hover:text-blue-500"
+                        onClick={() => {
+                          if (onReplyMessage) {
+                            onReplyMessage(message);
+                          } else {
+                            toast.info(`Opening SMS composer...`);
+                          }
+                        }}
+                        title="Send SMS"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      {/* Email - Purple */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-purple-500/20 hover:text-purple-500"
+                        onClick={() => {
+                          if (onInsertTemplate) {
+                            onInsertTemplate(message);
+                          } else {
+                            toast.info(`Opening email composer...`);
+                          }
+                        }}
+                        title="Send Email"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                   <TableCell
