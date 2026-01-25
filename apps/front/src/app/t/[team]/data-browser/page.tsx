@@ -6,30 +6,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Upload, Search, Filter, Database, Users, MessageSquare, Building, Loader2 } from "lucide-react";
+import { Download, Search, Filter, Database, Users, MessageSquare, Building, Loader2 } from "lucide-react";
 import { useCurrentTeam } from "@/features/team/team.context";
 import { useQuery, gql } from "@apollo/client";
 import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
 
-// GraphQL query for leads data
+// GraphQL query for leads data - matches API schema
 const LEADS_DATA_QUERY = gql`
-  query LeadsData($teamId: ID!, $limit: Int, $offset: Int, $search: String) {
-    leads(teamId: $teamId, limit: $limit, offset: $offset, search: $search) {
-      id
-      firstName
-      lastName
-      email
-      phone
-      company
-      status
-      score
-      sector
-      createdAt
+  query LeadsData($teamId: ID!, $first: Int, $after: String, $searchQuery: String) {
+    leads(teamId: $teamId, first: $first, after: $after, searchQuery: $searchQuery) {
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      edges {
+        cursor
+        node {
+          id
+          firstName
+          lastName
+          name
+          email
+          phone
+          company
+          status
+          score
+          createdAt
+        }
+      }
     }
-    leadsCount(teamId: $teamId, search: $search)
+    leadsCount(teamId: $teamId)
   }
 `;
 
@@ -39,39 +49,60 @@ export default function DataBrowserPage() {
   const { team, teamId, isTeamReady } = useCurrentTeam();
   const [activeTab, setActiveTab] = useState<DataType>('leads');
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [afterCursor, setAfterCursor] = useState<string | null>(null);
+  const [cursors, setCursors] = useState<string[]>([]);
   const pageSize = 50;
 
-  const { data, loading, refetch } = useQuery(LEADS_DATA_QUERY, {
+  const { data, loading, error, refetch } = useQuery(LEADS_DATA_QUERY, {
     variables: {
       teamId,
-      limit: pageSize,
-      offset: (currentPage - 1) * pageSize,
-      search: searchQuery || undefined,
+      first: pageSize,
+      after: afterCursor,
+      searchQuery: searchQuery || undefined,
     },
     skip: !isTeamReady || activeTab !== 'leads',
+    fetchPolicy: "cache-and-network",
   });
 
-  const leads = data?.leads || [];
+  // Extract leads from edges
+  const leads = data?.leads?.edges?.map((edge: any) => edge.node) || [];
   const totalCount = data?.leadsCount || 0;
+  const pageInfo = data?.leads?.pageInfo;
+  const currentPage = cursors.length + 1;
   const totalPages = Math.ceil(totalCount / pageSize);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1);
+    setAfterCursor(null);
+    setCursors([]);
+  };
+
+  const handleNextPage = () => {
+    if (pageInfo?.hasNextPage && pageInfo?.endCursor) {
+      setCursors([...cursors, afterCursor || '']);
+      setAfterCursor(pageInfo.endCursor);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (cursors.length > 0) {
+      const newCursors = [...cursors];
+      const prevCursor = newCursors.pop();
+      setCursors(newCursors);
+      setAfterCursor(prevCursor || null);
+    }
   };
 
   const handleExport = async (format: 'csv' | 'json') => {
-    // Export logic - trigger download
     const exportData = leads.map((lead: any) => ({
       firstName: lead.firstName,
       lastName: lead.lastName,
+      name: lead.name,
       email: lead.email,
       phone: lead.phone,
       company: lead.company,
       status: lead.status,
       score: lead.score,
-      sector: lead.sector,
     }));
 
     if (format === 'json') {
@@ -112,6 +143,7 @@ export default function DataBrowserPage() {
               size="sm"
               onClick={() => handleExport('csv')}
               className="flex items-center space-x-2"
+              disabled={leads.length === 0}
             >
               <Download className="h-4 w-4" />
               <span>Export CSV</span>
@@ -121,6 +153,7 @@ export default function DataBrowserPage() {
               size="sm"
               onClick={() => handleExport('json')}
               className="flex items-center space-x-2"
+              disabled={leads.length === 0}
             >
               <Download className="h-4 w-4" />
               <span>Export JSON</span>
@@ -180,7 +213,12 @@ export default function DataBrowserPage() {
                 <CardDescription>Raw imported data - {totalCount.toLocaleString()} records</CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {error && (
+                  <div className="text-center py-4 text-red-500 bg-red-50 rounded-md mb-4">
+                    Error loading leads: {error.message}
+                  </div>
+                )}
+                {loading && leads.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
@@ -198,7 +236,6 @@ export default function DataBrowserPage() {
                             <TableHead>Email</TableHead>
                             <TableHead>Phone</TableHead>
                             <TableHead>Company</TableHead>
-                            <TableHead>Sector</TableHead>
                             <TableHead>Score</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
@@ -207,16 +244,11 @@ export default function DataBrowserPage() {
                           {leads.map((lead: any) => (
                             <TableRow key={lead.id}>
                               <TableCell className="font-medium">
-                                {lead.firstName} {lead.lastName}
+                                {lead.name || `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || '-'}
                               </TableCell>
                               <TableCell>{lead.email || '-'}</TableCell>
                               <TableCell>{lead.phone || '-'}</TableCell>
                               <TableCell>{lead.company || '-'}</TableCell>
-                              <TableCell>
-                                {lead.sector && (
-                                  <Badge variant="outline">{lead.sector}</Badge>
-                                )}
-                              </TableCell>
                               <TableCell>
                                 <Badge variant={lead.score >= 70 ? "default" : "secondary"}>
                                   {lead.score || 0}
@@ -234,22 +266,22 @@ export default function DataBrowserPage() {
                     {/* Pagination */}
                     <div className="flex items-center justify-between mt-4">
                       <div className="text-sm text-muted-foreground">
-                        Page {currentPage} of {totalPages}
+                        Page {currentPage} of {totalPages || 1}
                       </div>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
+                          onClick={handlePrevPage}
+                          disabled={cursors.length === 0}
                         >
                           Previous
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage >= totalPages}
+                          onClick={handleNextPage}
+                          disabled={!pageInfo?.hasNextPage}
                         >
                           Next
                         </Button>
