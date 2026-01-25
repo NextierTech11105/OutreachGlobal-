@@ -418,20 +418,32 @@ async function searchPostgreSQL(filters: {
       title.includes(dm),
     );
 
-    // PRIORITY SCORING - Consulting keywords get boosted
+    // PRIORITY SCORING - Sector keywords get boosted
     let priorityScore = 0;
     const companyLower = (biz.companyName || "").toLowerCase();
     const sicLower = (biz.sicDescription || "").toLowerCase();
     const sectorLower = (biz.primarySectorId || "").toLowerCase();
+    const searchText = `${companyLower} ${sicLower} ${sectorLower}`;
 
-    // CONSULTING = TOP PRIORITY (+100)
-    if (
-      companyLower.includes("consult") ||
-      sicLower.includes("consult") ||
-      sectorLower.includes("consult") ||
-      biz.sicCode?.startsWith("8742")
-    ) {
-      priorityScore += 100;
+    // SECTOR KEYWORD MATCHING - each sector's keywords boost priority
+    const SECTOR_KEYWORDS: Record<string, { keywords: string[]; sicPrefix: string }> = {
+      consulting: { keywords: ["consult", "advisor", "advisory", "strategy"], sicPrefix: "8742" },
+      plumbing: { keywords: ["plumb", "pipe", "drain", "sewer", "water heater"], sicPrefix: "1711" },
+      real_estate: { keywords: ["real estate", "realtor", "broker", "realty", "property"], sicPrefix: "6531" },
+      electrical: { keywords: ["electri", "wiring", "power"], sicPrefix: "1731" },
+      roofing: { keywords: ["roof", "shingle", "gutter"], sicPrefix: "1761" },
+      hvac: { keywords: ["hvac", "heating", "cooling", "furnace", "air condition"], sicPrefix: "1629" },
+    };
+
+    // Check each sector and boost if keywords match
+    for (const [sector, config] of Object.entries(SECTOR_KEYWORDS)) {
+      const hasKeyword = config.keywords.some(kw => searchText.includes(kw));
+      const hasSic = biz.sicCode?.startsWith(config.sicPrefix);
+
+      if (hasKeyword || hasSic) {
+        priorityScore += 100; // Sector match = +100
+        break; // Only count first match
+      }
     }
 
     // Decision maker bonus (+50)

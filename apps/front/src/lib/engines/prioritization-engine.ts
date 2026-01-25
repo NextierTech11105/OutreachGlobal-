@@ -281,28 +281,100 @@ function scoreProfitability(lead: {
 // DIMENSION 4: SITUATIONAL FLUENCY (0-15 points) - Industry/Timing Match
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// High-value industries - Consulting FIRST, then Real Estate
+// SECTOR-SPECIFIC KEYWORDS - each sector gets its own priority keywords
+export const SECTOR_KEYWORDS: Record<string, string[]> = {
+  consulting: [
+    "consulting",
+    "consultant",
+    "advisor",
+    "advisory",
+    "management consulting",
+    "business consulting",
+    "strategy",
+    "financial advisor",
+    "tax consultant",
+    "it consulting",
+    "hr consulting",
+  ],
+  plumbing: [
+    "plumbing",
+    "plumber",
+    "plumb",
+    "pipe",
+    "drain",
+    "sewer",
+    "water heater",
+    "hvac",
+    "mechanical contractor",
+  ],
+  real_estate: [
+    "real estate",
+    "realtor",
+    "broker",
+    "realty",
+    "property",
+    "commercial real estate",
+    "residential real estate",
+    "mortgage",
+    "escrow",
+  ],
+  electrical: [
+    "electrical",
+    "electrician",
+    "electric",
+    "wiring",
+    "power",
+  ],
+  roofing: [
+    "roofing",
+    "roofer",
+    "roof",
+    "shingle",
+    "gutter",
+  ],
+  hvac: [
+    "hvac",
+    "heating",
+    "cooling",
+    "air conditioning",
+    "furnace",
+    "ventilation",
+  ],
+  solar: [
+    "solar",
+    "renewable",
+    "photovoltaic",
+    "pv",
+    "energy",
+  ],
+  landscaping: [
+    "landscaping",
+    "landscaper",
+    "lawn",
+    "garden",
+    "irrigation",
+  ],
+  pest_control: [
+    "pest",
+    "exterminator",
+    "termite",
+    "rodent",
+  ],
+  automotive: [
+    "auto",
+    "automotive",
+    "mechanic",
+    "car",
+    "vehicle",
+    "body shop",
+  ],
+};
+
+// Default target industries when no sector specified
 const TARGET_INDUSTRIES = [
-  // CONSULTING - TOP PRIORITY
-  "consulting",
-  "consultant",
-  "advisor",
-  "advisory",
-  "management consulting",
-  "business consulting",
-  "strategy consultant",
-  "financial advisor",
-  "tax consultant",
-  "it consulting",
-  "hr consulting",
-  // REAL ESTATE
-  "real estate",
-  "realtor",
-  "broker",
-  "realty",
-  "property",
-  "commercial real estate",
-  "residential real estate",
+  ...SECTOR_KEYWORDS.consulting,
+  ...SECTOR_KEYWORDS.plumbing,
+  ...SECTOR_KEYWORDS.real_estate,
 ];
 
 interface SituationalScore {
@@ -343,22 +415,29 @@ function scoreSituational(
     }
   }
 
-  // SIC code 8742 = Management Consulting Services (TOP PRIORITY)
-  if (sicCode.startsWith("8742")) {
-    if (!industryMatch) {
-      industryMatch = true;
-      score += 15;
-    }
-    signals.push("sic:8742_consulting");
-  }
+  // SIC CODE MAPPING - Match SIC to sector priority
+  const SIC_TO_SECTOR: Record<string, string> = {
+    "8742": "consulting", // Management Consulting
+    "1711": "plumbing", // Plumbing/HVAC
+    "6531": "real_estate", // Real Estate Agents
+    "1731": "electrical", // Electrical
+    "1761": "roofing", // Roofing
+    "1629": "hvac", // HVAC Contractors
+    "4959": "pest_control", // Sanitary Services (Pest)
+    "0781": "landscaping", // Landscape Services
+    "7538": "automotive", // Auto Repair
+  };
 
-  // SIC code 6531 = Real Estate Agents & Brokers
-  if (sicCode.startsWith("6531")) {
-    if (!industryMatch) {
-      industryMatch = true;
-      score += 15;
+  // Check if SIC matches any priority sector
+  for (const [sicPrefix, sector] of Object.entries(SIC_TO_SECTOR)) {
+    if (sicCode.startsWith(sicPrefix)) {
+      if (!industryMatch) {
+        industryMatch = true;
+        score += 15;
+      }
+      signals.push(`sic:${sicPrefix}_${sector}`);
+      break;
     }
-    signals.push("sic:6531");
   }
 
   return { score: Math.min(score, 15), industryMatch, signals };
