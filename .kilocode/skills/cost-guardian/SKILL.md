@@ -1,223 +1,62 @@
 ---
 name: cost-guardian
-description: Prevent cost overruns from API abuse, infinite loops, and inefficient resource usage
+description: Subscription, trial, and usage limit enforcement for teams.
 ---
 
-# Cost Control and Budget Management Instructions
+# Cost Guardian
 
-## Purpose
-Monitor, control, and optimize costs across OutreachGlobal's multi-tenant platform, preventing budget overruns from API calls, infrastructure, and inefficient processing patterns.
+> **Status**: BETA
+> **Location**: `apps/api/src/app/billing/`
+> **Primary Function**: Track plan limits, trials, and usage counters.
 
-## When to Use This Skill
-- Reviewing code that makes external API calls
-- Planning campaign executions
-- Investigating cost spikes
-- Setting up new integrations
-- Monthly budget reviews
+## Overview
+Cost Guardian is implemented as the SubscriptionService. It seeds plans, manages trials, and exposes helpers to check and increment usage limits.
 
-## Cost Landscape Analysis
+## Verified Code References
+- `apps/api/src/app/billing/services/subscription.service.ts`
+- `apps/api/src/app/billing/billing.module.ts`
+- `apps/api/src/database/schema-alias.ts` (plansTable, subscriptionsTable, creditsTable)
 
-### Primary Cost Drivers (From Audit)
-1. **SignalHouse SMS**: $0.015 per message
-2. **Twilio Voice**: $0.025 per minute
-3. **Anthropic AI**: $0.003 per token
-4. **OpenAI AI**: $0.002 per 1K tokens
-5. **Digital Ocean Infrastructure**: $350-450/month
+## Current State
 
-### Risk Areas
-- **Infinite loops** in enrichment processing
-- **Duplicate API calls** without deduplication
-- **Unbounded retries** on failed requests
-- **Large batch processing** without limits
-- **Missing rate limiting** on external APIs
+### What Already Exists
+- Auto-creation of billing tables and starter plan
+- Trial subscription provisioning with credits
+- Usage limit checks and usage increment helpers
+- Trial expiration queries and status helpers
 
-## Cost Control Mechanisms
+### What Still Needs to be Built
+- Stripe webhook handling for billing events
+- Unified cost dashboard across AI and enrichment usage
+- Plan-based enforcement for all paid operations
 
-### 1. Budget Enforcement
-**Per-tenant budgets:**
+## Nextier-Specific Example
 ```typescript
-const tenantBudgets = {
-  apollo: { daily: 100, monthly: 3000 },
-  signalhouse: { daily: 500, monthly: 15000 },
-  twilio: { daily: 200, monthly: 6000 }
-};
+// apps/api/src/app/billing/services/subscription.service.ts
+const limits = subscription.plan.limits;
+const usage = (subscription as any).usageThisPeriod || {};
+const current = usage[usageType] || 0;
+const limit = limits[usageType] || 0;
 
-const checkBudget = async (tenantId, service, cost) => {
-  const usage = await getTenantUsage(tenantId, service, 'month');
-  if (usage + cost > tenantBudgets[service].monthly) {
-    throw new Error(`Monthly budget exceeded for ${service}`);
-  }
+return {
+  allowed: current + quantity <= limit,
+  current,
+  limit,
 };
 ```
 
-### 2. Rate Limiting Implementation
-**API call throttling:**
-```typescript
-import { RateLimiterMemory } from 'rate-limiter-flexible';
+## Integration Points
+| Skill | Integration Point |
+| --- | --- |
+| `workflow-orchestration-engine` | AI usage checks via usage meter | 
+| `luci-enrichment-agent` | Enrichment spend should be gated by plan limits |
+| `data-lake-orchestration-agent` | Block size estimation informs spend | 
+| `campaign-optimizer` | Campaign volume should respect plan limits |
 
-const apolloLimiter = new RateLimiterMemory({
-  keyPrefix: 'apollo',
-  points: 1000, // calls
-  duration: 3600, // per hour
-});
+## Cost Information
+- Plan pricing and limits are stored in `plans` table; usage is tracked per period.
+- Credits are tracked in `credits` table but not yet linked to all paid actions.
 
-const signalhouseLimiter = new RateLimiterMemory({
-  keyPrefix: 'signalhouse',
-  points: 5000, // calls
-  duration: 3600, // per hour
-});
-```
-
-### 3. Deduplication Systems
-**Prevent duplicate enrichment:**
-```typescript
-const enrichmentCache = new Map();
-
-const deduplicateEnrichment = async (personData) => {
-  const cacheKey = `${personData.firstName}-${personData.lastName}-${personData.company}`;
-
-  if (enrichmentCache.has(cacheKey)) {
-    return enrichmentCache.get(cacheKey);
-  }
-
-  const result = await apollo.enrichPerson(personData);
-  enrichmentCache.set(cacheKey, result);
-
-  // Expire cache after 24 hours
-  setTimeout(() => enrichmentCache.delete(cacheKey), 24 * 60 * 60 * 1000);
-
-  return result;
-};
-```
-
-### 4. Circuit Breakers
-**Fail fast on cost issues:**
-```typescript
-const costCircuitBreaker = (service, operation) => {
-  return async (...args) => {
-    const estimatedCost = estimateCost(service, args);
-
-    if (estimatedCost > BUDGET_THRESHOLD) {
-      throw new Error(`Estimated cost too high: $${estimatedCost}`);
-    }
-
-    return await operation(...args);
-  };
-};
-```
-
-## Monitoring and Alerting
-
-### Real-time Cost Tracking
-**Per-request cost logging:**
-```typescript
-const trackCost = async (service, operation, result) => {
-  const cost = calculateCost(service, operation, result);
-
-  await db.insert(costLogTable).values({
-    tenantId,
-    service,
-    operation,
-    cost,
-    timestamp: new Date()
-  });
-
-  // Check against budgets
-  const monthlyUsage = await getMonthlyUsage(tenantId, service);
-  if (monthlyUsage > BUDGET_WARNING_THRESHOLD) {
-    await sendBudgetAlert(tenantId, service, monthlyUsage);
-  }
-};
-```
-
-### Cost Anomaly Detection
-**Unusual spending patterns:**
-- Sudden spikes in API usage
-- Costs exceeding historical averages
-- Single tenant consuming disproportionate resources
-- Failed requests generating retry storms
-
-## Optimization Strategies
-
-### 1. Batch Processing Efficiency
-**Group operations to reduce overhead:**
-```typescript
-// ❌ Inefficient: Individual calls
-for (const lead of leads) {
-  await apollo.enrichPerson(lead); // $0.10 each
-}
-
-// ✅ Efficient: Batch processing
-const batches = chunk(leads, 50);
-for (const batch of batches) {
-  await apollo.enrichBatch(batch); // $0.05 each
-  await sleep(1000); // Rate limiting
-}
-```
-
-### 2. Caching Strategies
-**Reduce redundant API calls:**
-- Cache enrichment results for 24-48 hours
-- Cache geolocation data
-- Cache API rate limit status
-- Use Redis for distributed caching
-
-### 3. Progressive Loading
-**Load data on demand:**
-```typescript
-// Lazy load expensive operations
-const leadCard = {
-  basic: () => getBasicInfo(lead),
-  enriched: () => apollo.enrichPerson(lead), // Only when needed
-  scored: () => ai.scoreLead(lead) // Only when requested
-};
-```
-
-## Budget Planning Framework
-
-### Cost Estimation
-**Per campaign calculation:**
-```
-500-record campaign:
-- SignalHouse SMS: 500 × $0.015 = $7.50
-- AI processing: 500 × $0.10 = $50
-- Infrastructure: $10
-Total: ~$67.50
-```
-
-### Budget Allocation
-- **70%**: External API costs
-- **20%**: Infrastructure
-- **10%**: Monitoring and tools
-
-## Response Format
-When analyzing costs, provide:
-1. **Cost breakdown** by service and operation
-2. **Budget status** with warnings for approaching limits
-3. **Optimization recommendations** with potential savings
-4. **Risk assessment** for cost overruns
-5. **Monitoring setup** for ongoing cost control
-
-## Emergency Cost Controls
-
-### Kill Switches
-**Immediate shutdown capabilities:**
-- Per-tenant API disabling
-- Campaign execution pausing
-- Rate limit reduction
-- Service degradation modes
-
-### Cost Quarantine
-**Isolate problematic tenants:**
-```typescript
-const quarantineTenant = async (tenantId) => {
-  await disableTenantAPIs(tenantId);
-  await notifyTenant(tenantId, 'Budget exceeded - services paused');
-  await scheduleReview(tenantId);
-};
-```
-
-## Related Skills
-- Use with `campaign-optimizer` for efficient processing
-- Combine with `api-integration-test` for cost validation
-- Reference `infra-capacity` for infrastructure cost optimization
+## Multi-Tenant Considerations
+- Subscription and credits are keyed by `teamId`.
+- All usage counters are scoped per tenant.

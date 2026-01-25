@@ -473,8 +473,8 @@ export class LuciService {
     if (!job) return null;
 
     const state = await job.getState();
-    const data = job.data as {
-      teamId: string;
+    const data = (job.data ?? {}) as {
+      teamId?: string;
       stats?: {
         totalRecords: number;
         tracedCount: number;
@@ -485,14 +485,14 @@ export class LuciService {
 
     return {
       id: batchId,
-      teamId: data.teamId,
+      teamId: data.teamId ?? "",
       status: this.mapJobState(state),
       createdAt: new Date(job.timestamp),
       completedAt: job.finishedOn ? new Date(job.finishedOn) : undefined,
-      totalRecords: data.stats?.totalRecords || 0,
-      tracedCount: data.stats?.tracedCount || 0,
-      scoredCount: data.stats?.scoredCount || 0,
-      smsReadyCount: data.stats?.smsReadyCount || 0,
+      totalRecords: data.stats?.totalRecords ?? 0,
+      tracedCount: data.stats?.tracedCount ?? 0,
+      scoredCount: data.stats?.scoredCount ?? 0,
+      smsReadyCount: data.stats?.smsReadyCount ?? 0,
       errors: job.failedReason ? [job.failedReason] : [],
     };
   }

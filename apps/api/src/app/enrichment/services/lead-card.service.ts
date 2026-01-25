@@ -21,6 +21,7 @@ import {
 } from "@/database/schema";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
+import { findOrDefault, getFirstOrDefault, createEmptyPhone, createEmptyEmail, createEmptyAddress } from "@nextier/dto";
 
 export interface CreateLeadCardJob {
   teamId: string;
@@ -152,10 +153,10 @@ export class LeadCardService {
       propertyForScore,
     );
 
-    // Determine primary contact info
-    const primaryPhone = phones.find((p) => p.isPrimary) || phones[0];
-    const primaryEmail = emails.find((e) => e.isPrimary) || emails[0];
-    const currentAddress = addresses[0];
+    // Determine primary contact info (using null object pattern for safety)
+    const primaryPhone = findOrDefault(phones, (p) => p.isPrimary, createEmptyPhone);
+    const primaryEmail = findOrDefault(emails, (e) => e.isPrimary, createEmptyEmail);
+    const currentAddress = getFirstOrDefault(addresses, createEmptyAddress);
 
     // Determine campaign assignment
     const { agent, channel, priority, reason } =

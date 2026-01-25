@@ -1,134 +1,68 @@
 ---
 name: signalhouse-integration
-description: Maintain 1:1 mapping between Nextier teams and SignalHouse SubGroups for proper multi-tenant isolation
+description: SMS/MMS delivery and webhook ingestion via SignalHouse.
 ---
 
-# SignalHouse Integration Management
+# SignalHouse Integration
 
-## Core Principle
-**Nextier Team = SignalHouse SubGroup (1:1 Mapping)**
+> **Status**: PRODUCTION
+> **Location**: `apps/api/src/lib/signalhouse/` and `apps/api/src/app/lead/controllers/`
+> **Primary Function**: Send SMS/MMS and ingest inbound SignalHouse webhooks.
 
-Every Nextier team must have exactly one corresponding SignalHouse SubGroup for complete isolation of SMS campaigns, phone numbers, and analytics.
+## Overview
+SignalHouse is the SMS transport for Nextier. The integration includes a service for sending messages, a controller for internal API proxy calls, and a webhook handler for inbound responses and delivery events.
 
-## When to Use This Skill
-- Creating new Nextier teams
-- Managing SignalHouse API integrations
-- Debugging campaign delivery issues
-- Setting up new phone numbers or brands
-- Troubleshooting webhook events
+## Verified Code References
+- `apps/api/src/lib/signalhouse/signalhouse.service.ts`
+- `apps/api/src/lib/signalhouse/signalhouse.module.ts`
+- `apps/api/src/app/lead/controllers/signalhouse.controller.ts`
+- `apps/api/src/app/lead/controllers/signalhouse-webhook.controller.ts`
+- `apps/api/src/app/inbox/services/agent-router.service.ts`
 
-## Team Creation Workflow
+## Current State
 
-### 1. Nextier Team Setup
+### What Already Exists
+- SMS/MMS sending with campaign ID support
+- Internal proxy endpoints for test/config/send/stats
+- Webhook handler that classifies inbound SMS and routes to agents
+- Inbox item creation for inbound messages
+
+### What Still Needs to be Built
+- Automated 10DLC provisioning workflows
+- Full number pool management and UI
+- Retry and DLQ handling for webhook processing failures
+
+## Nextier-Specific Example
 ```typescript
-// When a new team is created in Nextier
-const team = await createTeam({
-  name: "ABC Realty",
-  // ... other team data
-});
+// apps/api/src/lib/signalhouse/signalhouse.service.ts
+const endpoint = mediaUrl
+  ? `${this.apiBase}/message/sendMMS`
+  : `${this.apiBase}/message/sendSMS`;
 
-// Immediately create corresponding SignalHouse SubGroup
-const subGroup = await signalhouse.createSubGroup({
-  name: team.name,
-  // Map 1:1 with Nextier team
-});
+const payload: Record<string, string> = { to, from, message };
+if (mediaUrl) payload.mediaUrl = mediaUrl;
+if (campaignId) payload.campaign_id = campaignId;
 
-// Store the mapping
-await db.update(teamsTable).set({
-  signalhouseSubGroupId: subGroup.id
-}).where(eq(teamsTable.id, team.id));
+const response = await axios.post(endpoint, payload, {
+  headers: {
+    "x-api-key": apiKey,
+    "Content-Type": "application/json",
+  },
+});
 ```
-
-### 2. SubGroup Configuration
-**Required Setup per SubGroup:**
-- **Brands**: 10DLC registration for SMS compliance
-- **Phone Numbers**: Dedicated pool for the team
-- **Campaigns**: Use case compliance settings
-- **Webhooks**: Delivery and response event handling
 
 ## Integration Points
+| Skill | Integration Point |
+| --- | --- |
+| `gianna-sdr-agent` | Outbound SMS send and message logging |
+| `ai-co-pilot-response-generator` | Auto-respond uses SignalHouse sendSms |
+| `lead-state-manager` | Webhook-driven state transitions |
+| `lead-journey-tracker` | Inbound events populate journey history |
+| `campaign-optimizer` | Campaign execution sends SMS via SignalHouse |
 
-### API Endpoints to Monitor
-- `/api/signalhouse/campaigns/*` - Campaign creation and management
-- `/api/signalhouse/webhooks/*` - Inbound event processing
-- `/api/teams/*` - Team lifecycle management
+## Cost Information
+- SignalHouse billing applies per message; costs are not stored in code.
 
-### Database Schema Requirements
-```sql
--- teams table must include SignalHouse mapping
-ALTER TABLE teams ADD COLUMN signalhouse_sub_group_id VARCHAR(255);
-
--- All SignalHouse operations must filter by this ID
-SELECT * FROM campaigns WHERE signalhouse_sub_group_id = ?
-```
-
-## Common Issues & Solutions
-
-### Issue: SubGroup Not Created
-**Symptoms:** Campaigns fail with "SubGroup not found"
-**Solution:** Ensure `signalhouse.createSubGroup()` is called immediately after `createTeam()`
-
-### Issue: Webhook Mismatch
-**Symptoms:** Events not reaching correct team
-**Solution:** Verify webhook URLs include team identification
-
-### Issue: Phone Number Conflicts
-**Symptoms:** Numbers shared across teams
-**Solution:** Each SubGroup must have dedicated number pool
-
-### Issue: Campaign Compliance
-**Symptoms:** SMS blocked by carriers
-**Solution:** Proper 10DLC registration per SubGroup
-
-## Audit Checklist
-
-- [ ] Every Nextier team has `signalhouseSubGroupId`
-- [ ] No orphaned SubGroups without Nextier teams
-- [ ] Webhook endpoints properly namespaced
-- [ ] Phone numbers not shared between SubGroups
-- [ ] Campaign creation includes SubGroup context
-
-## API Integration Best Practices
-
-### Error Handling
-```typescript
-try {
-  const result = await signalhouse.createCampaign(campaignData);
-  // Store campaign with subGroupId
-  await db.insert(campaignsTable).values({
-    ...campaignData,
-    signalhouseSubGroupId: team.signalhouseSubGroupId,
-    signalhouseCampaignId: result.id
-  });
-} catch (error) {
-  // Log with team context for debugging
-  console.error(`SignalHouse error for team ${team.id}:`, error);
-}
-```
-
-### Rate Limiting
-- Respect SignalHouse API limits
-- Implement exponential backoff for retries
-- Monitor API usage per SubGroup
-
-### Monitoring
-- Track delivery rates per SubGroup
-- Monitor webhook health
-- Alert on SubGroup mapping issues
-
-## Testing Requirements
-
-### Unit Tests
-- Mock SignalHouse API responses
-- Test SubGroup creation on team setup
-- Verify proper error handling
-
-### Integration Tests
-- End-to-end campaign creation
-- Webhook event processing
-- Multi-tenant isolation verification
-
-## Related Skills
-- Use with `multi-tenant-audit` for data isolation
-- Combine with `campaign-optimizer` for performance
-- Reference `cost-guardian` for API usage monitoring
+## Multi-Tenant Considerations
+- Webhook processing identifies the owning team by lead and phone mapping.
+- Internal endpoints require JWT and should enforce team-level access.

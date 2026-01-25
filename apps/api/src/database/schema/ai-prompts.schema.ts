@@ -30,7 +30,7 @@ export const aiPrompts = pgTable("ai_prompts", {
   userPromptTemplate: text(), // Can contain {variables}
 
   // Model configuration
-  model: varchar({ length: 50 }).notNull().default("gpt-4o-mini"),
+  model: varchar({ length: 50 }).notNull().default("gpt-5.1-codex"),
   temperature: real().notNull().default(0.7),
   maxTokens: integer(),
 

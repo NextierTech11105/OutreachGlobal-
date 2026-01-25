@@ -512,30 +512,30 @@ export async function enrichLead(
 
       // Store validation results
       lead.trestleValidation = {
-        phoneActivityScore: validation.phone.activityScore ?? undefined,
-        phoneContactGrade: validation.phone.contactGrade ?? undefined,
-        phoneLineType: validation.phone.lineType ?? undefined,
-        phoneNameMatch: validation.phone.nameMatch ?? undefined,
-        phoneIsValid: validation.phone.isValid ?? undefined,
+        phoneActivityScore: validation.phone.activityScore ?? null,
+        phoneContactGrade: validation.phone.contactGrade ?? null,
+        phoneLineType: validation.phone.lineType ?? null,
+        phoneNameMatch: validation.phone.nameMatch ?? null,
+        phoneIsValid: validation.phone.isValid ?? null,
         isLitigatorRisk:
-          validation.addOns?.litigatorChecks?.phoneIsLitigatorRisk ?? undefined,
+          validation.addOns?.litigatorChecks?.phoneIsLitigatorRisk ?? false,
         validatedAt: new Date(),
       };
 
       // Add email validation if we have email
       if (validation.email) {
         lead.trestleValidation.emailIsValid =
-          validation.email.isValid ?? undefined;
+          validation.email.isValid ?? null;
         lead.trestleValidation.emailContactGrade =
-          validation.email.contactGrade ?? undefined;
+          validation.email.contactGrade ?? null;
         lead.trestleValidation.emailNameMatch =
-          validation.email.nameMatch ?? undefined;
+          validation.email.nameMatch ?? null;
       }
       if (validation.addOns?.emailChecks) {
         lead.trestleValidation.emailIsDeliverable =
-          validation.addOns.emailChecks.isDeliverable ?? undefined;
+          validation.addOns.emailChecks.isDeliverable ?? null;
         lead.trestleValidation.emailAgeScore =
-          validation.addOns.emailChecks.ageScore ?? undefined;
+          validation.addOns.emailChecks.ageScore ?? null;
       }
 
       // Calculate overall contactability

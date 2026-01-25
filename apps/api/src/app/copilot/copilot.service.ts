@@ -166,7 +166,7 @@ export class CopilotService {
             Authorization: `Bearer ${openaiKey}`,
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "gpt-5.1-codex",
             messages: [
               { role: "system", content: systemPrompt },
               ...context.messages,

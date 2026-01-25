@@ -1,213 +1,74 @@
 ---
 name: ai-agent-lifecycle-management
-description: Extends existing AI Orchestrator for deployment, scaling, monitoring, and retirement of AI agents across tenants, ensuring proper resource allocation and version control
+description: Usage tracking, prompt versioning, and health checks for AI agents.
 ---
 
-# AI Agent Lifecycle Management Instructions
+# AI Agent Lifecycle Management
 
-## Purpose
-EXTEND existing AI Orchestrator at `apps/api/src/app/ai-orchestrator/` to manage the complete lifecycle of AI agents in OutreachGlobal's multi-tenant platform, ensuring reliable deployment, scaling, monitoring, and secure retirement while maintaining tenant isolation and resource efficiency.
+> **Status**: BETA
+> **Location**: `apps/api/src/app/ai-orchestrator/`
+> **Primary Function**: Track AI usage, prompt versions, and provider health.
 
-## When to Use This Skill
-- Deploying new AI agent instances
-- Scaling agents based on tenant demand
-- Monitoring agent health and performance
-- Updating agent versions or configurations
-- Retiring deprecated agents
-- Troubleshooting agent failures
-- Capacity planning for AI resources
+## Overview
+Lifecycle management is implemented through usage metering, prompt versioning, and provider health checks. It does not yet cover deployment or scaling automation for agents.
 
-## Agent Architecture
+## Verified Code References
+- `apps/api/src/app/ai-orchestrator/ai-orchestrator.service.ts`
+- `apps/api/src/app/ai-orchestrator/usage/usage-meter.service.ts`
+- `apps/api/src/database/schema/ai-prompts.schema.ts`
+- `apps/api/src/app/ai-orchestrator/providers/provider.types.ts`
 
-### Existing AI Agents
-- **LUCI**: Search and research agent (FULLY IMPLEMENTED at `apps/api/src/app/luci/`)
-- **Sabrina**: Sales intelligence agent (FULLY IMPLEMENTED at `apps/api/src/app/inbox/services/sabrina-sdr.service.ts`)
-- **Cathy**: Customer support agent (PARTIAL - templates only at `apps/front/src/lib/gianna/`)
+## Current State
 
-### Agents Needing Creation
-- **Gianna**: AI SDR for outbound campaigns (DOES NOT EXIST - needs creation)
-- **Neva**: Negotiation and deal closing agent (DOES NOT EXIST - needs creation)
+### What Already Exists
+- Usage logging per team, provider, and task
+- Monthly limit checks for AI tokens, requests, and cost
+- Prompt versioning in `ai_prompts` table
+- Provider health check with circuit breaker state
 
-### Lifecycle Stages
-- **Development**: Agent creation and testing
-- **Deployment**: Rolling out to production tenants
-- **Operation**: Monitoring and maintenance
-- **Scaling**: Auto-scaling based on load
-- **Retirement**: Graceful shutdown and cleanup
+### What Still Needs to be Built
+- Automated agent deployment and version rollouts
+- Per-team lifecycle configuration UI
+- End-to-end audit reports for AI task success rates
 
-## Deployment Framework
-
-### 1. Agent Registration
-**Register new agents with tenant isolation:**
+## Nextier-Specific Example
 ```typescript
-const registerAgent = async (agentConfig: AgentConfig) => {
-  // Validate tenant permissions
-  const teamId = await validateTenantAccess(agentConfig.teamId);
-
-  // Create agent instance
-  const agent = await agentFactory.create(agentConfig.type, {
-    teamId,
-    version: agentConfig.version,
-    resources: agentConfig.resources
-  });
-
-  // Register with existing AI orchestrator
-  await aiOrchestratorService.registerAgent(agent);
-
-  return agent.id;
-};
-```
-
-### 2. Resource Allocation
-**Allocate compute resources per tenant:**
-- CPU/GPU cores based on agent complexity
-- Memory limits for context windows
-- Storage for agent state and models
-- Network bandwidth for API calls
-
-### 3. Version Control
-**Manage agent versions:**
-```typescript
-const deployAgentVersion = async (agentId: string, version: string) => {
-  // Create canary deployment
-  const canary = await deploymentService.createCanary(agentId, version);
-
-  // Monitor canary performance
-  const metrics = await monitorService.watchCanary(canary.id, 300000); // 5 minutes
-
-  if (metrics.successRate > 0.95) {
-    // Promote to full deployment
-    await deploymentService.promoteCanary(canary.id);
-  } else {
-    // Rollback
-    await deploymentService.rollbackCanary(canary.id);
+// apps/api/src/app/ai-orchestrator/ai-orchestrator.service.ts
+for (const provider of ["openai", "anthropic", "perplexity"] as const) {
+  const start = Date.now();
+  try {
+    const circuitState = this.circuitBreaker?.getState?.(provider);
+    const state = circuitState?.state || "closed";
+    results[provider] = {
+      status:
+        state === "open"
+          ? "down"
+          : state === "half-open"
+            ? "degraded"
+            : "ok",
+      latencyMs: Date.now() - start,
+    };
+  } catch {
+    results[provider] = {
+      status: "unknown",
+      latencyMs: Date.now() - start,
+    };
   }
-};
+}
 ```
 
-## Scaling Management
+## Integration Points
+| Skill | Integration Point |
+| --- | --- |
+| `workflow-orchestration-engine` | Uses usage meter and prompt versions |
+| `cost-guardian` | AI usage contributes to plan limits |
+| `neva-research-copilot` | Research tasks tracked for usage |
+| `gianna-sdr-agent` | SMS generation tracked for usage |
 
-### Auto-Scaling Rules
-- Scale up when queue depth > 10
-- Scale down when utilization < 30%
-- Maximum instances per tenant: 5
-- Minimum instances: 1 per agent type
+## Cost Information
+- Cost per call is computed from provider pricing in `provider.types.ts`.
+- Usage limits default to 1M tokens, 10k requests, or $50 per month.
 
-### Load Balancing
-**Distribute requests across agent instances:**
-```typescript
-const loadBalancer = {
-  selectInstance: (agentType: string, teamId: string) => {
-    const instances = agentPool.getActiveInstances(agentType, teamId);
-    return instances.sort((a, b) => a.load - b.load)[0];
-  }
-};
-```
-
-## Monitoring & Health Checks
-
-### Health Metrics
-- Response time < 2000ms
-- Error rate < 5%
-- Memory usage < 80%
-- CPU utilization < 70%
-
-### Alerting Rules
-- Agent unresponsive for > 30 seconds
-- Error rate spikes > 10%
-- Resource exhaustion warnings
-- Tenant isolation breaches
-
-## Retirement Process
-
-### Graceful Shutdown
-**Safely retire agent instances:**
-```typescript
-const retireAgent = async (agentId: string) => {
-  // Stop accepting new requests
-  await agentPool.drainConnections(agentId);
-
-  // Wait for active requests to complete
-  await waitForDrain(agentId, 60000); // 1 minute timeout
-
-  // Backup agent state
-  await stateService.backup(agentId);
-
-  // Terminate instance
-  await agentPool.terminate(agentId);
-
-  // Clean up resources
-  await resourceManager.cleanup(agentId);
-};
-```
-
-### Data Migration
-- Transfer active conversations to replacement agents
-- Archive agent state for compliance
-- Update routing rules
-
-## Security Considerations
-
-### Tenant Isolation
-- [ ] Agents cannot access other tenant data
-- [ ] API keys scoped to tenant
-- [ ] Network segmentation enforced
-- [ ] Audit logging for all agent actions
-
-### Access Control
-- [ ] Role-based permissions for agent management
-- [ ] Multi-factor authentication for admin operations
-- [ ] Encrypted agent-to-agent communication
-
-## Performance Optimization
-
-### Caching Strategies
-- Cache agent responses for similar queries
-- Pre-load models for frequently used agents
-- Connection pooling for external APIs
-
-### Resource Optimization
-- Right-size instances based on usage patterns
-- Implement request batching
-- Use spot instances for non-critical workloads
-
-## Testing Framework
-
-### Unit Tests
-- Agent initialization and configuration
-- Resource allocation logic
-- Scaling algorithms
-- Retirement procedures
-
-### Integration Tests
-- End-to-end agent deployment flows
-- Multi-tenant isolation validation
-- Load testing with concurrent requests
-- Failure recovery scenarios
-
-## Response Format
-When managing agent lifecycles, provide:
-1. **Deployment status** for each agent instance
-2. **Resource utilization** metrics
-3. **Health assessment** with failure points
-4. **Scaling recommendations** based on usage patterns
-5. **Security audit** results
-
-## Dependencies
-
-### Prerequisite Skills
-- None (extends existing AI Orchestrator)
-
-### Existing Services Used
-- apps/api/src/app/ai-orchestrator/ - Full provider management (OpenAI, Anthropic) and AI processing
-- apps/api/src/app/luci/ - LUCI agent implementation
-- apps/api/src/app/inbox/services/sabrina-sdr.service.ts - Sabrina agent implementation
-
-### External APIs Required
-- OpenAI API ($0.002/1K tokens) - For AI agent processing
-- Anthropic API - Alternative AI provider
-
-## Related Skills
-- Use with `ai-resource-capacity-planning` for infrastructure scaling
-- Combine with `multi-tenant-ai-isolation` for security validation
-- Reference `orchestration-failure-recovery` for error handling
+## Multi-Tenant Considerations
+- Usage records and prompt versions are stored per `teamId`.
+- Limit checks are evaluated per tenant and can be overridden later by plan.

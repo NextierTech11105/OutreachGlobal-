@@ -25,6 +25,7 @@ export interface NevaContextPacket {
   leadId: string;
   teamId: string;
   confidence: number;
+  isEmpty?: boolean; // Flag to indicate this is an empty/placeholder packet
 
   summary: {
     company: string;
@@ -62,6 +63,54 @@ export interface NevaContextPacket {
   researchedAt: Date;
   sources: string[];
   cacheKey: string | null;
+}
+
+/**
+ * Creates an empty NevaContextPacket for safe fallback when research fails.
+ * Returns a minimal valid packet with isEmpty: true flag.
+ */
+export function createEmptyNevaPacket(
+  leadId: string,
+  teamId: string,
+  companyName: string = ""
+): NevaContextPacket {
+  return {
+    leadId,
+    teamId,
+    confidence: 0,
+    isEmpty: true,
+    summary: {
+      company: companyName,
+      sizeSignal: "unknown",
+      yearsInBusiness: null,
+      employeeEstimate: null,
+    },
+    signals: {
+      recentActivity: [],
+      negativeSignals: [],
+      timingSignals: [],
+    },
+    personalization: {
+      openingHook: "",
+      industryLanguage: [],
+      locationReference: "",
+      avoidTopics: [],
+    },
+    recommendations: {
+      bestWorker: "gianna",
+      tone: "professional",
+      cta: "",
+      discoveryQuestions: [],
+    },
+    riskFlags: {
+      reputation: false,
+      legal: false,
+      financialDistress: false,
+    },
+    researchedAt: new Date(),
+    sources: [],
+    cacheKey: null,
+  };
 }
 
 export interface NevaEnrichRequest {
@@ -158,7 +207,7 @@ export class NevaService {
         this.logger.warn(
           `[NEVA] Research returned empty for: ${business.name}`,
         );
-        return null;
+        return createEmptyNevaPacket(request.leadId, request.teamId, business.name);
       }
 
       // Calculate confidence based on findings
@@ -187,7 +236,8 @@ export class NevaService {
       return packet;
     } catch (error) {
       this.logger.error(`[NEVA] Enrichment error: ${error}`);
-      return null; // Fail gracefully - NEVA failures shouldn't block outreach
+      // Fail gracefully - return empty packet so NEVA failures don't block outreach
+      return createEmptyNevaPacket(request.leadId, request.teamId, request.business.name);
     }
   }
 

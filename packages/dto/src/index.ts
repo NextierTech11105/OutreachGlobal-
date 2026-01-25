@@ -10,6 +10,7 @@ export * from "./workflow";
 export * from "./power-dialer";
 export * from "./message";
 export * from "./deal";
+export * from "./null-objects";
 
 // ===== ENRICHMENT PIPELINE DTOs =====
 export * from "./persona/persona.dto";

@@ -129,15 +129,15 @@
       "name": "AI Co-Pilot Response Generator",
       "tier": 1,
       "category": "agent",
-      "status": "production",
+      "status": "beta",
       "documentation": {
         "skillMdPath": ".kilocode/skills/ai-co-pilot-response-generator/SKILL.md",
         "summary": "COPILOT response suggestions with intent classification"
       },
       "execution": {
         "type": "service",
-        "servicePath": "apps/api/src/app/copilot/copilot.service.ts",
-        "modulePath": "apps/api/src/app/copilot/copilot.module.ts"
+        "servicePath": "apps/api/src/app/ai-co-pilot/services/response-generator.service.ts",
+        "modulePath": "apps/api/src/app/ai-co-pilot/ai-co-pilot.module.ts"
       },
       "tags": ["copilot", "response-generation", "intent-classification"]
     },

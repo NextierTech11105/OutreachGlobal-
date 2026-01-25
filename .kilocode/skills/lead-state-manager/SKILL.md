@@ -1,446 +1,90 @@
 ---
 name: lead-state-manager
-description: Manages lead status and state transitions throughout the sales process
+description: Canonical lead state machine with transitions, timers, and event logging.
 ---
 
 # Lead State Manager
 
+> **Status**: BETA
+> **Location**: `apps/api/src/app/lead/` and `apps/api/src/database/schema/canonical-lead-state.schema.ts`
+> **Primary Function**: Enforce valid lead lifecycle transitions with timers and events.
+
 ## Overview
-Implement a state machine for lead lifecycle management (raw → traced → scored → contacted → converted), enforcing transition rules and validations. Manages lead lifecycle states and transitions in the OutreachGlobal platform. Provides a state machine for lead progression through qualification, nurturing, conversion, and post-sale phases with automated transitions based on interactions and business rules.
+Lead state transitions are centralized in `LeadService.updateLeadState` and backed by a canonical schema that defines states, events, and timers. Timers are executed by a scheduled job to advance retargeting flows.
 
-## Code References
-- LUCI Pipeline: `apps/api/src/app/luci/`
-- Lead Module: `apps/api/src/app/lead/`
-- Campaign Module: `apps/api/src/app/campaign/`
-- Inbox Service: `apps/api/src/app/inbox/services/inbox.service.ts`
-
-## Key Features
-- Finite state machine for lead lifecycle
-- Automated state transitions based on triggers
-- State history tracking and audit trails
-- Custom state workflows per tenant
-- Integration with campaign and interaction data
-- State-based lead scoring and prioritization
-- Transition rules (e.g., prerequisites for scoring)
-- Validation checks and error handling for invalid states
-- Multi-tenant isolation with teamId filtering
+## Verified Code References
+- `apps/api/src/app/lead/services/lead.service.ts`
+- `apps/api/src/database/schema/canonical-lead-state.schema.ts`
+- `apps/api/src/app/lead/schedules/lead.schedule.ts`
+- `apps/api/src/app/lead/controllers/signalhouse-webhook.controller.ts`
 
 ## Current State
 
 ### What Already Exists
-- **LUCI Pipeline**: `apps/api/src/app/luci/` - Tracing and scoring stages
-- **Lead Module**: `apps/api/src/app/lead/` - Lead data models
-- **Campaign Leads**: `apps/api/src/app/campaign/resolvers/campaign-lead.resolver.ts` - Campaign lead associations
-- **Inbox Service**: `apps/api/src/app/inbox/services/inbox.service.ts` - Lead interaction processing
+- Canonical `LeadState` enum and transition map
+- Event log and timer tables for state changes
+- `updateLeadState` validation and event recording
+- Timer execution job for 7D/14D transitions
+- Inbound SMS webhooks enqueue state transitions
 
 ### What Still Needs to be Built
-- State machine definition and management
-- Automated transition logic
-- State history persistence
-- Custom workflow configuration
-- State-based business rules
-- Transition validation and guards
+- Centralized UI for state history and transition auditing
+- State-based SLA reporting and alerting
+- External integrations to trigger transitions (beyond SignalHouse)
 
-## Implementation Steps
-
-### 1. Create State Machine Service
-Create `apps/api/src/app/lead-state/services/state-machine.service.ts`:
-
+## Nextier-Specific Example
 ```typescript
---- /dev/null
-+++ b/apps/api/src/app/lead-state/services/state-machine.service.ts
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { LeadState } from '../entities/lead-state.entity';
-import { StateTransition } from '../entities/state-transition.entity';
-
-@Injectable()
-export class StateMachineService {
-  async transitionState(teamId: string, leadId: string, newState: string, context?: any) {
-    // Ensure multi-tenant isolation
-    if (!teamId) throw new Error('teamId required for tenant isolation');
-
-    // Validate transition rules
-    const currentState = await this.getCurrentState(teamId, leadId);
-    if (!this.canTransition(currentState, newState)) {
-      throw new Error(`Invalid transition from ${currentState} to ${newState}`);
-    }
-
-    // Execute transition with LUCI integration for scoring
-    await this.executeTransition(teamId, leadId, currentState, newState, context);
-  }
-
-  private canTransition(fromState: string, toState: string): boolean {
-    // Define transition rules based on LUCI pipeline stages
-    const validTransitions = {
-      'raw': ['traced'],
-      'traced': ['scored'],
-      'scored': ['contacted'],
-      'contacted': ['converted', 'qualified', 'nurtured'],
-      'qualified': ['contacted', 'converted'],
-      'nurtured': ['contacted'],
-      'converted': [] // Terminal state
-    };
-
-    return validTransitions[fromState]?.includes(toState) || false;
-  }
-
-  private async executeTransition(teamId: string, leadId: string, fromState: string, toState: string, context?: any) {
-    // Log transition
-    await this.logTransition(teamId, leadId, fromState, toState, context);
-
-    // Update lead state
-    await this.updateLeadState(teamId, leadId, toState);
-
-    // Trigger post-transition actions (e.g., LUCI scoring)
-    await this.triggerPostTransitionActions(teamId, leadId, toState);
-  }
-  constructor(
-    @InjectRepository(LeadState)
-    private stateRepo: Repository<LeadState>,
-    @InjectRepository(StateTransition)
-    private transitionRepo: Repository<StateTransition>
-  ) {}
-
-  async getLeadState(teamId: string, leadId: string): Promise<LeadState> {
-    return await this.stateRepo.findOne({
-      where: { teamId, leadId },
-      relations: ['transitions']
-    });
-  }
-
-  async transitionLead(
-    teamId: string,
-    leadId: string,
-    newState: string,
-    trigger: string,
-    metadata?: any
-  ): Promise<boolean> {
-    const currentState = await this.getLeadState(teamId, leadId);
-    
-    // Validate transition
-    if (!this.canTransition(currentState.currentState, newState)) {
-      throw new Error(`Invalid transition from ${currentState.currentState} to ${newState}`);
-    }
-    
-    // Check transition guards
-    await this.checkGuards(leadId, currentState.currentState, newState);
-    
-    // Execute transition
-    const transition = this.transitionRepo.create({
-      leadId,
-      fromState: currentState.currentState,
-      toState: newState,
-      trigger,
-      metadata,
-      timestamp: new Date()
-    });
-    
-    await this.transitionRepo.save(transition);
-    
-    // Update lead state
-    currentState.currentState = newState;
-    currentState.lastTransition = new Date();
-    currentState.transitions.push(transition);
-    
-    await this.stateRepo.save(currentState);
-    
-    // Execute transition actions
-    await this.executeActions(leadId, newState, metadata);
-    
-    return true;
-  }
-  
-  private canTransition(fromState: string, toState: string): boolean {
-    // Transition rules based on LUCI pipeline stages
-    const validTransitions = {
-      'raw': ['traced'],
-      'traced': ['scored'],
-      'scored': ['contacted'],
-      'contacted': ['converted', 'qualified', 'nurtured'],
-      'qualified': ['contacted', 'converted'],
-      'nurtured': ['contacted'],
-      'converted': [] // Terminal state
-    };
-      'qualified': ['nurturing', 'proposal', 'disqualified'],
-      'nurturing': ['qualified', 'proposal', 'disqualified'],
-      'proposal': ['negotiation', 'won', 'lost'],
-      'negotiation': ['won', 'lost', 'on_hold'],
-      'won': ['post_sale'],
-      'lost': ['re_engage'],
-      'disqualified': [],
-      'on_hold': ['negotiation', 'lost'],
-      're_engage': ['nurturing', 'qualified'],
-      'post_sale': []
-    };
-    
-    return validTransitions[fromState]?.includes(toState) || false;
-  }
-  
-  private async checkGuards(leadId: string, fromState: string, toState: string) {
-    // Implement business rule guards
-    if (toState === 'qualified') {
-      await this.checkQualificationCriteria(leadId);
-    }
-    
-    if (toState === 'won') {
-      await this.checkConversionRequirements(leadId);
-    }
-  }
-  
-  private async executeActions(leadId: string, newState: string, metadata: any) {
-    // Execute state-specific actions
-    switch (newState) {
-      case 'qualified':
-        await this.notifySalesTeam(leadId);
-        break;
-      case 'won':
-        await this.createPostSaleProcess(leadId);
-        break;
-      case 'lost':
-        await this.updateLostReason(leadId, metadata.reason);
-        break;
-    }
-  }
-  
-  private async checkQualificationCriteria(leadId: string) {
-    // Check if lead meets qualification criteria
-    const lead = await this.leadService.getLead(leadId);
-    
-    if (!lead.email || !lead.phone) {
-      throw new Error('Lead missing required contact information');
-    }
-    
-    if (lead.score < 50) {
-      throw new Error('Lead score too low for qualification');
-    }
-  }
-}
+// apps/api/src/database/schema/canonical-lead-state.schema.ts
+export const VALID_STATE_TRANSITIONS: Record<LeadState, LeadState[]> = {
+  new: ["touched", "suppressed"],
+  touched: ["retargeting", "responded", "suppressed"],
+  retargeting: ["responded", "suppressed"],
+  responded: [
+    "soft_interest",
+    "email_captured",
+    "high_intent",
+    "in_call_queue",
+    "suppressed",
+  ],
+  soft_interest: [
+    "email_captured",
+    "content_nurture",
+    "high_intent",
+    "in_call_queue",
+    "suppressed",
+  ],
+  email_captured: [
+    "content_nurture",
+    "high_intent",
+    "in_call_queue",
+    "suppressed",
+  ],
+  content_nurture: [
+    "high_intent",
+    "appointment_booked",
+    "in_call_queue",
+    "suppressed",
+  ],
+  high_intent: ["appointment_booked", "in_call_queue", "closed", "suppressed"],
+  appointment_booked: ["in_call_queue", "closed", "suppressed"],
+  in_call_queue: ["closed", "suppressed"],
+  closed: [],
+  suppressed: [],
+};
 ```
 
-### 2. Create State Entities
-Create `apps/api/src/app/lead-state/entities/lead-state.entity.ts`:
+## Integration Points
+| Skill | Integration Point |
+| --- | --- |
+| `signalhouse-integration` | Inbound SMS triggers state transitions via webhook |
+| `gianna-sdr-agent` | Escalations and responses influence state updates |
+| `cathy-nurture-agent` | Nurture cadence relates to retargeting timers |
+| `lead-journey-tracker` | Events and messages provide journey context |
+| `workflow-orchestration-engine` | Timer execution and queue coordination |
 
-```typescript
---- /dev/null
-+++ b/apps/api/src/app/lead-state/entities/lead-state.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-import { StateTransition } from './state-transition.entity';
+## Cost Information
+- No external API costs; state transitions are internal DB operations.
 
-@Entity()
-export class LeadState {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  teamId: string;
-
-  @Column()
-  leadId: string;
-  
-  @Column({ default: 'new' })
-  currentState: string;
-  
-  @Column({ nullable: true })
-  lastTransition: Date;
-  
-  @Column({ type: 'json', nullable: true })
-  stateMetadata: any;
-  
-  @OneToMany(() => StateTransition, transition => transition.leadState)
-  transitions: StateTransition[];
-}
-```
-
-Create `apps/api/src/app/lead-state/entities/state-transition.entity.ts`:
-
-```typescript
---- /dev/null
-+++ b/apps/api/src/app/lead-state/entities/state-transition.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { LeadState } from './lead-state.entity';
-
-@Entity()
-export class StateTransition {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-  
-  @Column()
-  leadId: string;
-  
-  @Column()
-  fromState: string;
-  
-  @Column()
-  toState: string;
-  
-  @Column()
-  trigger: string;
-  
-  @Column()
-  timestamp: Date;
-  
-  @Column({ type: 'json', nullable: true })
-  metadata: any;
-  
-  @ManyToOne(() => LeadState, state => state.transitions)
-  leadState: LeadState;
-}
-```
-
-### 3. Add State Resolver
-Create `apps/api/src/app/lead-state/resolvers/lead-state.resolver.ts`:
-
-```typescript
---- /dev/null
-+++ b/apps/api/src/app/lead-state/resolvers/lead-state.resolver.ts
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { StateMachineService } from '../services/state-machine.service';
-
-@Resolver()
-export class LeadStateResolver {
-  constructor(private stateMachine: StateMachineService) {}
-
-  @Query(() => LeadState)
-  async leadState(@Args('teamId') teamId: string, @Args('leadId') leadId: string) {
-    return this.stateMachine.getLeadState(teamId, leadId);
-  }
-
-  @Mutation(() => Boolean)
-  async transitionLead(
-    @Args('teamId') teamId: string,
-    @Args('leadId') leadId: string,
-    @Args('newState') newState: string,
-    @Args('trigger') trigger: string,
-    @Args('metadata', { nullable: true }) metadata: any
-  ) {
-    return this.stateMachine.transitionLead(teamId, leadId, newState, trigger, metadata);
-  }
-
-  @Query(() => [String])
-  async availableTransitions(@Args('teamId') teamId: string, @Args('leadId') leadId: string) {
-    const state = await this.stateMachine.getLeadState(teamId, leadId);
-    return this.stateMachine.getAvailableTransitions(state.currentState);
-  }
-}
-```
-
-### 4. Integrate with Campaign Service
-Update `apps/api/src/app/campaign/services/campaign.service.ts`:
-
-```typescript
---- a/app/campaign/services/campaign.service.ts
-+++ b/app/campaign/services/campaign.service.ts
-  async processCampaignResponse(leadId: string, response: CampaignResponse) {
-    // Existing response processing...
-    
-    // Update lead state based on response
-    const newState = this.determineStateFromResponse(response);
-    if (newState) {
-      await this.stateMachine.transitionLead(
-        leadId,
-        newState,
-        'campaign_response',
-        { campaignId: response.campaignId, responseType: response.type }
-      );
-    }
-  }
-  
-  private determineStateFromResponse(response: CampaignResponse): string | null {
-    switch (response.type) {
-      case 'interested':
-        return 'qualified';
-      case 'unsubscribe':
-        return 'disqualified';
-      case 'converted':
-        return 'won';
-      default:
-        return null;
-    }
-  }
-```
-
-### 5. Add Automated Transitions
-Create `apps/api/src/app/lead-state/services/automated-transitions.service.ts`:
-
-```typescript
---- /dev/null
-+++ b/apps/api/src/app/lead-state/services/automated-transitions.service.ts
-import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { StateMachineService } from './state-machine.service';
-
-@Injectable()
-export class AutomatedTransitionsService {
-  constructor(private stateMachine: StateMachineService) {}
-
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async processStaleLeads() {
-    // Move leads that haven't been touched in 30 days to nurturing
-    const staleLeads = await this.findStaleLeads(30);
-
-    for (const lead of staleLeads) {
-      await this.stateMachine.transitionLead(
-        lead.teamId,
-        lead.id,
-        'nurtured',
-        'automated_stale',
-        { daysStale: 30 }
-      );
-    }
-  }
-
-  @Cron(CronExpression.EVERY_WEEK)
-  async reEngageLostLeads() {
-    // Move lost leads back to re-engage after 90 days
-    const lostLeads = await this.findLostLeadsOlderThan(90);
-
-    for (const lead of lostLeads) {
-      await this.stateMachine.transitionLead(
-        lead.teamId,
-        lead.id,
-        'contacted',
-        'automated_reengage',
-        { daysSinceLost: 90 }
-      );
-    }
-  }
-  
-  private async findStaleLeads(days: number) {
-    // Find leads in 'new' or 'qualified' state with no recent activity
-    return await this.leadRepo
-      .createQueryBuilder('lead')
-      .where('lead.lastActivity < :date', { date: new Date(Date.now() - days * 24 * 60 * 60 * 1000) })
-      .andWhere('lead.state IN (:...states)', { states: ['new', 'qualified'] })
-      .getMany();
-  }
-}
-```
-
-## Dependencies
-
-### Prerequisite Skills
-- luci-research-agent - For LUCI pipeline integration and scoring
-
-### Existing Services Used
-- apps/api/src/app/luci/ - Tracing and scoring stages for state transitions
-- apps/api/src/app/lead/ - Lead data models and repositories
-- apps/api/src/app/campaign/ - Campaign execution for state triggers
-- apps/api/src/app/inbox/services/inbox.service.ts - Interaction processing
-
-### External APIs Required
-- None
-
-## Testing
-- Unit tests for state machine logic
-- Integration tests for transition workflows
-- Edge case testing for invalid transitions
-- Performance tests for bulk state updates
-
-## Notes
-- Implement state machine as configurable per tenant
-- Provide audit trail for all state changes
-- Support custom state definitions and transitions
-- Integrate with existing campaign and inbox services
-- Ensure atomic state transitions with rollback capability
+## Multi-Tenant Considerations
+- `teamId` is enforced on all transitions and event inserts.
+- Timer queries and event logs are filtered by tenant scope.
