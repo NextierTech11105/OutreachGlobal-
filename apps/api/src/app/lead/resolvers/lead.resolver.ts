@@ -284,11 +284,25 @@ export class LeadResolver extends BaseResolver(Lead) {
 
   @ResolveField(() => String, { nullable: true })
   name(@Parent() lead: Lead) {
-    if (!lead.firstName || !lead.lastName) {
-      return null;
+    // Build name from firstName + lastName
+    const fullName = [lead.firstName, lead.lastName].filter((value) => !!value).join(" ");
+
+    // If we have a name, return it
+    if (fullName.trim()) {
+      return fullName;
     }
 
-    return [lead.firstName, lead.lastName].filter((value) => !!value).join(" ");
+    // Fall back to company name
+    if (lead.company) {
+      return lead.company;
+    }
+
+    // Fall back to email prefix
+    if (lead.email) {
+      return lead.email.split("@")[0];
+    }
+
+    return null;
   }
 
   @ResolveField()
