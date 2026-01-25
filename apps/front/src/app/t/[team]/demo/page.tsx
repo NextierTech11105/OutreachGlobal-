@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useCurrentTeam } from "@/features/team/team.context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,7 @@ interface BatchResult {
 }
 
 export default function DemoPage() {
-  const params = useParams();
-  const teamSlug = params?.team as string;
+  const { teamId } = useCurrentTeam();
 
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<DemoLead[]>([]);
@@ -90,7 +89,7 @@ export default function DemoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teamId: teamSlug,
+          teamId: teamId,
           leadIds: selectedLeads,
           templateType,
           customTemplate: customTemplate || undefined,
@@ -117,7 +116,7 @@ export default function DemoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teamId: teamSlug,
+          teamId: teamId,
           leadIds: selectedLeads,
           templateType,
           customTemplate: customTemplate || undefined,
@@ -142,7 +141,7 @@ export default function DemoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teamId: teamSlug,
+          teamId: teamId,
           count: leadCount,
           industry,
           state,
