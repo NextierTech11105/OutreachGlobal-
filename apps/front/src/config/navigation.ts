@@ -142,6 +142,14 @@ export const navigationGroups: NavGroup[] = [
         description: "All contacts",
       },
       {
+        label: "Data Browser",
+        href: "/data-browser",
+        icon: Database,
+        badge: "LAKE",
+        badgeVariant: "secondary",
+        description: "Raw data lake explorer",
+      },
+      {
         label: "Deals",
         href: "/deals",
         icon: Briefcase,
