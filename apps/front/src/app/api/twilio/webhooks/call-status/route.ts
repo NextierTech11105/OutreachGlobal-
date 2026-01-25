@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { resolveTenantFromVoiceNumber } from "@/lib/voice/call-context";
+import {
+  validateTwilioWebhook,
+  forbiddenResponse,
+} from "@/lib/twilio/validate-webhook";
 
 /**
  * POST /api/twilio/webhooks/call-status
@@ -18,16 +22,23 @@ export async function POST(request: NextRequest) {
     const leadId = searchParams.get("leadId") || "";
     const teamId = searchParams.get("teamId") || "";
 
-    // Parse Twilio webhook data
+    // Parse and validate Twilio webhook
     const formData = await request.formData();
 
-    const callSid = (formData.get("CallSid") as string) || "";
-    const callStatus = (formData.get("CallStatus") as string) || "";
-    const callDuration = (formData.get("CallDuration") as string) || "0";
-    const to = (formData.get("To") as string) || "";
-    const from = (formData.get("From") as string) || "";
-    const direction = (formData.get("Direction") as string) || "";
-    const answeredBy = (formData.get("AnsweredBy") as string) || "";
+    const validation = validateTwilioWebhook(request, formData);
+    if (!validation.isValid) {
+      console.warn("[Twilio Call Status] Rejected:", validation.error);
+      return forbiddenResponse(validation.error);
+    }
+
+    const params = validation.params!;
+    const callSid = params.CallSid || "";
+    const callStatus = params.CallStatus || "";
+    const callDuration = params.CallDuration || "0";
+    const to = params.To || "";
+    const from = params.From || "";
+    const direction = params.Direction || "";
+    const answeredBy = params.AnsweredBy || "";
 
     console.log(
       `[Twilio Call Status] ${callSid}: ${callStatus} (${callDuration}s)`,

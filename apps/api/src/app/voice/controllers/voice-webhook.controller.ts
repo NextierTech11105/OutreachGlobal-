@@ -7,10 +7,14 @@ import {
   Get,
   Query,
   Logger,
+  Headers,
+  Req,
+  RawBodyRequest,
 } from "@nestjs/common";
-import { FastifyReply } from "fastify";
+import { FastifyReply, FastifyRequest } from "fastify";
 import { VoiceService } from "../services/voice.service";
 import { ConfigService } from "@nestjs/config";
+import { validateRequest } from "twilio";
 
 interface TwilioVoiceWebhook {
   CallSid: string;
@@ -34,6 +38,38 @@ export class VoiceWebhookController {
   ) {}
 
   /**
+   * Validate Twilio webhook signature to prevent spoofed requests.
+   * Returns true if signature is valid or if in local dev mode.
+   */
+  private validateTwilioSignature(
+    signature: string | undefined,
+    url: string,
+    params: Record<string, string>,
+  ): boolean {
+    // Skip validation in local development
+    if (this.configService.get("APP_ENV") === "local") {
+      return true;
+    }
+
+    if (!signature) {
+      this.logger.warn("Missing X-Twilio-Signature header");
+      return false;
+    }
+
+    const authToken = this.configService.get("TWILIO_AUTH_TOKEN");
+    if (!authToken) {
+      this.logger.error("TWILIO_AUTH_TOKEN not configured");
+      return false;
+    }
+
+    const isValid = validateRequest(authToken, signature, url, params);
+    if (!isValid) {
+      this.logger.warn(`Invalid Twilio signature for URL: ${url}`);
+    }
+    return isValid;
+  }
+
+  /**
    * Handle incoming voice calls from SignalHouse/Twilio
    * This is the endpoint you configure as your Voice URL in Twilio/SignalHouse
    *
@@ -48,8 +84,18 @@ export class VoiceWebhookController {
   @Header("Content-Type", "application/xml")
   async handleInboundCall(
     @Body() body: TwilioVoiceWebhook,
+    @Headers("x-twilio-signature") signature: string | undefined,
+    @Req() req: RawBodyRequest<FastifyRequest>,
     @Res() res: FastifyReply,
   ) {
+    // Validate Twilio signature to prevent spoofed webhooks
+    const webhookUrl = `${this.configService.get("API_URL") || "https://api.nextier.ai"}/webhook/voice/inbound`;
+    const isValid = this.validateTwilioSignature(signature, webhookUrl, body as unknown as Record<string, string>);
+    if (!isValid) {
+      this.logger.warn("Rejected inbound call webhook: invalid signature");
+      return res.status(403).send("Forbidden: Invalid signature");
+    }
+
     const { CallSid, From, To, CallStatus, Direction } = body;
 
     this.logger.log(
@@ -105,7 +151,18 @@ export class VoiceWebhookController {
    * Handle call status updates (completed, busy, no-answer, failed)
    */
   @Post("status")
-  async handleStatusCallback(@Body() body: TwilioVoiceWebhook) {
+  async handleStatusCallback(
+    @Body() body: TwilioVoiceWebhook,
+    @Headers("x-twilio-signature") signature: string | undefined,
+  ) {
+    // Validate Twilio signature
+    const webhookUrl = `${this.configService.get("API_URL") || "https://api.nextier.ai"}/webhook/voice/status`;
+    const isValid = this.validateTwilioSignature(signature, webhookUrl, body as unknown as Record<string, string>);
+    if (!isValid) {
+      this.logger.warn("Rejected status callback: invalid signature");
+      return { error: "Invalid signature", received: false };
+    }
+
     const { CallSid, CallStatus, From, To } = body;
     this.logger.log(`Call status ${CallSid}: ${CallStatus} (${From} -> ${To})`);
     return { received: true };

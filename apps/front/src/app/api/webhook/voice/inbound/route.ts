@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  validateTwilioWebhook,
+  forbiddenResponse,
+} from "@/lib/twilio/validate-webhook";
 
 // Twilio Voice Webhook - Handles inbound calls
 // Configure in Twilio Console: Voice Request URL
@@ -50,12 +54,15 @@ export async function POST(request: NextRequest) {
   try {
     // Twilio sends form-urlencoded data
     const formData = await request.formData();
-    const payload: Record<string, string> = {};
 
-    formData.forEach((value, key) => {
-      payload[key] = value.toString();
-    });
+    // Validate Twilio signature
+    const validation = validateTwilioWebhook(request, formData);
+    if (!validation.isValid) {
+      console.warn("[Twilio Voice] Rejected:", validation.error);
+      return forbiddenResponse(validation.error);
+    }
 
+    const payload = validation.params!;
     const callSid = payload.CallSid || `call_${Date.now()}`;
     const from = payload.From || "";
     const to = payload.To || "";

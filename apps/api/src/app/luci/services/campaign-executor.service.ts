@@ -2,27 +2,28 @@
  * LUCI Campaign Executor
  * Sends bulk SMS to SignalHouse with 10DLC compliance
  *
- * Campaign: CJRCU60 (NEXTIER)
- * Phone: 15164079249
- * Daily Cap: 2k (T-Mobile brand limit)
- * TPM: 75 SMS (AT&T)
+ * Uses smsPhonePool for:
+ * - Phone rotation (round-robin across pool)
+ * - Daily send tracking (persisted across restarts)
+ * - Auto-disable failing numbers
+ *
+ * Campaign config from phone-campaign-map.ts
  */
 
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { leadsTable } from "@/database/schema-alias";
+import { leadsTable, smsPhonePool } from "@/database/schema-alias";
 import { SignalHouseService } from "@/lib/signalhouse/signalhouse.service";
-import { and, eq, desc, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, desc, inArray, isNotNull, asc, sql, sum } from "drizzle-orm";
 
-// SignalHouse 10DLC Config
-const SIGNALHOUSE_CONFIG = {
-  campaignId: "CJRCU60",
-  fromNumber: "15164079249",
-  brandName: "NEXTIER",
-  dailyCap: 2000, // T-Mobile brand daily cap
-  tpmLimit: 75, // AT&T throughput per minute
-  delayBetweenMs: 850, // ~70/min to stay under TPM
+// Default rate limits (can be overridden per phone)
+const DEFAULT_TPM_LIMIT = 75;
+const DEFAULT_DELAY_MS = 850; // ~70/min to stay under TPM
+
+// Phone → Campaign mapping (imported inline to avoid circular deps)
+const PHONE_CAMPAIGN_MAP: Record<string, { campaignId: string; dailyLimit: number }> = {
+  "15164079249": { campaignId: "CJRCU60", dailyLimit: 2000 },
 };
 
 export interface CampaignExecuteOptions {
@@ -53,7 +54,7 @@ export class CampaignExecutorService {
 
   /**
    * Execute bulk SMS campaign on ready leads
-   * Mobiles first, highest scores first
+   * Uses phone pool rotation and tracks daily sends
    */
   async executeCampaign(
     options: CampaignExecuteOptions,
@@ -70,6 +71,32 @@ export class CampaignExecutorService {
       `[LUCI] Executing campaign for team ${teamId}, limit: ${limit}, dryRun: ${dryRun}`,
     );
 
+    // Get phone pool for this team
+    const poolStats = await this.getTeamPhonePoolStats(teamId);
+    if (poolStats.availablePhones === 0) {
+      return {
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        errors: ["No active phones in pool for this team"],
+        cost: 0,
+        leadIds: [],
+      };
+    }
+
+    // Calculate remaining daily capacity across all phones
+    const remainingCapacity = poolStats.totalDailyLimit - poolStats.sentToday;
+    if (remainingCapacity <= 0) {
+      return {
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        errors: [`Daily limit reached: ${poolStats.sentToday}/${poolStats.totalDailyLimit} sent today`],
+        cost: 0,
+        leadIds: [],
+      };
+    }
+
     // Get ready leads - mobiles with best scores
     const conditions = [
       eq(leadsTable.teamId, teamId),
@@ -82,6 +109,9 @@ export class CampaignExecutorService {
     if (sectorTag) {
       conditions.push(eq(leadsTable.sectorTag, sectorTag));
     }
+
+    // Limit to remaining daily capacity
+    const effectiveLimit = Math.min(limit, remainingCapacity);
 
     const leads = await this.db
       .select({
@@ -98,10 +128,10 @@ export class CampaignExecutorService {
       .from(leadsTable)
       .where(and(...conditions))
       .orderBy(
-        desc(leadsTable.phoneActivityScore), // Highest score first
-        leadsTable.phoneContactGrade, // Grade A before B
+        desc(leadsTable.phoneActivityScore),
+        leadsTable.phoneContactGrade,
       )
-      .limit(Math.min(limit, SIGNALHOUSE_CONFIG.dailyCap));
+      .limit(effectiveLimit);
 
     if (leads.length === 0) {
       return {
@@ -131,12 +161,25 @@ export class CampaignExecutorService {
     const errors: string[] = [];
     const sentLeadIds: string[] = [];
 
-    // Send SMS with rate limiting
+    // Send SMS with rate limiting and phone rotation
     for (const lead of mobileLeads) {
       if (!lead.phone) {
         skipped++;
         continue;
       }
+
+      // Get next phone from pool (round-robin)
+      const phoneInfo = await this.selectNextPhone(teamId);
+      if (!phoneInfo) {
+        errors.push("No available phones in pool");
+        break;
+      }
+
+      // Get campaign config for this phone
+      const campaignConfig = PHONE_CAMPAIGN_MAP[phoneInfo.phoneNumber] || {
+        campaignId: "CJRCU60", // fallback
+        dailyLimit: 2000,
+      };
 
       // Personalize message
       const personalizedMessage = this.personalizeMessage(
@@ -146,7 +189,7 @@ export class CampaignExecutorService {
 
       if (dryRun) {
         this.logger.debug(
-          `[DRY RUN] Would send to ${lead.phone}: ${personalizedMessage}`,
+          `[DRY RUN] Would send to ${lead.phone} from ${phoneInfo.phoneNumber}: ${personalizedMessage}`,
         );
         sent++;
         sentLeadIds.push(lead.id);
@@ -156,14 +199,17 @@ export class CampaignExecutorService {
       try {
         const result = await this.signalhouse.sendSms({
           to: lead.phone,
-          from: SIGNALHOUSE_CONFIG.fromNumber,
+          from: phoneInfo.phoneNumber,
           message: personalizedMessage,
-          campaignId: SIGNALHOUSE_CONFIG.campaignId,
+          campaignId: campaignConfig.campaignId,
         });
 
         if (result.success) {
           sent++;
           sentLeadIds.push(lead.id);
+
+          // Record success in phone pool
+          await this.recordSendResult(phoneInfo.poolEntryId, "success");
 
           // Mark lead as sent
           await this.db
@@ -176,20 +222,24 @@ export class CampaignExecutorService {
         } else {
           failed++;
           errors.push(`${lead.leadId}: ${result.error}`);
+          await this.recordSendResult(phoneInfo.poolEntryId, "failure");
         }
 
         // Rate limit to stay under TPM
-        await this.delay(SIGNALHOUSE_CONFIG.delayBetweenMs);
+        await this.delay(DEFAULT_DELAY_MS);
       } catch (err) {
         failed++;
         errors.push(
           `${lead.leadId}: ${err instanceof Error ? err.message : "Unknown error"}`,
         );
+        if (phoneInfo) {
+          await this.recordSendResult(phoneInfo.poolEntryId, "failure");
+        }
       }
     }
 
     // Calculate cost (SignalHouse rates)
-    const cost = sent * 0.015; // ~$0.015 per SMS
+    const cost = sent * 0.015;
 
     this.logger.log(
       `[LUCI] Campaign complete: ${sent} sent, ${failed} failed, ${skipped} skipped`,
@@ -199,9 +249,125 @@ export class CampaignExecutorService {
       sent,
       failed,
       skipped,
-      errors: errors.slice(0, 10), // First 10 errors
+      errors: errors.slice(0, 10),
       cost,
       leadIds: sentLeadIds,
+    };
+  }
+
+  /**
+   * Select next phone from pool using round-robin (LRU)
+   */
+  private async selectNextPhone(
+    teamId: string,
+  ): Promise<{ phoneNumber: string; poolEntryId: string } | null> {
+    // Get next healthy, active phone (LRU order - nulls first means never-used phones get picked first)
+    const [phone] = await this.db
+      .select({
+        id: smsPhonePool.id,
+        phoneNumber: smsPhonePool.phoneNumber,
+      })
+      .from(smsPhonePool)
+      .where(
+        and(
+          eq(smsPhonePool.teamId, teamId),
+          eq(smsPhonePool.isActive, true),
+          eq(smsPhonePool.isHealthy, true),
+        ),
+      )
+      .orderBy(sql`${smsPhonePool.lastUsedAt} ASC NULLS FIRST`)
+      .limit(1);
+
+    if (!phone) return null;
+
+    // Update last used and increment daily count atomically
+    await this.db
+      .update(smsPhonePool)
+      .set({
+        lastUsedAt: new Date(),
+        sendCount: sql`${smsPhonePool.sendCount} + 1`,
+        dailySendCount: sql`${smsPhonePool.dailySendCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(smsPhonePool.id, phone.id));
+
+    return {
+      phoneNumber: phone.phoneNumber,
+      poolEntryId: phone.id,
+    };
+  }
+
+  /**
+   * Record send result for health tracking
+   */
+  private async recordSendResult(
+    poolEntryId: string,
+    result: "success" | "failure",
+  ): Promise<void> {
+    if (result === "success") {
+      await this.db
+        .update(smsPhonePool)
+        .set({
+          successCount: sql`${smsPhonePool.successCount} + 1`,
+          consecutiveFailures: 0,
+          updatedAt: new Date(),
+        })
+        .where(eq(smsPhonePool.id, poolEntryId));
+    } else {
+      await this.db
+        .update(smsPhonePool)
+        .set({
+          failureCount: sql`${smsPhonePool.failureCount} + 1`,
+          consecutiveFailures: sql`${smsPhonePool.consecutiveFailures} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(smsPhonePool.id, poolEntryId));
+
+      // Auto-disable after 5 consecutive failures
+      await this.db
+        .update(smsPhonePool)
+        .set({ isHealthy: false, lastHealthCheckAt: new Date() })
+        .where(
+          and(
+            eq(smsPhonePool.id, poolEntryId),
+            sql`${smsPhonePool.consecutiveFailures} >= 5`,
+          ),
+        );
+    }
+  }
+
+  /**
+   * Get phone pool stats for a team
+   */
+  private async getTeamPhonePoolStats(teamId: string): Promise<{
+    availablePhones: number;
+    sentToday: number;
+    totalDailyLimit: number;
+  }> {
+    const phones = await this.db
+      .select({
+        phoneNumber: smsPhonePool.phoneNumber,
+        dailySendCount: smsPhonePool.dailySendCount,
+        isActive: smsPhonePool.isActive,
+        isHealthy: smsPhonePool.isHealthy,
+      })
+      .from(smsPhonePool)
+      .where(eq(smsPhonePool.teamId, teamId));
+
+    const activePhones = phones.filter((p) => p.isActive && p.isHealthy);
+    const sentToday = phones.reduce((sum, p) => sum + p.dailySendCount, 0);
+
+    // Calculate total daily limit based on phone campaign configs
+    let totalDailyLimit = 0;
+    for (const phone of activePhones) {
+      const config = PHONE_CAMPAIGN_MAP[phone.phoneNumber];
+      totalDailyLimit += config?.dailyLimit || 2000;
+    }
+
+    return {
+      availablePhones: activePhones.length,
+      sentToday,
+      totalDailyLimit: totalDailyLimit || 2000, // Default if no phones
     };
   }
 
@@ -242,9 +408,15 @@ export class CampaignExecutorService {
     remainingDaily: number;
     gradeA: number;
     gradeB: number;
+    phonePoolStatus: {
+      activePhones: number;
+      healthyPhones: number;
+      totalDailyLimit: number;
+    };
   }> {
-    const [totalReady] = await this.db
-      .select({ count: leadsTable.id })
+    // Get lead counts
+    const [readyCount] = await this.db
+      .select({ count: sql<number>`count(*)` })
       .from(leadsTable)
       .where(
         and(
@@ -254,8 +426,8 @@ export class CampaignExecutorService {
         ),
       );
 
-    const [totalMobiles] = await this.db
-      .select({ count: leadsTable.id })
+    const [mobileCount] = await this.db
+      .select({ count: sql<number>`count(*)` })
       .from(leadsTable)
       .where(
         and(
@@ -266,16 +438,45 @@ export class CampaignExecutorService {
         ),
       );
 
-    // TODO: Track daily sends in a separate table
-    const sentToday = 0;
+    const [gradeACount] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(leadsTable)
+      .where(
+        and(
+          eq(leadsTable.teamId, teamId),
+          eq(leadsTable.enrichmentStatus, "ready"),
+          eq(leadsTable.smsReady, true),
+          eq(leadsTable.phoneContactGrade, "A"),
+        ),
+      );
+
+    const [gradeBCount] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(leadsTable)
+      .where(
+        and(
+          eq(leadsTable.teamId, teamId),
+          eq(leadsTable.enrichmentStatus, "ready"),
+          eq(leadsTable.smsReady, true),
+          eq(leadsTable.phoneContactGrade, "B"),
+        ),
+      );
+
+    // Get phone pool stats (actual daily sends from smsPhonePool)
+    const poolStats = await this.getTeamPhonePoolStats(teamId);
 
     return {
-      totalReady: totalReady?.count ? Number(totalReady.count) : 0,
-      totalMobiles: totalMobiles?.count ? Number(totalMobiles.count) : 0,
-      sentToday,
-      remainingDaily: SIGNALHOUSE_CONFIG.dailyCap - sentToday,
-      gradeA: 0,
-      gradeB: 0,
+      totalReady: Number(readyCount?.count) || 0,
+      totalMobiles: Number(mobileCount?.count) || 0,
+      sentToday: poolStats.sentToday,
+      remainingDaily: poolStats.totalDailyLimit - poolStats.sentToday,
+      gradeA: Number(gradeACount?.count) || 0,
+      gradeB: Number(gradeBCount?.count) || 0,
+      phonePoolStatus: {
+        activePhones: poolStats.availablePhones,
+        healthyPhones: poolStats.availablePhones,
+        totalDailyLimit: poolStats.totalDailyLimit,
+      },
     };
   }
 

@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 import { callHistories, leads } from "@/lib/db/schema";
 import { eq, or, sql } from "drizzle-orm";
 import { isAlreadyProcessed, generateEventId } from "@/lib/webhook/idempotency";
+import {
+  validateTwilioWebhook,
+  forbiddenResponse,
+} from "@/lib/twilio/validate-webhook";
 
 /**
  * Twilio Voice Webhook
@@ -16,11 +20,15 @@ import { isAlreadyProcessed, generateEventId } from "@/lib/webhook/idempotency";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const data: Record<string, string> = {};
-    formData.forEach((value, key) => {
-      data[key] = String(value);
-    });
 
+    // Validate Twilio signature
+    const validation = validateTwilioWebhook(request, formData);
+    if (!validation.isValid) {
+      console.warn("[Twilio Webhook] Rejected:", validation.error);
+      return forbiddenResponse(validation.error);
+    }
+
+    const data = validation.params!;
     console.log("[Twilio Webhook] Received:", data);
 
     // Idempotency check - use CallSid + CallStatus as unique event ID

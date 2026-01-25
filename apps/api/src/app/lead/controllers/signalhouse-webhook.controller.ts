@@ -6,6 +6,7 @@ import {
   Res,
   Logger,
   Get,
+  Headers,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { FastifyReply } from "fastify";
@@ -104,13 +105,58 @@ export class SignalHouseWebhookController {
   }
 
   /**
+   * Validate webhook token from either Authorization header (preferred) or query param (legacy).
+   * Header-based auth is preferred because query params appear in server logs.
+   *
+   * Accepts:
+   * - Authorization: Bearer <token>
+   * - X-Webhook-Token: <token>
+   * - ?token=<token> (legacy, will be deprecated)
+   */
+  private validateToken(
+    authHeader: string | undefined,
+    webhookTokenHeader: string | undefined,
+    queryToken: string | undefined,
+  ): boolean {
+    // Priority: Authorization header > X-Webhook-Token > query param
+    let token: string | undefined;
+
+    // Check Authorization header first (Bearer token)
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+    // Check X-Webhook-Token header
+    else if (webhookTokenHeader) {
+      token = webhookTokenHeader;
+    }
+    // Fallback to query param (legacy - will log warning)
+    else if (queryToken) {
+      this.logger.warn(
+        "SignalHouse webhook using query param token - update to header auth for security",
+      );
+      token = queryToken;
+    }
+
+    if (!token) {
+      return false;
+    }
+
+    return token === this.webhookToken;
+  }
+
+  /**
    * GET /api/webhook/signalhouse
    * Health check
    */
   @Get()
-  async healthCheck(@Query("token") token: string, @Res() res: FastifyReply) {
-    if (token !== this.webhookToken) {
-      return res.status(401).send({ error: "Invalid token" });
+  async healthCheck(
+    @Headers("authorization") authHeader: string | undefined,
+    @Headers("x-webhook-token") webhookTokenHeader: string | undefined,
+    @Query("token") queryToken: string | undefined,
+    @Res() res: FastifyReply,
+  ) {
+    if (!this.validateToken(authHeader, webhookTokenHeader, queryToken)) {
+      return res.status(401).send({ error: "Invalid or missing token" });
     }
 
     return res.status(200).send({
@@ -122,16 +168,23 @@ export class SignalHouseWebhookController {
   /**
    * POST /api/webhook/signalhouse
    * Main webhook handler - ALL SignalHouse events
+   *
+   * Authentication (in order of preference):
+   * 1. Authorization: Bearer <token>
+   * 2. X-Webhook-Token: <token>
+   * 3. ?token=<token> (deprecated - logs warning)
    */
   @Post()
   async handleWebhook(
-    @Query("token") token: string,
+    @Headers("authorization") authHeader: string | undefined,
+    @Headers("x-webhook-token") webhookTokenHeader: string | undefined,
+    @Query("token") queryToken: string | undefined,
     @Body() payload: SignalHouseWebhookPayload,
     @Res() res: FastifyReply,
   ) {
-    if (token !== this.webhookToken) {
-      this.logger.warn("Invalid webhook token received");
-      return res.status(401).send({ error: "Invalid token" });
+    if (!this.validateToken(authHeader, webhookTokenHeader, queryToken)) {
+      this.logger.warn("SignalHouse webhook rejected: invalid or missing token");
+      return res.status(401).send({ error: "Invalid or missing token" });
     }
 
     const { event, data } = payload;

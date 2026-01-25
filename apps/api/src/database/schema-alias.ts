@@ -264,3 +264,7 @@ export const enrichmentSubBlocksTable = enrichmentSubBlocks;
 // Worker Phone Assignments (SDR phone numbers)
 import { workerPhoneAssignments } from "./schema/worker-phones.schema";
 export const workerPhoneAssignmentsTable = workerPhoneAssignments;
+
+// SMS Phone Pool (rotation & daily tracking)
+import { smsPhonePool } from "./schema/sms-phone-pool.schema";
+export { smsPhonePool };

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { callHistories, callRecordings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import {
+  validateTwilioWebhook,
+  forbiddenResponse,
+} from "@/lib/twilio/validate-webhook";
 
 /**
  * Voicemail Webhook
@@ -12,11 +16,15 @@ import { eq } from "drizzle-orm";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const data: Record<string, string> = {};
-    formData.forEach((value, key) => {
-      data[key] = String(value);
-    });
 
+    // Validate Twilio signature
+    const validation = validateTwilioWebhook(request, formData);
+    if (!validation.isValid) {
+      console.warn("[Voicemail Webhook] Rejected:", validation.error);
+      return forbiddenResponse(validation.error);
+    }
+
+    const data = validation.params!;
     console.log("[Voicemail Webhook] Received:", data);
 
     const callSid = data.CallSid;

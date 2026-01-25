@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 import { sql, eq } from "drizzle-orm";
 import { leads } from "@/lib/db/schema";
 import { resolveTenantFromVoiceNumber } from "@/lib/voice/call-context";
+import {
+  validateTwilioWebhook,
+  forbiddenResponse,
+} from "@/lib/twilio/validate-webhook";
 
 /**
  * POST /api/twilio/voice/inbound
@@ -21,13 +25,19 @@ const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || "";
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse Twilio webhook data
+    // Parse and validate Twilio webhook
     const formData = await request.formData();
 
-    const from = (formData.get("From") as string) || "";
-    const to = (formData.get("To") as string) || "";
-    const callSid = (formData.get("CallSid") as string) || "";
-    const callStatus = (formData.get("CallStatus") as string) || "";
+    const validation = validateTwilioWebhook(request, formData);
+    if (!validation.isValid) {
+      console.warn("[Twilio Voice] Rejected:", validation.error);
+      return forbiddenResponse(validation.error);
+    }
+
+    const from = validation.params!.From || "";
+    const to = validation.params!.To || "";
+    const callSid = validation.params!.CallSid || "";
+    const callStatus = validation.params!.CallStatus || "";
 
     console.log(`[Twilio Voice] INBOUND call from ${from} to ${to}`);
     console.log(`  CallSid: ${callSid}, Status: ${callStatus}`);

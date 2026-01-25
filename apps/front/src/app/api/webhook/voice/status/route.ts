@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendSMS } from "@/lib/signalhouse/client";
+import {
+  validateTwilioWebhook,
+  forbiddenResponse,
+} from "@/lib/twilio/validate-webhook";
 
 // Auto-response messages for missed calls
 const MISSED_CALL_RESPONSES = [
@@ -23,12 +27,15 @@ function getRandomMissedCallMessage(): string {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const payload: Record<string, string> = {};
 
-    formData.forEach((value, key) => {
-      payload[key] = value.toString();
-    });
+    // Validate Twilio signature
+    const validation = validateTwilioWebhook(request, formData);
+    if (!validation.isValid) {
+      console.warn("[Voice Status] Rejected:", validation.error);
+      return forbiddenResponse(validation.error);
+    }
 
+    const payload = validation.params!;
     const callSid = payload.CallSid || "";
     const dialCallStatus = payload.DialCallStatus || "";
     const dialCallDuration = payload.DialCallDuration || "0";

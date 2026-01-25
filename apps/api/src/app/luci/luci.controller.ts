@@ -744,8 +744,7 @@ export class LuciController {
 
   /**
    * Execute SMS campaign - mobiles first, best scores first
-   * Campaign: CJRCU60 (NEXTIER)
-   * Daily Cap: 2k (T-Mobile)
+   * Uses phone pool rotation with per-team daily caps from smsPhonePool
    */
   @Post("campaign/execute")
   async executeCampaign(
@@ -792,7 +791,6 @@ export class LuciController {
         data: {
           ...result,
           dealType: body.dealType || "default",
-          campaignId: "CJRCU60",
           message: body.dryRun
             ? `[DRY RUN] Would send ${result.sent} SMS`
             : `Sent ${result.sent} SMS via SignalHouse`,
@@ -823,9 +821,8 @@ export class LuciController {
         success: true,
         data: {
           ...stats,
-          campaignId: "CJRCU60",
-          dailyCap: 2000,
-          fromNumber: "15164079249",
+          // Phone pool and campaign info now comes from smsPhonePool table
+          // dailyCap and phones are per-team, not global constants
         },
       };
     } catch (error) {

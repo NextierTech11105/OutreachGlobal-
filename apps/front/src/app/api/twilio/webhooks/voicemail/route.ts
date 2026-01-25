@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  validateTwilioWebhook,
+  forbiddenResponse,
+} from "@/lib/twilio/validate-webhook";
 
 /**
  * POST /api/twilio/webhooks/voicemail
@@ -9,18 +13,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse Twilio webhook data
+    // Parse and validate Twilio webhook
     const formData = await request.formData();
 
-    const callSid = (formData.get("CallSid") as string) || "";
-    const from = (formData.get("From") as string) || "";
-    const to = (formData.get("To") as string) || "";
-    const recordingUrl = (formData.get("RecordingUrl") as string) || "";
-    const recordingDuration =
-      (formData.get("RecordingDuration") as string) || "0";
-    const recordingSid = (formData.get("RecordingSid") as string) || "";
-    const transcriptionText =
-      (formData.get("TranscriptionText") as string) || "";
+    const validation = validateTwilioWebhook(request, formData);
+    if (!validation.isValid) {
+      console.warn("[Twilio Voicemail] Rejected:", validation.error);
+      return forbiddenResponse(validation.error);
+    }
+
+    const params = validation.params!;
+    const callSid = params.CallSid || "";
+    const from = params.From || "";
+    const to = params.To || "";
+    const recordingUrl = params.RecordingUrl || "";
+    const recordingDuration = params.RecordingDuration || "0";
+    const recordingSid = params.RecordingSid || "";
+    const transcriptionText = params.TranscriptionText || "";
 
     console.log(`[Twilio Voicemail] New voicemail from ${from}`);
     console.log(
