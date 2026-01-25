@@ -76,12 +76,14 @@ async function runMigrations(db: any) {
         sequence_id VARCHAR(36),
         status VARCHAR(20) DEFAULT 'active',
         current_step INTEGER DEFAULT 0,
+        next_step_at TIMESTAMPTZ,
         enrolled_at TIMESTAMPTZ DEFAULT NOW(),
         completed_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    await db.execute(sql`ALTER TABLE sequence_enrollments ADD COLUMN IF NOT EXISTS next_step_at TIMESTAMPTZ`);
     results.push("sequence_enrollments OK");
   } catch (e: any) {
     results.push(`sequence_enrollments: ${e.message}`);
@@ -178,6 +180,54 @@ async function runMigrations(db: any) {
     results.push("call_queue OK");
   } catch (e: any) {
     results.push(`call_queue: ${e.message}`);
+  }
+
+  // TEAM_SETTINGS TABLE
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS team_settings (
+        id VARCHAR(36) PRIMARY KEY,
+        team_id VARCHAR(36) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        value TEXT,
+        masked_value TEXT,
+        is_masked BOOLEAN DEFAULT false,
+        type VARCHAR(50),
+        scope VARCHAR(50),
+        metadata JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS team_settings_team_idx ON team_settings(team_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS team_settings_name_idx ON team_settings(name)`);
+    results.push("team_settings OK");
+  } catch (e: any) {
+    results.push(`team_settings: ${e.message}`);
+  }
+
+  // PLANS TABLE
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS plans (
+        id VARCHAR(36) PRIMARY KEY,
+        slug VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        price_monthly INTEGER DEFAULT 0,
+        price_yearly INTEGER DEFAULT 0,
+        setup_fee INTEGER DEFAULT 0,
+        limits JSONB,
+        features JSONB,
+        is_active BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    results.push("plans OK");
+  } catch (e: any) {
+    results.push(`plans: ${e.message}`);
   }
 
   console.log("[Migrations] Complete:", results.join(", "));
