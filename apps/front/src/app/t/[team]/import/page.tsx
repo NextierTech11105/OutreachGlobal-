@@ -210,18 +210,44 @@ export default function ImportPage() {
       // Read CSV file as text
       const csvContent = await file.text();
 
-      // Call the BACKEND API directly (raw-data-lake module)
-      // This uses the correct schema and inserts into the right tables
-      const response = await fetch("/api/raw-data-lake/import", {
+      // Parse CSV to lead objects
+      const lines = csvContent.split("\n").filter((l: string) => l.trim());
+      const headers = lines[0].split(",").map((h: string) => h.trim().toLowerCase().replace(/"/g, "").replace(/\s+/g, "_"));
+      const columnMap: Record<string, string> = {
+        first_name: "firstName", firstname: "firstName", first: "firstName",
+        last_name: "lastName", lastname: "lastName", last: "lastName",
+        phone: "phone", phone_number: "phone", mobile: "phone", cell: "phone",
+        company: "company", company_name: "company", business_name: "company",
+        email: "email", email_address: "email",
+        city: "city", state: "state", address: "address", zip: "zip",
+      };
+      const indices: Record<string, number> = {};
+      headers.forEach((h: string, i: number) => { const m = columnMap[h]; if (m && !indices[m]) indices[m] = i; });
+
+      const leadData = lines.slice(1).map((line: string) => {
+        const row = line.split(",").map((c: string) => c.trim().replace(/"/g, ""));
+        return {
+          firstName: row[indices.firstName] || "",
+          lastName: row[indices.lastName] || "",
+          phone: row[indices.phone] || "",
+          email: row[indices.email] || "",
+          company: row[indices.company] || "",
+          city: row[indices.city] || "",
+          state: row[indices.state] || "",
+          address: row[indices.address] || "",
+          zip: row[indices.zip] || "",
+        };
+      }).filter((l: { firstName: string; lastName: string; phone: string; company: string }) => l.firstName || l.lastName || l.phone || l.company);
+
+      const response = await fetch("/api/leads/import", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          csvContent,
-          vertical: vertical.toLowerCase(),
-          sourceTag: "csv_import",
-          fileName: file.name,
+          leads: leadData,
+          source: "csv_import",
+          industryId: vertical.toLowerCase(),
+          campaign: "B2B",
+          bucketName: file.name.replace(".csv", ""),
         }),
       });
 
@@ -233,12 +259,12 @@ export default function ImportPage() {
       if (data.success) {
         setResult({
           success: true,
-          message: data.message,
+          message: data.message || `Imported ${data.results?.imported || 0} leads`,
           stats: {
-            totalRows: data.stats?.imported || 0,
-            inserted: data.stats?.imported || 0,
-            errors: data.stats?.errors || 0,
-            duplicates: data.stats?.skipped || 0,
+            totalRows: data.results?.total || leadData.length,
+            inserted: data.results?.imported || 0,
+            errors: data.results?.failed || 0,
+            duplicates: 0,
           },
         });
         setStep("complete");
