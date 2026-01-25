@@ -10,7 +10,7 @@ import { parse } from "csv-parse/sync";
 import { db } from "@/lib/db";
 import { businesses, contacts, importJobs } from "@/lib/db/schema";
 import { requireTenantContext } from "@/lib/api-auth";
-import { eq } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import {
   S3Client,
   PutObjectCommand,
@@ -299,6 +299,96 @@ function findColumn(headers: string[], fieldName: string): string | null {
   return null;
 }
 
+// =============================================================================
+// DEDUPE HELPERS
+// =============================================================================
+
+function normalizePhone(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  return digits.slice(-10);
+}
+
+function normalizeCompanyName(name: string | null | undefined): string | null {
+  if (!name) return null;
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s&-]/g, "")
+    .replace(/\s+(inc|llc|ltd|corp|corporation|company|co)\.?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function findExistingBusiness(
+  userId: string,
+  phone: string | null,
+  companyName: string | null,
+  city: string | null,
+  state: string | null
+): Promise<{ id: string } | null> {
+  const conditions: any[] = [];
+  const normalizedPhone = normalizePhone(phone);
+  const normalizedName = normalizeCompanyName(companyName);
+
+  if (normalizedPhone) {
+    conditions.push(
+      sql`regexp_replace(${businesses.phone}, '[^0-9]', '', 'g') LIKE ${'%' + normalizedPhone}`
+    );
+  }
+
+  if (normalizedName && city && state) {
+    conditions.push(
+      and(
+        sql`LOWER(REGEXP_REPLACE(${businesses.companyName}, '[^\\w\\s&-]', '', 'g')) = ${normalizedName}`,
+        sql`LOWER(${businesses.city}) = ${city.toLowerCase()}`,
+        sql`LOWER(${businesses.state}) = ${state.toLowerCase()}`
+      )
+    );
+  }
+
+  if (conditions.length === 0) return null;
+
+  const existing = await db
+    .select({ id: businesses.id })
+    .from(businesses)
+    .where(and(eq(businesses.userId, userId), or(...conditions)))
+    .limit(1);
+
+  return existing[0] || null;
+}
+
+async function findExistingContact(
+  userId: string,
+  phone: string | null,
+  email: string | null,
+  firstName: string | null,
+  lastName: string | null
+): Promise<{ id: string } | null> {
+  const conditions: any[] = [];
+  const normalizedPhone = normalizePhone(phone);
+
+  if (normalizedPhone) {
+    conditions.push(
+      sql`regexp_replace(${contacts.phone}, '[^0-9]', '', 'g') LIKE ${'%' + normalizedPhone}`
+    );
+  }
+
+  if (email) {
+    conditions.push(eq(contacts.email, email.toLowerCase()));
+  }
+
+  if (conditions.length === 0) return null;
+
+  const existing = await db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .where(and(eq(contacts.userId, userId), or(...conditions)))
+    .limit(1);
+
+  return existing[0] || null;
+}
+
 function extractValue(
   row: Record<string, string>,
   headers: string[],
@@ -407,121 +497,140 @@ export async function POST(request: NextRequest) {
       jobId = job.id;
     }
 
-    // Process in batches
+    // Process in batches WITH DEDUPE
+    let updatedCount = 0;
+
     for (let i = 0; i < recordsToProcess.length; i += effectiveBatchSize) {
       const batch = recordsToProcess.slice(i, i + effectiveBatchSize);
 
       if (importType === "business") {
-        // Insert into businesses table with decision maker prioritization
-        const businessRecords = batch
-          .map((row) => {
+        // Process businesses with dedupe
+        for (const row of batch) {
+          try {
             const companyName = extractValue(row, headers, "companyName");
             const phone = extractValue(row, headers, "phone");
             const email = extractValue(row, headers, "email");
             const title = extractValue(row, headers, "title");
             const address = extractValue(row, headers, "address");
+            const city = extractValue(row, headers, "city");
+            const state = extractValue(row, headers, "state");
             const employeesStr = extractValue(row, headers, "employees");
             const revenueStr = extractValue(row, headers, "revenue");
 
-            // Need at least company name
-            if (!companyName) return null;
+            if (!companyName) continue;
 
-            // Calculate priority score for decision maker targeting
-            const priority = calculatePriority(
-              title,
-              phone,
-              email,
-              address,
-              companyName,
-            );
+            const priority = calculatePriority(title, phone, email, address, companyName);
 
-            return {
-              userId: userId,
-              companyName: companyName,
-              phone: phone,
-              email: email,
-              ownerTitle: title, // Decision maker title
-              score: priority, // Priority score (0-100, higher = better)
-              address: address,
-              city: extractValue(row, headers, "city"),
-              state: extractValue(row, headers, "state"),
-              zip: extractValue(row, headers, "zip"),
-              county: extractValue(row, headers, "county"),
-              website: extractValue(row, headers, "website"),
-              sicCode: extractValue(row, headers, "sicCode"),
-              sicDescription: extractValue(row, headers, "sicDescription"),
-              employeeCount: employeesStr ? parseInt(employeesStr) : null,
-              annualRevenue: revenueStr
-                ? parseInt(revenueStr.replace(/[^0-9]/g, ""))
-                : null,
-              ownerName: extractValue(row, headers, "contactName"),
-              // Campaign vertical for isolated tracking
-              primarySectorId: validatedVertical,
-              enrichmentStatus: autoEnrich ? "queued" : "pending",
-              status: "new",
-              rawData: row,
-            };
-          })
-          .filter(Boolean)
-          // Sort by score descending - decision makers first
-          .sort((a, b) => (b?.score || 0) - (a?.score || 0));
+            // DEDUPE: Check for existing business
+            const existing = await findExistingBusiness(userId, phone, companyName, city, state);
 
-        if (businessRecords.length > 0) {
-          try {
-            await db.insert(businesses).values(businessRecords as any);
-            insertedCount += businessRecords.length;
+            if (existing) {
+              // UPDATE existing record
+              await db.update(businesses).set({
+                phone: phone || undefined,
+                email: email || undefined,
+                ownerTitle: title || undefined,
+                ownerName: extractValue(row, headers, "contactName") || undefined,
+                website: extractValue(row, headers, "website") || undefined,
+                sicCode: extractValue(row, headers, "sicCode") || undefined,
+                sicDescription: extractValue(row, headers, "sicDescription") || undefined,
+                score: priority,
+                updatedAt: new Date(),
+              }).where(eq(businesses.id, existing.id));
+              updatedCount++;
+            } else {
+              // INSERT new record
+              await db.insert(businesses).values({
+                userId: userId,
+                companyName: companyName,
+                phone: phone,
+                email: email,
+                ownerTitle: title,
+                score: priority,
+                address: address,
+                city: city,
+                state: state,
+                zip: extractValue(row, headers, "zip"),
+                county: extractValue(row, headers, "county"),
+                website: extractValue(row, headers, "website"),
+                sicCode: extractValue(row, headers, "sicCode"),
+                sicDescription: extractValue(row, headers, "sicDescription"),
+                employeeCount: employeesStr ? parseInt(employeesStr) : null,
+                annualRevenue: revenueStr ? parseInt(revenueStr.replace(/[^0-9]/g, "")) : null,
+                ownerName: extractValue(row, headers, "contactName"),
+                primarySectorId: validatedVertical,
+                enrichmentStatus: autoEnrich ? "queued" : "pending",
+                status: "new",
+                rawData: row,
+              } as any);
+              insertedCount++;
+            }
           } catch (err) {
-            errorCount += businessRecords.length;
-            errors.push(`Batch ${Math.floor(i / effectiveBatchSize)}: ${String(err)}`);
+            errorCount++;
+            errors.push(`Row ${startOffset + i}: ${String(err)}`);
           }
         }
       } else {
-        // Insert into contacts table
-        const contactRecords = batch
-          .map((row) => {
+        // Process contacts with dedupe
+        for (const row of batch) {
+          try {
             const firstName = extractValue(row, headers, "firstName");
             const lastName = extractValue(row, headers, "lastName");
             const contactName = extractValue(row, headers, "contactName");
             const phone = extractValue(row, headers, "phone");
             const email = extractValue(row, headers, "email");
 
-            // Need at least name or contact info
-            if (!firstName && !lastName && !contactName && !phone && !email)
-              return null;
+            if (!firstName && !lastName && !contactName && !phone && !email) continue;
 
             const fName = firstName || contactName?.split(" ")[0] || null;
-            const lName =
-              lastName || contactName?.split(" ").slice(1).join(" ") || null;
+            const lName = lastName || contactName?.split(" ").slice(1).join(" ") || null;
 
-            return {
-              userId: userId,
-              teamId: teamId, // P0: Associate with team for multi-tenant isolation
-              firstName: fName,
-              lastName: lName,
-              fullName:
-                contactName || [fName, lName].filter(Boolean).join(" ") || null,
-              title: extractValue(row, headers, "title"),
-              phone: phone,
-              email: email,
-              address: extractValue(row, headers, "address"),
-              city: extractValue(row, headers, "city"),
-              state: extractValue(row, headers, "state"),
-              zip: extractValue(row, headers, "zip"),
-              sourceType: "csv",
-              status: "active",
-            };
-          })
-          .filter(Boolean);
+            // DEDUPE: Check for existing contact
+            const existing = await findExistingContact(userId, phone, email, fName, lName);
 
-        if (contactRecords.length > 0) {
-          try {
-            await db.insert(contacts).values(contactRecords as any);
-            insertedCount += contactRecords.length;
+            if (existing) {
+              // UPDATE existing record
+              await db.update(contacts).set({
+                phone: phone || undefined,
+                email: email || undefined,
+                title: extractValue(row, headers, "title") || undefined,
+                address: extractValue(row, headers, "address") || undefined,
+                city: extractValue(row, headers, "city") || undefined,
+                state: extractValue(row, headers, "state") || undefined,
+                zip: extractValue(row, headers, "zip") || undefined,
+                updatedAt: new Date(),
+              }).where(eq(contacts.id, existing.id));
+              updatedCount++;
+            } else {
+              // INSERT new record
+              await db.insert(contacts).values({
+                userId: userId,
+                teamId: teamId,
+                firstName: fName,
+                lastName: lName,
+                fullName: contactName || [fName, lName].filter(Boolean).join(" ") || null,
+                title: extractValue(row, headers, "title"),
+                phone: phone,
+                email: email,
+                address: extractValue(row, headers, "address"),
+                city: extractValue(row, headers, "city"),
+                state: extractValue(row, headers, "state"),
+                zip: extractValue(row, headers, "zip"),
+                sourceType: "csv",
+                status: "active",
+              } as any);
+              insertedCount++;
+            }
           } catch (err) {
-            errorCount += contactRecords.length;
-            errors.push(`Batch ${Math.floor(i / effectiveBatchSize)}: ${String(err)}`);
+            errorCount++;
+            errors.push(`Row ${startOffset + i}: ${String(err)}`);
           }
         }
+      }
+
+      // Progress log every 500 records
+      if ((i + effectiveBatchSize) % 500 === 0) {
+        console.log(`[Datalake Import] Progress: ${i + effectiveBatchSize}/${recordsToProcess.length} (${insertedCount} new, ${updatedCount} updated)`);
       }
     }
 
@@ -619,12 +728,13 @@ export async function POST(request: NextRequest) {
       success: true,
       message: hasMoreRecords
         ? `Processed ${processedSoFar.toLocaleString()} of ${records.length.toLocaleString()} records`
-        : `Imported ${insertedCount.toLocaleString()} ${importType} records from ${file.name}`,
+        : `Processed ${records.length.toLocaleString()} records: ${insertedCount.toLocaleString()} new, ${updatedCount.toLocaleString()} updated`,
       stats: {
         totalRows: records.length,
         inserted: insertedCount,
+        updated: updatedCount,
+        duplicates: updatedCount, // Updated records were duplicates
         errors: errorCount,
-        duplicates: 0, // TODO: Add duplicate detection
         userId: userId,
         teamId: teamId,
         vertical: validatedVertical,
