@@ -425,24 +425,103 @@ async function searchPostgreSQL(filters: {
     const sectorLower = (biz.primarySectorId || "").toLowerCase();
     const searchText = `${companyLower} ${sicLower} ${sectorLower}`;
 
-    // SECTOR KEYWORD MATCHING - each sector's keywords boost priority
-    const SECTOR_KEYWORDS: Record<string, { keywords: string[]; sicPrefix: string }> = {
-      consulting: { keywords: ["consult", "advisor", "advisory", "strategy"], sicPrefix: "8742" },
-      plumbing: { keywords: ["plumb", "pipe", "drain", "sewer", "water heater"], sicPrefix: "1711" },
-      real_estate: { keywords: ["real estate", "realtor", "broker", "realty", "property"], sicPrefix: "6531" },
-      electrical: { keywords: ["electri", "wiring", "power"], sicPrefix: "1731" },
-      roofing: { keywords: ["roof", "shingle", "gutter"], sicPrefix: "1761" },
-      hvac: { keywords: ["hvac", "heating", "cooling", "furnace", "air condition"], sicPrefix: "1629" },
+    // SECTOR CONFIG - keywords, SIC codes, colors, auto-tags
+    const SECTOR_CONFIG: Record<string, {
+      keywords: string[];
+      sicPrefix: string;
+      color: string;
+      label: string;
+      autoTags: string[];
+    }> = {
+      consulting: {
+        keywords: ["consult", "advisor", "advisory", "strategy", "management consult"],
+        sicPrefix: "8742",
+        color: "#8B5CF6", // Purple
+        label: "CONSULTING",
+        autoTags: ["b2b", "consulting", "high-value"],
+      },
+      plumbing: {
+        keywords: ["plumb", "pipe", "drain", "sewer", "water heater"],
+        sicPrefix: "1711",
+        color: "#3B82F6", // Blue
+        label: "PLUMBING",
+        autoTags: ["b2b", "plumbing", "trade"],
+      },
+      hvac: {
+        keywords: ["hvac", "heating", "cooling", "furnace", "air condition", "ventilation"],
+        sicPrefix: "1711",
+        color: "#06B6D4", // Cyan
+        label: "HVAC",
+        autoTags: ["b2b", "hvac", "trade"],
+      },
+      real_estate: {
+        keywords: ["real estate", "realtor", "broker", "realty", "property", "reit", "property manager", "leasing"],
+        sicPrefix: "6531",
+        color: "#10B981", // Green
+        label: "REAL ESTATE",
+        autoTags: ["b2b", "real-estate", "high-value"],
+      },
+      electrical: {
+        keywords: ["electri", "wiring", "power"],
+        sicPrefix: "1731",
+        color: "#F59E0B", // Amber
+        label: "ELECTRICAL",
+        autoTags: ["b2b", "electrical", "trade"],
+      },
+      roofing: {
+        keywords: ["roof", "shingle", "gutter"],
+        sicPrefix: "1761",
+        color: "#EF4444", // Red
+        label: "ROOFING",
+        autoTags: ["b2b", "roofing", "trade"],
+      },
+      solar: {
+        keywords: ["solar", "renewable", "photovoltaic", "pv"],
+        sicPrefix: "4911",
+        color: "#FBBF24", // Yellow
+        label: "SOLAR",
+        autoTags: ["b2b", "solar", "green-energy"],
+      },
+      landscaping: {
+        keywords: ["landscap", "lawn", "garden", "irrigation"],
+        sicPrefix: "0781",
+        color: "#22C55E", // Lime
+        label: "LANDSCAPING",
+        autoTags: ["b2b", "landscaping", "trade"],
+      },
+      pest_control: {
+        keywords: ["pest", "exterminator", "termite", "rodent"],
+        sicPrefix: "4959",
+        color: "#A855F7", // Fuchsia
+        label: "PEST CONTROL",
+        autoTags: ["b2b", "pest-control", "trade"],
+      },
+      automotive: {
+        keywords: ["auto", "mechanic", "body shop", "car repair"],
+        sicPrefix: "7538",
+        color: "#6366F1", // Indigo
+        label: "AUTOMOTIVE",
+        autoTags: ["b2b", "automotive", "trade"],
+      },
     };
 
     // Check each sector and boost if keywords match
-    for (const [sector, config] of Object.entries(SECTOR_KEYWORDS)) {
+    let matchedSector = "";
+    let sectorColor = "#6B7280"; // Default gray
+    let sectorLabel = "GENERAL";
+    let autoTags: string[] = ["b2b"];
+
+    for (const [sector, config] of Object.entries(SECTOR_CONFIG)) {
       const hasKeyword = config.keywords.some(kw => searchText.includes(kw));
       const hasSic = biz.sicCode?.startsWith(config.sicPrefix);
 
       if (hasKeyword || hasSic) {
         priorityScore += 100; // Sector match = +100
-        break; // Only count first match
+        matchedSector = sector;
+        sectorColor = config.color;
+        sectorLabel = config.label;
+        autoTags = config.autoTags;
+        break;
       }
     }
 
@@ -481,7 +560,17 @@ async function searchPostgreSQL(filters: {
       is_decision_maker: isDecisionMaker,
       priority_score: priorityScore,
       property_id: null,
-      metadata: { source: "postgresql", sector: biz.primarySectorId },
+      // COLOR-CODED LABELING & AUTO-TAGS
+      sector: matchedSector || "general",
+      sector_label: sectorLabel,
+      sector_color: sectorColor,
+      auto_tags: autoTags,
+      metadata: {
+        source: "postgresql",
+        sector: matchedSector || biz.primarySectorId,
+        color: sectorColor,
+        label: sectorLabel,
+      },
       created_at: biz.createdAt?.toISOString() || new Date().toISOString(),
     };
   });
