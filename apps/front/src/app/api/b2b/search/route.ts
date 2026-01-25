@@ -405,7 +405,7 @@ async function searchPostgreSQL(filters: {
   const totalResult = await countQuery;
   const total = Number(totalResult[0]?.count || 0);
 
-  // Transform to expected format
+  // Transform to expected format with priority scoring
   const leads = results.map((biz) => {
     // Parse owner name into first/last
     const nameParts = (biz.ownerName || "").split(" ");
@@ -417,6 +417,37 @@ async function searchPostgreSQL(filters: {
     const isDecisionMaker = DECISION_MAKER_TITLES.some((dm) =>
       title.includes(dm),
     );
+
+    // PRIORITY SCORING - Consulting keywords get boosted
+    let priorityScore = 0;
+    const companyLower = (biz.companyName || "").toLowerCase();
+    const sicLower = (biz.sicDescription || "").toLowerCase();
+    const sectorLower = (biz.primarySectorId || "").toLowerCase();
+
+    // CONSULTING = TOP PRIORITY (+100)
+    if (
+      companyLower.includes("consult") ||
+      sicLower.includes("consult") ||
+      sectorLower.includes("consult") ||
+      biz.sicCode?.startsWith("8742")
+    ) {
+      priorityScore += 100;
+    }
+
+    // Decision maker bonus (+50)
+    if (isDecisionMaker) {
+      priorityScore += 50;
+    }
+
+    // Has phone (+20)
+    if (biz.phone) {
+      priorityScore += 20;
+    }
+
+    // Has email (+10)
+    if (biz.email) {
+      priorityScore += 10;
+    }
 
     return {
       id: biz.id,
@@ -436,11 +467,15 @@ async function searchPostgreSQL(filters: {
       revenue: biz.revenueRange || "",
       employees: biz.employeeCount?.toString() || "",
       is_decision_maker: isDecisionMaker,
+      priority_score: priorityScore,
       property_id: null,
       metadata: { source: "postgresql", sector: biz.primarySectorId },
       created_at: biz.createdAt?.toISOString() || new Date().toISOString(),
     };
   });
+
+  // Sort by priority score DESC - consulting leads come first
+  leads.sort((a, b) => b.priority_score - a.priority_score);
 
   console.log(
     `[B2B Search] PostgreSQL query returned ${leads.length} leads (total: ${total})`,

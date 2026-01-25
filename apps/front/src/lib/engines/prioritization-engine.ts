@@ -281,8 +281,21 @@ function scoreProfitability(lead: {
 // DIMENSION 4: SITUATIONAL FLUENCY (0-15 points) - Industry/Timing Match
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// High-value industries for Campaign 1 (Real Estate Agents)
+// High-value industries - Consulting FIRST, then Real Estate
 const TARGET_INDUSTRIES = [
+  // CONSULTING - TOP PRIORITY
+  "consulting",
+  "consultant",
+  "advisor",
+  "advisory",
+  "management consulting",
+  "business consulting",
+  "strategy consultant",
+  "financial advisor",
+  "tax consultant",
+  "it consulting",
+  "hr consulting",
+  // REAL ESTATE
   "real estate",
   "realtor",
   "broker",
@@ -328,6 +341,15 @@ function scoreSituational(
       signals.push(`industry:${industry}`);
       break;
     }
+  }
+
+  // SIC code 8742 = Management Consulting Services (TOP PRIORITY)
+  if (sicCode.startsWith("8742")) {
+    if (!industryMatch) {
+      industryMatch = true;
+      score += 15;
+    }
+    signals.push("sic:8742_consulting");
   }
 
   // SIC code 6531 = Real Estate Agents & Brokers
