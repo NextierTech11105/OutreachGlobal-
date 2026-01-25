@@ -79,6 +79,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // teamId is required - leads table has NOT NULL constraint
+      if (!teamId) {
+        return NextResponse.json(
+          { error: "teamId is required for lead import" },
+          { status: 400 },
+        );
+      }
+
       // Validate industry
       const industry = industryId ? getIndustryById(industryId) : null;
 
@@ -119,10 +127,10 @@ export async function POST(request: NextRequest) {
             address: lead.address || null,
             city: lead.city || null,
             state: lead.state || null,
-            zip: lead.zip || null,
+            zipCode: lead.zip || null,
             source: source,
-            stage: "data_prep",
-            teamId: teamId || null,
+            pipelineStatus: "raw",
+            teamId: teamId,
             customFields: {
               industryId,
               bucketId: bucket.id,
