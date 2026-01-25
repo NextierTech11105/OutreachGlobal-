@@ -10,41 +10,14 @@
  * HOT leads get routed here by the AI Copilot for immediate call follow-up.
  * SABRINA (Closer) owns this queue.
  *
+ * Uses callQueue table for persistence.
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads } from "@/lib/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
-
-// In-memory queue (in production, use Redis or DB table)
-interface CallQueueItem {
-  id: string;
-  leadId: string;
-  phone: string;
-  firstName: string;
-  lastName?: string;
-  company?: string;
-  classification: string;
-  priority: "HOT" | "WARM" | "COLD";
-  reason: string;
-  addedAt: Date;
-  status:
-    | "pending"
-    | "dialing"
-    | "connected"
-    | "completed"
-    | "no_answer"
-    | "callback";
-  assignedTo?: string;
-  callbackAt?: Date;
-  notes?: string;
-  lastMessage?: string;
-}
-
-// In-memory storage (replace with Redis/DB in production)
-const callQueue: CallQueueItem[] = [];
+import { leads, callQueue } from "@/lib/db/schema";
+import { eq, and, sql, desc, asc } from "drizzle-orm";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // POST - Add lead to call queue
@@ -63,42 +36,60 @@ export async function POST(request: NextRequest) {
       priority = "HOT",
       reason,
       lastMessage,
+      teamId = "default",
     } = body;
 
     if (!phone) {
       return NextResponse.json({ error: "phone is required" }, { status: 400 });
     }
 
-    // Check if already in queue
-    const existing = callQueue.find(
-      (item) => item.phone === phone && item.status === "pending",
-    );
+    // Check if already in queue with pending status
+    const existing = await db
+      .select()
+      .from(callQueue)
+      .where(
+        and(
+          eq(callQueue.phone, phone),
+          eq(callQueue.status, "pending"),
+          eq(callQueue.teamId, teamId)
+        )
+      )
+      .limit(1);
 
-    if (existing) {
+    if (existing.length > 0) {
       return NextResponse.json({
         success: true,
         message: "Lead already in queue",
-        item: existing,
+        item: existing[0],
       });
     }
 
     // Create queue item
-    const item: CallQueueItem = {
-      id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      leadId: leadId || `lead_${Date.now()}`,
+    const id = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const now = new Date();
+
+    await db.insert(callQueue).values({
+      id,
+      teamId,
+      leadId: leadId || null,
       phone,
       firstName: firstName || "Unknown",
       lastName,
       company,
       classification: classification || "POSITIVE",
-      priority: priority as CallQueueItem["priority"],
+      priority: priority as "HOT" | "WARM" | "COLD",
       reason: reason || "HOT lead routed by AI Copilot",
-      addedAt: new Date(),
       status: "pending",
       lastMessage,
-    };
+      addedAt: now,
+    });
 
-    callQueue.push(item);
+    // Get the inserted item
+    const [item] = await db
+      .select()
+      .from(callQueue)
+      .where(eq(callQueue.id, id))
+      .limit(1);
 
     // Update lead status in DB if leadId provided
     if (leadId) {
@@ -111,7 +102,7 @@ export async function POST(request: NextRequest) {
               jsonb_set(
                 COALESCE(custom_fields, '{}'::jsonb),
                 '{callQueueId}',
-                ${JSON.stringify(item.id)}::jsonb
+                ${JSON.stringify(id)}::jsonb
               ),
               '{priority}',
               ${JSON.stringify(priority)}::jsonb
@@ -122,10 +113,18 @@ export async function POST(request: NextRequest) {
         .where(eq(leads.id, leadId));
     }
 
+    // Count pending items for queue position
+    const pendingCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(callQueue)
+      .where(
+        and(eq(callQueue.status, "pending"), eq(callQueue.teamId, teamId))
+      );
+
     return NextResponse.json({
       success: true,
       item,
-      queuePosition: callQueue.filter((i) => i.status === "pending").length,
+      queuePosition: pendingCount[0]?.count || 1,
     });
   } catch (error) {
     console.error("[Call Queue] POST Error:", error);
@@ -134,7 +133,7 @@ export async function POST(request: NextRequest) {
         error:
           error instanceof Error ? error.message : "Failed to add to queue",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -146,65 +145,65 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status"); // pending, completed, etc.
-    const priority = searchParams.get("priority"); // HOT, WARM, COLD
+    const status = searchParams.get("status");
+    const priority = searchParams.get("priority");
     const assignedTo = searchParams.get("assignedTo");
+    const teamId = searchParams.get("teamId") || "default";
 
-    let filtered = [...callQueue];
+    // Build query conditions
+    const conditions = [eq(callQueue.teamId, teamId)];
+    if (status) conditions.push(eq(callQueue.status, status));
+    if (priority) conditions.push(eq(callQueue.priority, priority));
+    if (assignedTo) conditions.push(eq(callQueue.assignedTo, assignedTo));
 
-    // Apply filters
-    if (status) {
-      filtered = filtered.filter((item) => item.status === status);
-    }
-    if (priority) {
-      filtered = filtered.filter((item) => item.priority === priority);
-    }
-    if (assignedTo) {
-      filtered = filtered.filter((item) => item.assignedTo === assignedTo);
-    }
-
-    // Sort by priority (HOT first), then by time
-    const priorityOrder = { HOT: 0, WARM: 1, COLD: 2 };
-    filtered.sort((a, b) => {
-      const priorityDiff =
-        priorityOrder[a.priority] - priorityOrder[b.priority];
-      if (priorityDiff !== 0) return priorityDiff;
-      return a.addedAt.getTime() - b.addedAt.getTime();
-    });
+    // Query with sorting by priority (HOT first), then by addedAt
+    const items = await db
+      .select()
+      .from(callQueue)
+      .where(and(...conditions))
+      .orderBy(
+        sql`CASE priority WHEN 'HOT' THEN 0 WHEN 'WARM' THEN 1 WHEN 'COLD' THEN 2 ELSE 3 END`,
+        asc(callQueue.addedAt)
+      );
 
     // Calculate stats
+    const allItems = await db
+      .select()
+      .from(callQueue)
+      .where(eq(callQueue.teamId, teamId));
+
     const stats = {
-      total: callQueue.length,
-      pending: callQueue.filter((i) => i.status === "pending").length,
-      completed: callQueue.filter((i) => i.status === "completed").length,
-      noAnswer: callQueue.filter((i) => i.status === "no_answer").length,
-      callback: callQueue.filter((i) => i.status === "callback").length,
+      total: allItems.length,
+      pending: allItems.filter((i) => i.status === "pending").length,
+      completed: allItems.filter((i) => i.status === "completed").length,
+      noAnswer: allItems.filter((i) => i.status === "no_answer").length,
+      callback: allItems.filter((i) => i.status === "callback").length,
       byPriority: {
-        HOT: callQueue.filter(
-          (i) => i.priority === "HOT" && i.status === "pending",
+        HOT: allItems.filter(
+          (i) => i.priority === "HOT" && i.status === "pending"
         ).length,
-        WARM: callQueue.filter(
-          (i) => i.priority === "WARM" && i.status === "pending",
+        WARM: allItems.filter(
+          (i) => i.priority === "WARM" && i.status === "pending"
         ).length,
-        COLD: callQueue.filter(
-          (i) => i.priority === "COLD" && i.status === "pending",
+        COLD: allItems.filter(
+          (i) => i.priority === "COLD" && i.status === "pending"
         ).length,
       },
     };
 
     return NextResponse.json({
       success: true,
-      queue: filtered,
-      count: filtered.length,
+      queue: items,
+      count: items.length,
       stats,
       worker: "SABRINA",
-      nextCall: filtered.find((i) => i.status === "pending") || null,
+      nextCall: items.find((i) => i.status === "pending") || null,
     });
   } catch (error) {
     console.error("[Call Queue] GET Error:", error);
     return NextResponse.json(
       { error: "Failed to get call queue" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -222,23 +221,32 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    const index = callQueue.findIndex((item) => item.id === id);
-    if (index === -1) {
+    const [existing] = await db
+      .select()
+      .from(callQueue)
+      .where(eq(callQueue.id, id))
+      .limit(1);
+
+    if (!existing) {
       return NextResponse.json(
         { error: "Call queue item not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
-    // Update item
-    if (status) callQueue[index].status = status;
-    if (assignedTo) callQueue[index].assignedTo = assignedTo;
-    if (callbackAt) callQueue[index].callbackAt = new Date(callbackAt);
-    if (notes) callQueue[index].notes = notes;
+    // Build update object
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (status) updates.status = status;
+    if (assignedTo) updates.assignedTo = assignedTo;
+    if (callbackAt) updates.callbackAt = new Date(callbackAt);
+    if (notes) updates.notes = notes;
+    if (outcome) updates.outcome = outcome;
+    if (status === "completed") updates.completedAt = new Date();
+
+    await db.update(callQueue).set(updates).where(eq(callQueue.id, id));
 
     // Update lead in DB based on outcome
-    const item = callQueue[index];
-    if (item.leadId && outcome) {
+    if (existing.leadId && outcome) {
       let newStage = "hot_call_queue";
       if (outcome === "booked") newStage = "discovery";
       else if (outcome === "not_interested") newStage = "nurture";
@@ -261,12 +269,19 @@ export async function PATCH(request: NextRequest) {
           `,
           updatedAt: new Date(),
         })
-        .where(eq(leads.id, item.leadId));
+        .where(eq(leads.id, existing.leadId));
     }
+
+    // Get updated item
+    const [item] = await db
+      .select()
+      .from(callQueue)
+      .where(eq(callQueue.id, id))
+      .limit(1);
 
     return NextResponse.json({
       success: true,
-      item: callQueue[index],
+      item,
     });
   } catch (error) {
     console.error("[Call Queue] PATCH Error:", error);
@@ -274,7 +289,7 @@ export async function PATCH(request: NextRequest) {
       {
         error: error instanceof Error ? error.message : "Failed to update call",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -292,25 +307,30 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    const index = callQueue.findIndex((item) => item.id === id);
-    if (index === -1) {
+    const [existing] = await db
+      .select()
+      .from(callQueue)
+      .where(eq(callQueue.id, id))
+      .limit(1);
+
+    if (!existing) {
       return NextResponse.json(
         { error: "Call queue item not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
-    const removed = callQueue.splice(index, 1)[0];
+    await db.delete(callQueue).where(eq(callQueue.id, id));
 
     return NextResponse.json({
       success: true,
-      removed,
+      removed: existing,
     });
   } catch (error) {
     console.error("[Call Queue] DELETE Error:", error);
     return NextResponse.json(
       { error: "Failed to remove from queue" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -1,13 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { appState, callHistories } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * POST /api/power-dialer/action
  *
  * Control power dialer session: pause, resume, skip, end
+ *
+ * Uses appState table for session persistence.
  */
 
-// In-memory session store (shared with start-session - in production use Redis)
-const sessions = new Map<string, any>();
+interface DialerLead {
+  id: string;
+  phone: string;
+  name: string;
+  callbackId?: string;
+}
+
+interface DialerSession {
+  id: string;
+  teamId: string;
+  leads: DialerLead[];
+  currentIndex: number;
+  status: "active" | "paused" | "completed";
+  source: string;
+  createdAt: string;
+}
+
+// Helper to get session from database
+async function getSession(sessionId: string): Promise<DialerSession | null> {
+  const key = `power_dialer_session:${sessionId}`;
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.key, key))
+    .limit(1);
+
+  return state?.value as DialerSession | null;
+}
+
+// Helper to save session to database
+async function saveSession(session: DialerSession): Promise<void> {
+  const key = `power_dialer_session:${session.id}`;
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.key, key))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: session, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId: session.teamId,
+      key,
+      value: session,
+    });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,17 +73,17 @@ export async function POST(request: NextRequest) {
     if (!sessionId || !action) {
       return NextResponse.json(
         { success: false, error: "Session ID and action are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // TODO: Fetch from database in production
-    const session = sessions.get(sessionId);
+    // Fetch session from database
+    const session = await getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
         { success: false, error: "Session not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -77,12 +133,12 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
-          { status: 400 },
+          { status: 400 }
         );
     }
 
-    // Update session
-    sessions.set(sessionId, session);
+    // Save updated session to database
+    await saveSession(session);
 
     // Get current/next lead info
     const currentLead =
@@ -100,7 +156,7 @@ export async function POST(request: NextRequest) {
         currentLead,
         remainingLeads: session.leads.length - session.currentIndex,
         progress: Math.round(
-          (session.currentIndex / session.leads.length) * 100,
+          (session.currentIndex / session.leads.length) * 100
         ),
       },
     });
@@ -108,34 +164,40 @@ export async function POST(request: NextRequest) {
     console.error("Power dialer action error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to process action" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
 // Log call result for the current lead
 async function logCallResult(
-  session: any,
+  session: DialerSession,
   result: {
     outcome: string;
     duration?: number;
     notes?: string;
     scheduleCallback?: Date;
-  },
+  }
 ) {
   const lead = session.leads[session.currentIndex];
   if (!lead) return;
 
-  // TODO: Insert into call_logs or lead_activities table
-  // await db.insert(callLogs).values({
-  //   leadId: lead.id,
-  //   sessionId: session.id,
-  //   outcome: result.outcome,
-  //   duration: result.duration,
-  //   notes: result.notes,
-  //   callbackScheduled: result.scheduleCallback,
-  //   createdAt: new Date(),
-  // });
+  // Store call result in appState as a log entry
+  const logKey = `call_log:${session.id}:${lead.id}:${Date.now()}`;
+  await db.insert(appState).values({
+    id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    teamId: session.teamId,
+    key: logKey,
+    value: {
+      leadId: lead.id,
+      sessionId: session.id,
+      outcome: result.outcome,
+      duration: result.duration,
+      notes: result.notes,
+      callbackScheduled: result.scheduleCallback,
+      createdAt: new Date().toISOString(),
+    },
+  });
 
   console.log("Call result logged:", {
     sessionId: session.id,
@@ -143,9 +205,21 @@ async function logCallResult(
     ...result,
   });
 
-  // If callback scheduled, create calendar event
+  // If callback scheduled, create callback entry
   if (result.scheduleCallback) {
-    // TODO: Create callback event
-    // await db.insert(calendarEvents).values({...});
+    const callbackKey = `callback:${lead.id}:${Date.now()}`;
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId: session.teamId,
+      key: callbackKey,
+      value: {
+        leadId: lead.id,
+        leadName: lead.name,
+        phone: lead.phone,
+        scheduledFor: result.scheduleCallback,
+        sessionId: session.id,
+        createdAt: new Date().toISOString(),
+      },
+    });
   }
 }

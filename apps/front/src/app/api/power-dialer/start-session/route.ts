@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import { db } from "@/lib/db";
+import { appState } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 
 /**
  * POST /api/power-dialer/start-session
  *
  * Start a power dialer session with a queue of leads.
  * Repeatable execution - leads are queued and called sequentially.
+ *
+ * Uses appState table for session persistence.
  */
 
 interface DialerLead {
@@ -22,11 +27,45 @@ interface DialerSession {
   currentIndex: number;
   status: "active" | "paused" | "completed";
   source: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
-// In-memory session store (replace with Redis in production)
-const sessions = new Map<string, DialerSession>();
+// Helper to get session from database
+async function getSession(sessionId: string): Promise<DialerSession | null> {
+  const key = `power_dialer_session:${sessionId}`;
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.key, key))
+    .limit(1);
+
+  return state?.value as DialerSession | null;
+}
+
+// Helper to save session to database
+async function saveSession(session: DialerSession): Promise<void> {
+  const key = `power_dialer_session:${session.id}`;
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.key, key))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: session, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId: session.teamId,
+      key,
+      value: session,
+    });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,14 +75,14 @@ export async function POST(request: NextRequest) {
     if (!teamId) {
       return NextResponse.json(
         { success: false, error: "Team ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
       return NextResponse.json(
         { success: false, error: "At least one lead is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -56,7 +95,7 @@ export async function POST(request: NextRequest) {
     if (validLeads.length === 0) {
       return NextResponse.json(
         { success: false, error: "No valid phone numbers in lead list" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -74,14 +113,11 @@ export async function POST(request: NextRequest) {
       currentIndex: 0,
       status: "active",
       source: source || "manual",
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     };
 
-    // Store session
-    sessions.set(sessionId, session);
-
-    // TODO: Store in database for persistence
-    // await db.insert(dialerSessions).values(session);
+    // Store session in database
+    await saveSession(session);
 
     // Log session start
     console.log("Power Dialer session started:", {
@@ -104,7 +140,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error.message || "Failed to start dialer session",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -117,16 +153,16 @@ export async function GET(request: NextRequest) {
   if (!sessionId) {
     return NextResponse.json(
       { success: false, error: "Session ID is required" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
-  const session = sessions.get(sessionId);
+  const session = await getSession(sessionId);
 
   if (!session) {
     return NextResponse.json(
       { success: false, error: "Session not found" },
-      { status: 404 },
+      { status: 404 }
     );
   }
 
@@ -155,3 +191,6 @@ function normalizePhone(phone: string): string {
 
   return `+${digits}`;
 }
+
+// Export session helpers for use by action route
+export { getSession, saveSession, type DialerSession };

@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { appState } from "@/lib/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 // Email Capture Automation Flow
 // Triggered when email is extracted from SMS conversation
@@ -493,18 +496,79 @@ function generateEmailHTML(params: {
   `.trim();
 }
 
-// In-memory tracking for automation runs
-const automationRuns = new Map<
-  string,
-  {
-    id: string;
-    status: "processing" | "completed" | "failed";
-    startedAt: string;
-    completedAt?: string;
-    input: Record<string, unknown>;
-    results: Record<string, unknown>;
+// Automation run interface
+interface AutomationRun {
+  id: string;
+  status: "processing" | "completed" | "failed";
+  startedAt: string;
+  completedAt?: string;
+  input: Record<string, unknown>;
+  results: Record<string, unknown>;
+}
+
+// Helper to get automation run from database
+async function getAutomationRun(
+  runId: string,
+  teamId: string = "default"
+): Promise<AutomationRun | null> {
+  const key = `automation_run:${runId}`;
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  return state?.value as AutomationRun | null;
+}
+
+// Helper to save automation run to database
+async function saveAutomationRun(
+  run: AutomationRun,
+  teamId: string = "default"
+): Promise<void> {
+  const key = `automation_run:${run.id}`;
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: run, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId,
+      key,
+      value: run,
+    });
   }
->();
+}
+
+// Helper to list recent automation runs from database
+async function listAutomationRuns(
+  teamId: string = "default",
+  limit: number = 20
+): Promise<AutomationRun[]> {
+  const allStates = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.teamId, teamId))
+    .orderBy(desc(appState.createdAt));
+
+  return allStates
+    .filter((s) => s.key.startsWith("automation_run:") && s.value)
+    .map((s) => s.value as AutomationRun)
+    .sort(
+      (a, b) =>
+        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+    )
+    .slice(0, limit);
+}
 
 // POST - Process email capture automation
 export async function POST(request: NextRequest) {
@@ -540,6 +604,7 @@ export async function POST(request: NextRequest) {
 
     const runId = `auto-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const name = firstName || "there";
+    const teamId = body.teamId || "default";
 
     console.log(`[Automation] Starting email capture flow:`, {
       runId,
@@ -548,14 +613,15 @@ export async function POST(request: NextRequest) {
       property: propertyAddress,
     });
 
-    // Track this run
-    automationRuns.set(runId, {
+    // Track this run in database
+    const run: AutomationRun = {
       id: runId,
       status: "processing",
       startedAt: new Date().toISOString(),
       input: { email, fromPhone, propertyAddress },
       results: {},
-    });
+    };
+    await saveAutomationRun(run, teamId);
 
     const results: Record<string, unknown> = {
       email,
@@ -651,11 +717,11 @@ export async function POST(request: NextRequest) {
       console.error("[Automation] Schedule logging failed:", err);
     }
 
-    // Update run status
-    const run = automationRuns.get(runId)!;
+    // Update run status in database
     run.status = emailSent ? "completed" : "failed";
     run.completedAt = new Date().toISOString();
     run.results = results;
+    await saveAutomationRun(run, teamId);
 
     console.log(`[Automation] Email capture flow completed:`, {
       runId,
@@ -691,26 +757,22 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const runId = searchParams.get("runId");
   const limit = parseInt(searchParams.get("limit") || "20");
+  const teamId = searchParams.get("teamId") || "default";
 
   // Get specific run
   if (runId) {
-    const run = automationRuns.get(runId);
+    const run = await getAutomationRun(runId, teamId);
     if (!run) {
       return NextResponse.json({ error: "Run not found" }, { status: 404 });
     }
     return NextResponse.json({ success: true, run });
   }
 
-  // List recent runs
-  const runs = Array.from(automationRuns.values())
-    .sort(
-      (a, b) =>
-        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
-    )
-    .slice(0, limit);
+  // List recent runs from database
+  const runs = await listAutomationRuns(teamId, limit);
 
   const stats = {
-    total: automationRuns.size,
+    total: runs.length,
     completed: runs.filter((r) => r.status === "completed").length,
     failed: runs.filter((r) => r.status === "failed").length,
     processing: runs.filter((r) => r.status === "processing").length,

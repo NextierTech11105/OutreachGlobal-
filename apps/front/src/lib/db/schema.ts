@@ -3154,3 +3154,148 @@ export const sequenceEnrollments = pgTable(
 
 export type SequenceEnrollment = typeof sequenceEnrollments.$inferSelect;
 export type NewSequenceEnrollment = typeof sequenceEnrollments.$inferInsert;
+
+// ============================================================
+// BATCH JOBS - Track background processing jobs
+// ============================================================
+
+export const batchJobs = pgTable(
+  "batch_jobs",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    userId: text("user_id"),
+    type: text("type").notNull(), // 'sms_campaign', 'enrichment', 'import', etc.
+    status: text("status").notNull().default("pending"), // 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+    priority: text("priority").default("medium"), // 'high' | 'medium' | 'low'
+    // Progress tracking
+    total: integer("total").default(0),
+    processed: integer("processed").default(0),
+    successful: integer("successful").default(0),
+    failed: integer("failed").default(0),
+    // Configuration
+    config: jsonb("config"), // Job-specific configuration
+    results: jsonb("results"), // Job results/output
+    errors: jsonb("errors"), // Error details
+    // Scheduling
+    scheduledAt: timestamp("scheduled_at"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("batch_jobs_team_id_idx").on(table.teamId),
+    statusIdx: index("batch_jobs_status_idx").on(table.status),
+    typeIdx: index("batch_jobs_type_idx").on(table.type),
+    scheduledIdx: index("batch_jobs_scheduled_idx").on(table.scheduledAt),
+  })
+);
+
+export type BatchJob = typeof batchJobs.$inferSelect;
+export type NewBatchJob = typeof batchJobs.$inferInsert;
+
+// ============================================================
+// SCHEDULED CONTENT - Content calendar for scheduled posts/SMS
+// ============================================================
+
+export const scheduledContent = pgTable(
+  "scheduled_content",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    userId: text("user_id").notNull(),
+    title: text("title").notNull(),
+    url: text("url"), // Content URL (Medium article, etc.)
+    body: text("body"), // Content body/message
+    description: text("description"),
+    // Scheduling
+    publishDate: timestamp("publish_date").notNull(),
+    status: text("status").notNull().default("scheduled"), // 'draft' | 'scheduled' | 'sent' | 'failed'
+    channel: text("channel").notNull().default("sms"), // 'sms' | 'email' | 'both'
+    targetAudience: text("target_audience").default("all"), // 'all' | 'property' | 'b2b' | 'custom'
+    customListId: text("custom_list_id"),
+    tags: text("tags").array(),
+    // Tracking
+    sentAt: timestamp("sent_at"),
+    recipientCount: integer("recipient_count").default(0),
+    clickCount: integer("click_count").default(0),
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("scheduled_content_team_id_idx").on(table.teamId),
+    statusIdx: index("scheduled_content_status_idx").on(table.status),
+    publishDateIdx: index("scheduled_content_publish_date_idx").on(table.publishDate),
+  })
+);
+
+export type ScheduledContent = typeof scheduledContent.$inferSelect;
+export type NewScheduledContent = typeof scheduledContent.$inferInsert;
+
+// ============================================================
+// CALL QUEUE - Hot leads waiting for outbound calls
+// ============================================================
+
+export const callQueue = pgTable(
+  "call_queue",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull(),
+    leadId: text("lead_id"),
+    phone: text("phone").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    company: text("company"),
+    classification: text("classification"), // POSITIVE, NEGATIVE, etc.
+    priority: text("priority").notNull().default("WARM"), // 'HOT' | 'WARM' | 'COLD'
+    reason: text("reason"), // Why added to queue
+    status: text("status").notNull().default("pending"), // 'pending' | 'dialing' | 'connected' | 'completed' | 'no_answer' | 'callback'
+    assignedTo: text("assigned_to"),
+    callbackAt: timestamp("callback_at"),
+    notes: text("notes"),
+    lastMessage: text("last_message"),
+    outcome: text("outcome"), // 'booked' | 'not_interested' | 'callback' | etc.
+    addedAt: timestamp("added_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamIdIdx: index("call_queue_team_id_idx").on(table.teamId),
+    statusIdx: index("call_queue_status_idx").on(table.status),
+    priorityIdx: index("call_queue_priority_idx").on(table.priority),
+    phoneIdx: index("call_queue_phone_idx").on(table.phone),
+  })
+);
+
+export type CallQueueItem = typeof callQueue.$inferSelect;
+export type NewCallQueueItem = typeof callQueue.$inferInsert;
+
+// ============================================================
+// APP STATE - Generic key-value store for misc application state
+// ============================================================
+
+export const appState = pgTable(
+  "app_state",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id"),
+    userId: text("user_id"),
+    key: text("key").notNull(), // State key (e.g., 'dialer_workspace:abc123')
+    value: jsonb("value").notNull(), // State data
+    expiresAt: timestamp("expires_at"), // Optional TTL
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamKeyIdx: index("app_state_team_key_idx").on(table.teamId, table.key),
+    keyIdx: index("app_state_key_idx").on(table.key),
+    expiresIdx: index("app_state_expires_idx").on(table.expiresAt),
+  })
+);
+
+export type AppState = typeof appState.$inferSelect;
+export type NewAppState = typeof appState.$inferInsert;

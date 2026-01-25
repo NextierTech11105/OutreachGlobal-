@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { teamSettings, teams } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 import { NEXTIER_DEFAULT_CONFIG } from "@/lib/tenant/types";
 
 /**
@@ -9,15 +12,12 @@ import { NEXTIER_DEFAULT_CONFIG } from "@/lib/tenant/types";
  *
  * This API returns the configuration that shapes the universal engine
  * to the tenant's specific business intent.
+ *
+ * Uses teamSettings table with name='tenant_config' for persistence.
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-// In-memory store for now (replace with DB query when tenant_config table is migrated)
-const tenantConfigStore = new Map<string, typeof NEXTIER_DEFAULT_CONFIG>();
-
-// Initialize with NEXTIER default for the default team
-tenantConfigStore.set("default", NEXTIER_DEFAULT_CONFIG);
-tenantConfigStore.set("nextier", NEXTIER_DEFAULT_CONFIG);
+const CONFIG_SETTING_NAME = "tenant_config";
 
 /**
  * GET /api/tenant/config?team=<team_slug>
@@ -28,26 +28,51 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const teamSlug = searchParams.get("team") || "default";
 
-    // Check in-memory store first
-    let config = tenantConfigStore.get(teamSlug);
+    // Look up team by slug to get teamId
+    const team = await db
+      .select({ id: teams.id })
+      .from(teams)
+      .where(eq(teams.slug, teamSlug))
+      .limit(1);
 
-    // If not found, try to fetch from DB
-    if (!config) {
-      // TODO: Query tenant_config table when migrated
-      // const dbConfig = await db
-      //   .select()
-      //   .from(tenantConfig)
-      //   .where(eq(tenantConfig.teamId, teamId))
-      //   .limit(1);
+    const teamId = team[0]?.id;
 
-      // For now, return NEXTIER default
-      config = NEXTIER_DEFAULT_CONFIG;
+    if (!teamId) {
+      // No team found, return default config
+      return NextResponse.json({
+        success: true,
+        config: NEXTIER_DEFAULT_CONFIG,
+        source: "default",
+      });
     }
 
+    // Query teamSettings for tenant_config
+    const settings = await db
+      .select()
+      .from(teamSettings)
+      .where(
+        and(
+          eq(teamSettings.teamId, teamId),
+          eq(teamSettings.name, CONFIG_SETTING_NAME)
+        )
+      )
+      .limit(1);
+
+    if (settings.length > 0 && settings[0].value) {
+      // Parse stored config
+      const storedConfig = JSON.parse(settings[0].value);
+      return NextResponse.json({
+        success: true,
+        config: storedConfig,
+        source: "database",
+      });
+    }
+
+    // No config stored, return default
     return NextResponse.json({
       success: true,
-      config,
-      source: tenantConfigStore.has(teamSlug) ? "cache" : "default",
+      config: NEXTIER_DEFAULT_CONFIG,
+      source: "default",
     });
   } catch (error) {
     console.error("[Tenant Config] GET error:", error);
@@ -58,7 +83,7 @@ export async function GET(request: NextRequest) {
           error instanceof Error ? error.message : "Failed to fetch config",
         config: NEXTIER_DEFAULT_CONFIG, // Always return a valid config
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -76,14 +101,41 @@ export async function PATCH(request: NextRequest) {
     if (!team) {
       return NextResponse.json(
         { success: false, error: "team is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // Get existing config or default
-    const existingConfig = tenantConfigStore.get(team) || {
-      ...NEXTIER_DEFAULT_CONFIG,
-    };
+    // Look up team by slug
+    const teamRecord = await db
+      .select({ id: teams.id })
+      .from(teams)
+      .where(eq(teams.slug, team))
+      .limit(1);
+
+    const teamId = teamRecord[0]?.id;
+
+    if (!teamId) {
+      return NextResponse.json(
+        { success: false, error: "Team not found" },
+        { status: 404 }
+      );
+    }
+
+    // Get existing config from DB
+    const existingSettings = await db
+      .select()
+      .from(teamSettings)
+      .where(
+        and(
+          eq(teamSettings.teamId, teamId),
+          eq(teamSettings.name, CONFIG_SETTING_NAME)
+        )
+      )
+      .limit(1);
+
+    const existingConfig = existingSettings[0]?.value
+      ? JSON.parse(existingSettings[0].value)
+      : { ...NEXTIER_DEFAULT_CONFIG };
 
     // Merge updates
     const newConfig = {
@@ -99,14 +151,26 @@ export async function PATCH(request: NextRequest) {
       workers: updates.workers || existingConfig.workers,
     };
 
-    // Store in memory
-    tenantConfigStore.set(team, newConfig);
-
-    // TODO: Persist to DB when tenant_config table is migrated
-    // await db
-    //   .insert(tenantConfig)
-    //   .values({ teamId, config: newConfig })
-    //   .onConflictDoUpdate({ target: tenantConfig.teamId, set: { config: newConfig } });
+    // Upsert to database
+    if (existingSettings.length > 0) {
+      // Update existing
+      await db
+        .update(teamSettings)
+        .set({
+          value: JSON.stringify(newConfig),
+          updatedAt: new Date(),
+        })
+        .where(eq(teamSettings.id, existingSettings[0].id));
+    } else {
+      // Insert new
+      await db.insert(teamSettings).values({
+        id: `ts_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        teamId,
+        name: CONFIG_SETTING_NAME,
+        value: JSON.stringify(newConfig),
+        type: "json",
+      });
+    }
 
     console.log(`[Tenant Config] Updated config for team: ${team}`);
 
@@ -122,7 +186,7 @@ export async function PATCH(request: NextRequest) {
         error:
           error instanceof Error ? error.message : "Failed to update config",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -140,7 +204,23 @@ export async function POST(request: NextRequest) {
     if (!team) {
       return NextResponse.json(
         { success: false, error: "team is required" },
-        { status: 400 },
+        { status: 400 }
+      );
+    }
+
+    // Look up team by slug
+    const teamRecord = await db
+      .select({ id: teams.id })
+      .from(teams)
+      .where(eq(teams.slug, team))
+      .limit(1);
+
+    const teamId = teamRecord[0]?.id;
+
+    if (!teamId) {
+      return NextResponse.json(
+        { success: false, error: "Team not found" },
+        { status: 404 }
       );
     }
 
@@ -148,7 +228,6 @@ export async function POST(request: NextRequest) {
     let config = { ...NEXTIER_DEFAULT_CONFIG };
 
     // If preset provided, use that as base
-    // TODO: Load preset from INDUSTRY_PRESETS when available on frontend
     if (preset === "nextier") {
       config = { ...NEXTIER_DEFAULT_CONFIG };
     }
@@ -167,11 +246,39 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Store
-    tenantConfigStore.set(team, config);
+    // Check if config exists
+    const existingSettings = await db
+      .select()
+      .from(teamSettings)
+      .where(
+        and(
+          eq(teamSettings.teamId, teamId),
+          eq(teamSettings.name, CONFIG_SETTING_NAME)
+        )
+      )
+      .limit(1);
+
+    // Upsert to database
+    if (existingSettings.length > 0) {
+      await db
+        .update(teamSettings)
+        .set({
+          value: JSON.stringify(config),
+          updatedAt: new Date(),
+        })
+        .where(eq(teamSettings.id, existingSettings[0].id));
+    } else {
+      await db.insert(teamSettings).values({
+        id: `ts_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        teamId,
+        name: CONFIG_SETTING_NAME,
+        value: JSON.stringify(config),
+        type: "json",
+      });
+    }
 
     console.log(
-      `[Tenant Config] Initialized config for team: ${team}, preset: ${preset || "default"}`,
+      `[Tenant Config] Initialized config for team: ${team}, preset: ${preset || "default"}`
     );
 
     return NextResponse.json({
@@ -188,7 +295,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "Failed to initialize config",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

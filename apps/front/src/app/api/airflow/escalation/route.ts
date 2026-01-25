@@ -1,11 +1,15 @@
 /**
  * Airflow Escalation API Routes
  * Called by gianna_escalation_dag.py for lead management
+ *
+ * Uses appState table for persistence.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { appState } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 
-// In-memory store for demo - replace with actual DB
 interface EscalationLead {
   id: string;
   name: string;
@@ -30,22 +34,98 @@ interface DailyStats {
   responses_today: number;
 }
 
-const escalationLeads = new Map<string, EscalationLead>();
-const dailyStats: DailyStats = {
-  date: new Date().toISOString().split("T")[0],
-  sent_today: 0,
-  failed_today: 0,
-  responses_today: 0,
-};
-
-// Reset daily stats at midnight
-function checkResetDailyStats() {
+// Helper to get daily stats from database
+async function getDailyStats(teamId: string = "default"): Promise<DailyStats> {
   const today = new Date().toISOString().split("T")[0];
-  if (dailyStats.date !== today) {
-    dailyStats.date = today;
-    dailyStats.sent_today = 0;
-    dailyStats.failed_today = 0;
-    dailyStats.responses_today = 0;
+  const key = `escalation_daily_stats:${today}`;
+
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (state?.value) {
+    return state.value as DailyStats;
+  }
+
+  return {
+    date: today,
+    sent_today: 0,
+    failed_today: 0,
+    responses_today: 0,
+  };
+}
+
+// Helper to save daily stats
+async function saveDailyStats(
+  teamId: string = "default",
+  stats: DailyStats
+): Promise<void> {
+  const key = `escalation_daily_stats:${stats.date}`;
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: stats, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId,
+      key,
+      value: stats,
+    });
+  }
+}
+
+// Helper to get escalation lead
+async function getEscalationLead(
+  leadId: string,
+  teamId: string = "default"
+): Promise<EscalationLead | null> {
+  const key = `escalation_lead:${leadId}`;
+
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  return state?.value as EscalationLead | null;
+}
+
+// Helper to save escalation lead
+async function saveEscalationLead(
+  lead: EscalationLead,
+  teamId: string = "default"
+): Promise<void> {
+  const key = `escalation_lead:${lead.id}`;
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: lead, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId,
+      key,
+      value: lead,
+    });
   }
 }
 
@@ -54,14 +134,13 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get("action") || "due";
-
-    checkResetDailyStats();
+    const teamId = url.searchParams.get("teamId") || "default";
 
     switch (action) {
       case "due":
-        return handleGetDue(url.searchParams);
+        return handleGetDue(url.searchParams, teamId);
       case "daily-stats":
-        return handleDailyStats();
+        return handleDailyStats(teamId);
       case "responses":
         return handleGetResponses(url.searchParams);
       default:
@@ -71,7 +150,7 @@ export async function GET(request: NextRequest) {
     console.error("[Airflow Escalation] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -82,18 +161,17 @@ export async function POST(request: NextRequest) {
     const url = new URL(request.url);
     const action = url.searchParams.get("action") || "update-states";
     const body = await request.json();
-
-    checkResetDailyStats();
+    const teamId = body.teamId || "default";
 
     switch (action) {
       case "update-states":
-        return handleUpdateStates(body);
+        return handleUpdateStates(body, teamId);
       case "pause":
-        return handlePause(body);
+        return handlePause(body, teamId);
       case "flag-hot":
-        return handleFlagHot(body);
+        return handleFlagHot(body, teamId);
       case "add-lead":
-        return handleAddLead(body);
+        return handleAddLead(body, teamId);
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
@@ -101,25 +179,34 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow Escalation] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
-async function handleGetDue(params: URLSearchParams) {
+async function handleGetDue(params: URLSearchParams, teamId: string) {
   const limit = parseInt(params.get("limit") || "50");
-  const minHours = parseInt(params.get("min_hours") || "24");
   const now = new Date();
+
+  // Get all escalation leads from database
+  const allStates = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.teamId, teamId));
+
+  const escalationLeads = allStates
+    .filter((s) => s.key.startsWith("escalation_lead:") && s.value)
+    .map((s) => s.value as EscalationLead);
 
   // Find leads due for escalation
   const dueLeads: EscalationLead[] = [];
 
-  escalationLeads.forEach((lead) => {
+  for (const lead of escalationLeads) {
     // Skip paused leads
-    if (lead.escalation_paused) return;
+    if (lead.escalation_paused) continue;
 
     // Skip leads at max steps
-    if (lead.escalation_step >= 10) return;
+    if (lead.escalation_step >= 10) continue;
 
     // Check if due
     if (lead.next_escalation_at) {
@@ -131,14 +218,14 @@ async function handleGetDue(params: URLSearchParams) {
       // New leads with no escalation yet
       dueLeads.push(lead);
     }
-  });
+  }
 
   // Sort by escalation step (lower first) and limit
   dueLeads.sort((a, b) => a.escalation_step - b.escalation_step);
   const limited = dueLeads.slice(0, limit);
 
   console.log(
-    `[Airflow Escalation] Found ${limited.length} leads due (of ${dueLeads.length} total)`,
+    `[Airflow Escalation] Found ${limited.length} leads due (of ${dueLeads.length} total)`
   );
 
   return NextResponse.json({
@@ -147,17 +234,14 @@ async function handleGetDue(params: URLSearchParams) {
   });
 }
 
-async function handleDailyStats() {
-  return NextResponse.json(dailyStats);
+async function handleDailyStats(teamId: string) {
+  const stats = await getDailyStats(teamId);
+  return NextResponse.json(stats);
 }
 
 async function handleGetResponses(params: URLSearchParams) {
-  const sinceHours = parseInt(params.get("since_hours") || "1");
-  const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000);
-
   // In production, query message responses from DB
-  // For demo, return empty array
-  const responses: any[] = [];
+  const responses: unknown[] = [];
 
   return NextResponse.json({
     responses,
@@ -165,40 +249,46 @@ async function handleGetResponses(params: URLSearchParams) {
   });
 }
 
-async function handleUpdateStates(body: {
-  updates: Array<{
-    lead_id: string;
-    escalation_step: number;
-    next_escalation_at?: string | null;
-    escalation_paused?: boolean;
-    pause_reason?: string;
-  }>;
-}) {
+async function handleUpdateStates(
+  body: {
+    updates: Array<{
+      lead_id: string;
+      escalation_step: number;
+      next_escalation_at?: string | null;
+      escalation_paused?: boolean;
+      pause_reason?: string;
+    }>;
+  },
+  teamId: string
+) {
   const { updates } = body;
 
   if (!updates || !Array.isArray(updates)) {
     return NextResponse.json(
       { error: "Updates array required" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
   let updated = 0;
 
   for (const update of updates) {
-    const lead = escalationLeads.get(update.lead_id);
+    const lead = await getEscalationLead(update.lead_id, teamId);
     if (lead) {
       lead.escalation_step = update.escalation_step;
       lead.next_escalation_at = update.next_escalation_at || null;
       lead.escalation_paused = update.escalation_paused || false;
       lead.pause_reason = update.pause_reason;
       lead.updated_at = new Date().toISOString();
+      await saveEscalationLead(lead, teamId);
       updated++;
     }
   }
 
   // Update daily stats
-  dailyStats.sent_today += updates.length;
+  const stats = await getDailyStats(teamId);
+  stats.sent_today += updates.length;
+  await saveDailyStats(teamId, stats);
 
   console.log(`[Airflow Escalation] Updated ${updated} lead states`);
 
@@ -208,10 +298,13 @@ async function handleUpdateStates(body: {
   });
 }
 
-async function handlePause(body: { lead_id: string; reason: string }) {
+async function handlePause(
+  body: { lead_id: string; reason: string },
+  teamId: string
+) {
   const { lead_id, reason } = body;
 
-  const lead = escalationLeads.get(lead_id);
+  const lead = await getEscalationLead(lead_id, teamId);
   if (!lead) {
     return NextResponse.json({ error: "Lead not found" }, { status: 404 });
   }
@@ -219,6 +312,7 @@ async function handlePause(body: { lead_id: string; reason: string }) {
   lead.escalation_paused = true;
   lead.pause_reason = reason;
   lead.updated_at = new Date().toISOString();
+  await saveEscalationLead(lead, teamId);
 
   console.log(`[Airflow Escalation] Paused lead ${lead_id}: ${reason}`);
 
@@ -229,10 +323,13 @@ async function handlePause(body: { lead_id: string; reason: string }) {
   });
 }
 
-async function handleFlagHot(body: { lead_id: string; response: string }) {
+async function handleFlagHot(
+  body: { lead_id: string; response: string },
+  teamId: string
+) {
   const { lead_id, response } = body;
 
-  const lead = escalationLeads.get(lead_id);
+  const lead = await getEscalationLead(lead_id, teamId);
   if (!lead) {
     return NextResponse.json({ error: "Lead not found" }, { status: 404 });
   }
@@ -240,6 +337,7 @@ async function handleFlagHot(body: { lead_id: string; response: string }) {
   lead.is_hot = true;
   lead.last_response = response;
   lead.updated_at = new Date().toISOString();
+  await saveEscalationLead(lead, teamId);
 
   console.log(`[Airflow Escalation] Flagged lead ${lead_id} as HOT`);
 
@@ -250,13 +348,16 @@ async function handleFlagHot(body: { lead_id: string; response: string }) {
   });
 }
 
-async function handleAddLead(body: {
-  id?: string;
-  name: string;
-  phone: string;
-  company?: string;
-  property_address?: string;
-}) {
+async function handleAddLead(
+  body: {
+    id?: string;
+    name: string;
+    phone: string;
+    company?: string;
+    property_address?: string;
+  },
+  teamId: string
+) {
   const id = body.id || `lead_${Date.now()}`;
 
   const lead: EscalationLead = {
@@ -274,7 +375,7 @@ async function handleAddLead(body: {
     updated_at: new Date().toISOString(),
   };
 
-  escalationLeads.set(id, lead);
+  await saveEscalationLead(lead, teamId);
 
   console.log(`[Airflow Escalation] Added lead ${id} to escalation queue`);
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads } from "@/lib/db/schema";
-import { inArray, eq } from "drizzle-orm";
+import { leads, appState } from "@/lib/db/schema";
+import { inArray, eq, and, desc } from "drizzle-orm";
 
 /**
  * DIALER LOAD API
@@ -11,6 +11,8 @@ import { inArray, eq } from "drizzle-orm";
  * - Validates phone numbers
  * - Assigns to workspace/campaign
  * - Prepares for auto-dial or manual calling
+ *
+ * Uses appState table for workspace persistence.
  */
 
 const MAX_DIALER_LEADS = 2000;
@@ -20,13 +22,15 @@ interface LoadRequest {
   workspaceId: string;
   campaignId?: string;
   priority?: "high" | "medium" | "low";
-  dialMode?: "preview" | "power" | "predictive"; // Dialer modes
+  dialMode?: "preview" | "power" | "predictive";
   assignedAgent?: string;
+  teamId?: string;
 }
 
 interface DialerWorkspace {
   id: string;
   workspaceId: string;
+  teamId: string;
   campaignId?: string;
   status: "ready" | "active" | "paused" | "completed";
   totalLeads: number;
@@ -56,8 +60,44 @@ interface DialerLead {
   disposition?: string;
 }
 
-// In-memory workspace storage (production would use Redis/DB)
-const dialerWorkspaces = new Map<string, DialerWorkspace>();
+// Helper to get workspace from database
+async function getWorkspace(
+  dialerWorkspaceId: string
+): Promise<DialerWorkspace | null> {
+  const key = `dialer_workspace:${dialerWorkspaceId}`;
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.key, key))
+    .limit(1);
+
+  return state?.value as DialerWorkspace | null;
+}
+
+// Helper to save workspace to database
+async function saveWorkspace(workspace: DialerWorkspace): Promise<void> {
+  const key = `dialer_workspace:${workspace.id}`;
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.key, key))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: workspace, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId: workspace.teamId,
+      key,
+      value: workspace,
+    });
+  }
+}
 
 // POST - Load leads into dialer
 export async function POST(request: NextRequest) {
@@ -70,19 +110,20 @@ export async function POST(request: NextRequest) {
       priority,
       dialMode = "preview",
       assignedAgent,
+      teamId = "default",
     } = body;
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json(
         { error: "leadIds array is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -96,7 +137,7 @@ export async function POST(request: NextRequest) {
         firstName: leads.firstName,
         lastName: leads.lastName,
         phone: leads.phone,
-        priority: leads.priority,
+        priority: leads.pipelineStatus,
         status: leads.status,
       })
       .from(leads)
@@ -106,8 +147,6 @@ export async function POST(request: NextRequest) {
     const validLeads = leadsData.filter((l) => {
       // Must have phone
       if (!l.phone || l.phone.length < 10) return false;
-      // Skip suppressed leads
-      // In production, also check suppressedAt field
       return true;
     });
 
@@ -142,6 +181,7 @@ export async function POST(request: NextRequest) {
     const workspace: DialerWorkspace = {
       id: dialerWorkspaceId,
       workspaceId,
+      teamId,
       campaignId,
       status: "ready",
       totalLeads: dialerLeads.length,
@@ -152,26 +192,30 @@ export async function POST(request: NextRequest) {
       leads: dialerLeads,
     };
 
-    dialerWorkspaces.set(dialerWorkspaceId, workspace);
+    await saveWorkspace(workspace);
 
     // Update leads in DB with workspace assignment
-    await db
-      .update(leads)
-      .set({
-        dialerWorkspaceId,
-        dialerLoadedAt: new Date(),
-        assignedTo: assignedAgent,
-        updatedAt: new Date(),
-      })
-      .where(
-        inArray(
-          leads.id,
-          validLeads.map((l) => l.id),
-        ),
-      );
+    if (validLeads.length > 0) {
+      await db
+        .update(leads)
+        .set({
+          customFields: {
+            dialerWorkspaceId,
+            dialerLoadedAt: new Date().toISOString(),
+            assignedTo: assignedAgent,
+          },
+          updatedAt: new Date(),
+        })
+        .where(
+          inArray(
+            leads.id,
+            validLeads.map((l) => l.id)
+          )
+        );
+    }
 
     console.log(
-      `[Dialer] Loaded ${validLeads.length} leads into workspace ${dialerWorkspaceId}`,
+      `[Dialer] Loaded ${validLeads.length} leads into workspace ${dialerWorkspaceId}`
     );
 
     return NextResponse.json({
@@ -198,13 +242,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspaceId");
     const dialerWorkspaceId = searchParams.get("dialerWorkspaceId");
+    const teamId = searchParams.get("teamId") || "default";
 
     if (dialerWorkspaceId) {
-      const workspace = dialerWorkspaces.get(dialerWorkspaceId);
+      const workspace = await getWorkspace(dialerWorkspaceId);
       if (!workspace) {
         return NextResponse.json(
           { error: "Dialer workspace not found" },
-          { status: 404 },
+          { status: 404 }
         );
       }
       return NextResponse.json({
@@ -217,11 +262,37 @@ export async function GET(request: NextRequest) {
     }
 
     if (workspaceId) {
-      const workspaces = Array.from(dialerWorkspaces.values())
-        .filter((w) => w.workspaceId === workspaceId)
+      // Find workspaces by workspaceId pattern
+      const keyPattern = `dialer_workspace:dialer-${workspaceId}-%`;
+      const states = await db
+        .select()
+        .from(appState)
+        .where(
+          and(
+            eq(appState.teamId, teamId),
+            // Use LIKE for pattern matching
+            eq(appState.key, `dialer_workspace:dialer-${workspaceId}`)
+          )
+        )
+        .limit(20);
+
+      // Get all workspace states that match the pattern
+      const allStates = await db
+        .select()
+        .from(appState)
+        .where(eq(appState.teamId, teamId))
+        .orderBy(desc(appState.createdAt));
+
+      const workspaces = allStates
+        .filter(
+          (s) =>
+            s.key.startsWith(`dialer_workspace:dialer-${workspaceId}`) &&
+            s.value
+        )
+        .map((s) => s.value as DialerWorkspace)
         .sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
       return NextResponse.json({
@@ -239,11 +310,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Return all recent workspaces summary
-    const recentWorkspaces = Array.from(dialerWorkspaces.values())
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )
+    const allStates = await db
+      .select()
+      .from(appState)
+      .where(eq(appState.teamId, teamId))
+      .orderBy(desc(appState.createdAt))
+      .limit(50);
+
+    const recentWorkspaces = allStates
+      .filter((s) => s.key.startsWith("dialer_workspace:") && s.value)
+      .map((s) => s.value as DialerWorkspace)
       .slice(0, 10)
       .map((w) => ({
         id: w.id,
@@ -279,15 +355,15 @@ export async function PUT(request: NextRequest) {
     if (!dialerWorkspaceId) {
       return NextResponse.json(
         { error: "dialerWorkspaceId is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const workspace = dialerWorkspaces.get(dialerWorkspaceId);
+    const workspace = await getWorkspace(dialerWorkspaceId);
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -317,7 +393,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    dialerWorkspaces.set(dialerWorkspaceId, workspace);
+    await saveWorkspace(workspace);
 
     return NextResponse.json({
       success: true,

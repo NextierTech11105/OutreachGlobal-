@@ -1,41 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiAuth } from "@/lib/api-auth";
+import { db } from "@/lib/db";
+import { scheduledContent } from "@/lib/db/schema";
+import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 
-// Content Calendar Engine
-// - Schedule Medium articles 3+ months out
-// - Auto-SMS articles weekly to lead lists
-// - Track engagement and clicks
-
-interface ScheduledContent {
-  id: string;
-  title: string;
-  url: string; // Medium article URL
-  description?: string;
-  publishDate: string; // ISO date when it should be sent
-  status: "draft" | "scheduled" | "sent" | "failed";
-  channel: "sms" | "email" | "both";
-  targetAudience?: "all" | "property" | "b2b" | "custom";
-  customListId?: string;
-  // Tracking
-  sentAt?: string;
-  recipientCount?: number;
-  clickCount?: number;
-  // Metadata
-  createdAt: string;
-  createdBy: string;
-  tags?: string[];
-}
-
-// In-memory calendar (would be DB in production)
-const contentCalendar: Map<string, ScheduledContent> = new Map();
-
-// Weekly send tracking
-const weeklySchedule = new Map<string, string[]>(); // weekKey -> content IDs
+/**
+ * Content Calendar Engine
+ * - Schedule Medium articles 3+ months out
+ * - Auto-SMS articles weekly to lead lists
+ * - Track engagement and clicks
+ *
+ * Uses scheduledContent table for persistence.
+ */
 
 function getWeekKey(date: Date): string {
   const year = date.getFullYear();
   const week = Math.ceil(
-    (date.getDate() + new Date(year, date.getMonth(), 1).getDay()) / 7,
+    (date.getDate() + new Date(year, date.getMonth(), 1).getDay()) / 7
   );
   return `${year}-W${week.toString().padStart(2, "0")}`;
 }
@@ -43,7 +24,7 @@ function getWeekKey(date: Date): string {
 // POST - Add content to calendar
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await apiAuth();
+    const { userId, teamId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -73,7 +54,7 @@ export async function POST(request: NextRequest) {
             targetAudience: "property",
           },
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -82,35 +63,38 @@ export async function POST(request: NextRequest) {
     if (pubDate < new Date()) {
       return NextResponse.json(
         { error: "publishDate must be in the future" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const content: ScheduledContent = {
-      id: `content_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    const id = `content_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    await db.insert(scheduledContent).values({
+      id,
+      teamId: teamId || "default",
+      userId,
       title,
       url,
       description,
-      publishDate,
+      publishDate: pubDate,
       status: "scheduled",
       channel,
       targetAudience,
       customListId,
       tags,
-      createdAt: new Date().toISOString(),
-      createdBy: userId,
-    };
+    });
 
-    contentCalendar.set(content.id, content);
+    // Get the inserted content
+    const [content] = await db
+      .select()
+      .from(scheduledContent)
+      .where(eq(scheduledContent.id, id))
+      .limit(1);
 
-    // Add to weekly schedule
     const weekKey = getWeekKey(pubDate);
-    const weekContent = weeklySchedule.get(weekKey) || [];
-    weekContent.push(content.id);
-    weeklySchedule.set(weekKey, weekContent);
 
     console.log(
-      `[Content Calendar] Scheduled "${title}" for ${publishDate} (${weekKey})`,
+      `[Content Calendar] Scheduled "${title}" for ${publishDate} (${weekKey})`
     );
 
     return NextResponse.json({
@@ -122,7 +106,7 @@ export async function POST(request: NextRequest) {
     console.error("[Content Calendar] Error:", error);
     return NextResponse.json(
       { error: "Failed to schedule content" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -130,7 +114,7 @@ export async function POST(request: NextRequest) {
 // GET - Get calendar view or upcoming content
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await apiAuth();
+    const { userId, teamId } = await apiAuth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -140,20 +124,25 @@ export async function GET(request: NextRequest) {
     const weekKey = searchParams.get("week");
     const months = parseInt(searchParams.get("months") || "3");
 
-    // All content for this user
-    const allContent = Array.from(contentCalendar.values())
-      .filter((c) => c.createdBy === userId)
-      .sort(
-        (a, b) =>
-          new Date(a.publishDate).getTime() - new Date(b.publishDate).getTime(),
-      );
+    // Query all content for this user/team
+    const allContent = await db
+      .select()
+      .from(scheduledContent)
+      .where(
+        and(
+          eq(scheduledContent.teamId, teamId || "default"),
+          eq(scheduledContent.userId, userId)
+        )
+      )
+      .orderBy(asc(scheduledContent.publishDate));
 
     if (view === "week" && weekKey) {
-      // Get content for specific week
-      const weekContentIds = weeklySchedule.get(weekKey) || [];
-      const weekContent = weekContentIds
-        .map((id) => contentCalendar.get(id))
-        .filter(Boolean) as ScheduledContent[];
+      // Get content for specific week by filtering in memory
+      // (since weekKey is computed, not stored)
+      const weekContent = allContent.filter((c) => {
+        const pubDate = new Date(c.publishDate);
+        return getWeekKey(pubDate) === weekKey;
+      });
 
       return NextResponse.json({
         week: weekKey,
@@ -164,7 +153,7 @@ export async function GET(request: NextRequest) {
 
     if (view === "calendar") {
       // Group by week for calendar view
-      const calendar: Record<string, ScheduledContent[]> = {};
+      const calendar: Record<string, typeof allContent> = {};
       const now = new Date();
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + months);
@@ -172,9 +161,9 @@ export async function GET(request: NextRequest) {
       for (const content of allContent) {
         const pubDate = new Date(content.publishDate);
         if (pubDate >= now && pubDate <= endDate) {
-          const weekKey = getWeekKey(pubDate);
-          if (!calendar[weekKey]) calendar[weekKey] = [];
-          calendar[weekKey].push(content);
+          const wKey = getWeekKey(pubDate);
+          if (!calendar[wKey]) calendar[wKey] = [];
+          calendar[wKey].push(content);
         }
       }
 
@@ -198,7 +187,7 @@ export async function GET(request: NextRequest) {
     console.error("[Content Calendar] Error:", error);
     return NextResponse.json(
       { error: "Failed to get calendar" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -218,25 +207,45 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
 
-    const content = contentCalendar.get(id);
+    const [content] = await db
+      .select()
+      .from(scheduledContent)
+      .where(eq(scheduledContent.id, id))
+      .limit(1);
+
     if (!content) {
       return NextResponse.json({ error: "Content not found" }, { status: 404 });
     }
 
-    if (content.createdBy !== userId) {
+    if (content.userId !== userId) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    // Update fields
-    const updatedContent = {
-      ...content,
-      ...updates,
-      id: content.id, // Don't allow ID change
-      createdBy: content.createdBy,
-      createdAt: content.createdAt,
-    };
+    // Build update object
+    const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    if (updates.title) updateData.title = updates.title;
+    if (updates.url) updateData.url = updates.url;
+    if (updates.description) updateData.description = updates.description;
+    if (updates.publishDate)
+      updateData.publishDate = new Date(updates.publishDate);
+    if (updates.status) updateData.status = updates.status;
+    if (updates.channel) updateData.channel = updates.channel;
+    if (updates.targetAudience)
+      updateData.targetAudience = updates.targetAudience;
+    if (updates.customListId) updateData.customListId = updates.customListId;
+    if (updates.tags) updateData.tags = updates.tags;
 
-    contentCalendar.set(id, updatedContent);
+    await db
+      .update(scheduledContent)
+      .set(updateData)
+      .where(eq(scheduledContent.id, id));
+
+    // Get updated content
+    const [updatedContent] = await db
+      .select()
+      .from(scheduledContent)
+      .where(eq(scheduledContent.id, id))
+      .limit(1);
 
     return NextResponse.json({
       success: true,
@@ -246,7 +255,7 @@ export async function PATCH(request: NextRequest) {
     console.error("[Content Calendar] Error:", error);
     return NextResponse.json(
       { error: "Failed to update content" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -266,24 +275,21 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
 
-    const content = contentCalendar.get(id);
+    const [content] = await db
+      .select()
+      .from(scheduledContent)
+      .where(eq(scheduledContent.id, id))
+      .limit(1);
+
     if (!content) {
       return NextResponse.json({ error: "Content not found" }, { status: 404 });
     }
 
-    if (content.createdBy !== userId) {
+    if (content.userId !== userId) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    contentCalendar.delete(id);
-
-    // Remove from weekly schedule
-    const weekKey = getWeekKey(new Date(content.publishDate));
-    const weekContent = weeklySchedule.get(weekKey) || [];
-    weeklySchedule.set(
-      weekKey,
-      weekContent.filter((cid) => cid !== id),
-    );
+    await db.delete(scheduledContent).where(eq(scheduledContent.id, id));
 
     return NextResponse.json({
       success: true,
@@ -293,7 +299,7 @@ export async function DELETE(request: NextRequest) {
     console.error("[Content Calendar] Error:", error);
     return NextResponse.json(
       { error: "Failed to delete content" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

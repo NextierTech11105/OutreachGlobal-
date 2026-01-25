@@ -1,81 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 import { smsQueueService } from "@/lib/services/sms-queue-service";
+import { db } from "@/lib/db";
+import { batchJobs, appState } from "@/lib/db/schema";
+import { eq, desc, and, gte, sql } from "drizzle-orm";
 
-// Batch Job System for Admin Panel
-// Processes skip traces in bulk: 250 per batch, up to 2,000 per day
-// Integrates with SMS Queue for human-in-loop prep, preview, and deployment
-
-interface BatchJob {
-  id: string;
-  type: "property_detail" | "skip_trace" | "sms_campaign" | "email_campaign";
-  status:
-    | "pending"
-    | "processing"
-    | "completed"
-    | "failed"
-    | "paused"
-    | "scheduled";
-  createdAt: string;
-  startedAt?: string;
-  completedAt?: string;
-  scheduledFor?: string; // ISO date for scheduled runs
-  createdBy?: string;
-
-  // Job configuration
-  config: {
-    propertyIds?: string[];
-    batchSize: number;
-    autoSkipTrace?: boolean;
-    pushToValuation?: boolean;
-    pushToSmsQueue?: boolean; // Send results to SMS draft queue
-    smsTemplate?: string;
-    smsAgent?: "gianna" | "sabrina";
-    campaignId?: string;
-  };
-
-  // Progress tracking
-  progress: {
-    total: number;
-    processed: number;
-    successful: number;
-    failed: number;
-    withPhones: number;
-    currentBatch: number;
-    totalBatches: number;
-  };
-
-  // Results
-  results?: Array<{
-    id: string;
-    success: boolean;
-    error?: string;
-    data?: Record<string, unknown>;
-    phones?: string[];
-  }>;
-
-  // SMS Queue Integration
-  smsQueue?: {
-    added: number;
-    skipped: number;
-    queueIds: string[];
-  };
-
-  // Daily limits
-  dailyUsage: {
-    date: string;
-    used: number;
-    limit: number;
-    remaining: number;
-  };
-}
-
-// In-memory storage (would be database in production)
-const batchJobs = new Map<string, BatchJob>();
-const dailyUsage = new Map<string, { used: number; date: string }>();
-const scheduledJobs = new Map<string, NodeJS.Timeout>();
+/**
+ * Batch Job System for Admin Panel
+ * Processes skip traces in bulk: 250 per batch, up to 2,000 per day
+ * Integrates with SMS Queue for human-in-loop prep, preview, and deployment
+ *
+ * Uses batchJobs table for persistence.
+ */
 
 const BATCH_SIZE = 250;
 const DAILY_LIMIT = 2000; // Matches skip-trace and SMS queue limits
+
+// Helper to get daily usage from database
+async function getDailyUsage(teamId: string = "default"): Promise<{
+  used: number;
+  date: string;
+}> {
+  const today = new Date().toISOString().split("T")[0];
+  const key = `daily_usage:batch_jobs:${today}`;
+
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (state?.value) {
+    return state.value as { used: number; date: string };
+  }
+
+  return { used: 0, date: today };
+}
+
+// Helper to update daily usage
+async function updateDailyUsage(
+  teamId: string = "default",
+  increment: number
+): Promise<{ used: number; date: string }> {
+  const today = new Date().toISOString().split("T")[0];
+  const key = `daily_usage:batch_jobs:${today}`;
+
+  const current = await getDailyUsage(teamId);
+  const newUsage = { used: current.used + increment, date: today };
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: newUsage, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId,
+      key,
+      value: newUsage,
+    });
+  }
+
+  return newUsage;
+}
 
 // POST - Create or run a batch job
 export async function POST(request: NextRequest) {
@@ -88,17 +81,18 @@ export async function POST(request: NextRequest) {
       propertyIds,
       autoSkipTrace = true,
       pushToValuation = true,
-      pushToSmsQueue = true, // Auto-add to SMS draft queue
+      pushToSmsQueue = true,
       smsTemplate,
-      smsAgent = "gianna", // Default to Gianna for SMS
+      smsAgent = "gianna",
       campaignId,
-      scheduledFor, // ISO datetime for scheduled jobs
+      scheduledFor,
       createdBy,
+      teamId = "default",
     } = body;
 
     // Get today's usage
     const today = new Date().toISOString().split("T")[0];
-    const usage = dailyUsage.get(today) || { used: 0, date: today };
+    const usage = await getDailyUsage(teamId);
     const remaining = DAILY_LIMIT - usage.used;
 
     // === CREATE NEW JOB ===
@@ -115,89 +109,77 @@ export async function POST(request: NextRequest) {
               remaining: 0,
             },
           },
-          { status: 429 },
+          { status: 429 }
         );
       }
 
       const newJobId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const totalToProcess = Math.min(
         propertyIds.length,
-        scheduledFor ? propertyIds.length : remaining,
+        scheduledFor ? propertyIds.length : remaining
       );
       const totalBatches = Math.ceil(totalToProcess / BATCH_SIZE);
 
-      const job: BatchJob = {
-        id: newJobId,
-        type: type || "skip_trace",
-        status: scheduledFor ? "scheduled" : "pending",
-        createdAt: new Date().toISOString(),
-        scheduledFor,
-        createdBy,
-        config: {
-          propertyIds: propertyIds.slice(0, totalToProcess),
-          batchSize: BATCH_SIZE,
-          autoSkipTrace,
-          pushToValuation,
-          pushToSmsQueue,
-          smsTemplate,
-          smsAgent,
-          campaignId: campaignId || newJobId,
-        },
-        progress: {
-          total: totalToProcess,
-          processed: 0,
-          successful: 0,
-          failed: 0,
-          withPhones: 0,
-          currentBatch: 0,
-          totalBatches,
-        },
-        results: [],
-        dailyUsage: {
-          date: today,
-          used: usage.used,
-          limit: DAILY_LIMIT,
-          remaining,
-        },
+      // Store job config and progress in jsonb fields
+      const config = {
+        propertyIds: propertyIds.slice(0, totalToProcess),
+        batchSize: BATCH_SIZE,
+        autoSkipTrace,
+        pushToValuation,
+        pushToSmsQueue,
+        smsTemplate,
+        smsAgent,
+        campaignId: campaignId || newJobId,
       };
 
-      batchJobs.set(newJobId, job);
+      const results: unknown[] = [];
 
-      // Schedule job if scheduledFor is provided
-      if (scheduledFor) {
-        const scheduledTime = new Date(scheduledFor).getTime();
-        const now = Date.now();
-        const delay = Math.max(0, scheduledTime - now);
-
-        const timeout = setTimeout(async () => {
-          console.log(`[Batch Jobs] Running scheduled job ${newJobId}`);
-          job.status = "pending";
-          await runJobBatches(job);
-        }, delay);
-
-        scheduledJobs.set(newJobId, timeout);
-        console.log(
-          `[Batch Jobs] Scheduled job ${newJobId} for ${scheduledFor} (${Math.round(delay / 60000)} min from now)`,
-        );
-      }
+      await db.insert(batchJobs).values({
+        id: newJobId,
+        teamId,
+        userId: createdBy,
+        type: type || "skip_trace",
+        status: scheduledFor ? "pending" : "pending", // Will be scheduled separately
+        priority: "medium",
+        total: totalToProcess,
+        processed: 0,
+        successful: 0,
+        failed: 0,
+        config,
+        results,
+        scheduledAt: scheduledFor ? new Date(scheduledFor) : null,
+      });
 
       console.log(
-        `[Batch Jobs] Created job ${newJobId}: ${totalToProcess} properties in ${totalBatches} batches`,
+        `[Batch Jobs] Created job ${newJobId}: ${totalToProcess} properties in ${totalBatches} batches`
       );
 
       return NextResponse.json({
         success: true,
         job: {
-          id: job.id,
-          type: job.type,
-          status: job.status,
-          scheduledFor: job.scheduledFor,
-          progress: job.progress,
-          dailyUsage: job.dailyUsage,
+          id: newJobId,
+          type: type || "skip_trace",
+          status: scheduledFor ? "scheduled" : "pending",
+          scheduledFor,
+          progress: {
+            total: totalToProcess,
+            processed: 0,
+            successful: 0,
+            failed: 0,
+            withPhones: 0,
+            currentBatch: 0,
+            totalBatches,
+          },
+          dailyUsage: {
+            date: today,
+            used: usage.used,
+            limit: DAILY_LIMIT,
+            remaining,
+          },
           config: {
-            pushToSmsQueue: job.config.pushToSmsQueue,
-            smsAgent: job.config.smsAgent,
-            campaignId: job.config.campaignId,
+            pushToSmsQueue,
+            smsAgent,
+            campaignId: config.campaignId,
           },
         },
       });
@@ -205,7 +187,12 @@ export async function POST(request: NextRequest) {
 
     // === START/RESUME JOB ===
     if ((action === "start" || action === "resume") && jobId) {
-      const job = batchJobs.get(jobId);
+      const [job] = await db
+        .select()
+        .from(batchJobs)
+        .where(eq(batchJobs.id, jobId))
+        .limit(1);
+
       if (!job) {
         return NextResponse.json({ error: "Job not found" }, { status: 404 });
       }
@@ -213,25 +200,52 @@ export async function POST(request: NextRequest) {
       if (job.status === "processing") {
         return NextResponse.json(
           { error: "Job already processing" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
-      job.status = "processing";
-      job.startedAt = job.startedAt || new Date().toISOString();
+      await db
+        .update(batchJobs)
+        .set({
+          status: "processing",
+          startedAt: job.startedAt || new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(batchJobs.id, jobId));
 
       // Process next batch
-      const result = await processNextBatch(job);
+      const result = await processNextBatch(jobId, teamId);
 
-      batchJobs.set(jobId, job);
+      // Refresh job data
+      const [updatedJob] = await db
+        .select()
+        .from(batchJobs)
+        .where(eq(batchJobs.id, jobId))
+        .limit(1);
+
+      const currentUsage = await getDailyUsage(teamId);
 
       return NextResponse.json({
         success: true,
         job: {
-          id: job.id,
-          status: job.status,
-          progress: job.progress,
-          dailyUsage: job.dailyUsage,
+          id: updatedJob.id,
+          status: updatedJob.status,
+          progress: {
+            total: updatedJob.total,
+            processed: updatedJob.processed,
+            successful: updatedJob.successful,
+            failed: updatedJob.failed,
+            withPhones: (updatedJob.config as any)?.withPhones || 0,
+            currentBatch: (updatedJob.config as any)?.currentBatch || 0,
+            totalBatches:
+              Math.ceil((updatedJob.total || 0) / BATCH_SIZE) || 0,
+          },
+          dailyUsage: {
+            date: today,
+            used: currentUsage.used,
+            limit: DAILY_LIMIT,
+            remaining: DAILY_LIMIT - currentUsage.used,
+          },
         },
         batchResult: result,
       });
@@ -239,52 +253,72 @@ export async function POST(request: NextRequest) {
 
     // === PAUSE JOB ===
     if (action === "pause" && jobId) {
-      const job = batchJobs.get(jobId);
+      const [job] = await db
+        .select()
+        .from(batchJobs)
+        .where(eq(batchJobs.id, jobId))
+        .limit(1);
+
       if (!job) {
         return NextResponse.json({ error: "Job not found" }, { status: 404 });
       }
 
-      job.status = "paused";
-      batchJobs.set(jobId, job);
+      await db
+        .update(batchJobs)
+        .set({ status: "pending", updatedAt: new Date() })
+        .where(eq(batchJobs.id, jobId));
 
       return NextResponse.json({
         success: true,
-        job: { id: job.id, status: job.status },
+        job: { id: jobId, status: "pending" },
       });
     }
 
     // === CANCEL JOB ===
     if (action === "cancel" && jobId) {
-      const job = batchJobs.get(jobId);
+      const [job] = await db
+        .select()
+        .from(batchJobs)
+        .where(eq(batchJobs.id, jobId))
+        .limit(1);
+
       if (!job) {
         return NextResponse.json({ error: "Job not found" }, { status: 404 });
       }
 
-      job.status = "failed";
-      job.completedAt = new Date().toISOString();
-      batchJobs.set(jobId, job);
+      await db
+        .update(batchJobs)
+        .set({
+          status: "cancelled",
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(batchJobs.id, jobId));
 
       return NextResponse.json({
         success: true,
-        job: { id: job.id, status: job.status },
+        job: { id: jobId, status: "cancelled" },
       });
     }
 
     return NextResponse.json(
       { error: "Invalid action or missing parameters" },
-      { status: 400 },
+      { status: 400 }
     );
   } catch (error) {
     console.error("[Batch Jobs] Error:", error);
     return NextResponse.json(
       { error: "Batch job operation failed" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
 // Process the next batch of a job
-async function processNextBatch(job: BatchJob): Promise<{
+async function processNextBatch(
+  jobId: string,
+  teamId: string
+): Promise<{
   batchNumber: number;
   processed: number;
   successful: number;
@@ -292,8 +326,13 @@ async function processNextBatch(job: BatchJob): Promise<{
   withPhones: number;
   smsQueued: number;
 }> {
-  const { propertyIds, batchSize } = job.config;
-  if (!propertyIds) {
+  const [job] = await db
+    .select()
+    .from(batchJobs)
+    .where(eq(batchJobs.id, jobId))
+    .limit(1);
+
+  if (!job) {
     return {
       batchNumber: 0,
       processed: 0,
@@ -304,15 +343,27 @@ async function processNextBatch(job: BatchJob): Promise<{
     };
   }
 
-  const startIdx = job.progress.currentBatch * batchSize;
+  const config = job.config as any;
+  const propertyIds = config?.propertyIds || [];
+  const batchSize = config?.batchSize || BATCH_SIZE;
+  const currentBatch = config?.currentBatch || 0;
+
+  const startIdx = currentBatch * batchSize;
   const endIdx = Math.min(startIdx + batchSize, propertyIds.length);
   const batchIds = propertyIds.slice(startIdx, endIdx);
 
   if (batchIds.length === 0) {
-    job.status = "completed";
-    job.completedAt = new Date().toISOString();
+    await db
+      .update(batchJobs)
+      .set({
+        status: "completed",
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(batchJobs.id, jobId));
+
     return {
-      batchNumber: job.progress.currentBatch,
+      batchNumber: currentBatch,
       processed: 0,
       successful: 0,
       failed: 0,
@@ -321,8 +372,9 @@ async function processNextBatch(job: BatchJob): Promise<{
     };
   }
 
+  const totalBatches = Math.ceil(propertyIds.length / batchSize);
   console.log(
-    `[Batch Jobs] Processing batch ${job.progress.currentBatch + 1}/${job.progress.totalBatches}: ${batchIds.length} properties`,
+    `[Batch Jobs] Processing batch ${currentBatch + 1}/${totalBatches}: ${batchIds.length} properties`
   );
 
   let successful = 0;
@@ -335,6 +387,8 @@ async function processNextBatch(job: BatchJob): Promise<{
     lastName: string;
   }> = [];
 
+  const results = (job.results as any[]) || [];
+
   // Call the skip-trace endpoint for batch processing
   try {
     const response = await fetch(
@@ -343,7 +397,7 @@ async function processNextBatch(job: BatchJob): Promise<{
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: batchIds }),
-      },
+      }
     );
 
     const data = await response.json();
@@ -355,21 +409,20 @@ async function processNextBatch(job: BatchJob): Promise<{
           const phones =
             result.phones?.map((p: { number: string }) => p.number) || [];
 
-          job.results?.push({
+          results.push({
             id: result.id || result.input?.propertyId,
             success: true,
             data: result,
             phones,
           });
 
-          // Collect leads with mobile phones for SMS queue
           if (phones.length > 0) {
             withPhones++;
             const mobilePhone =
               result.phones?.find(
                 (p: { type?: string }) =>
                   p.type?.toLowerCase() === "mobile" ||
-                  p.type?.toLowerCase() === "cell",
+                  p.type?.toLowerCase() === "cell"
               ) || result.phones?.[0];
 
             if (mobilePhone?.number) {
@@ -388,7 +441,7 @@ async function processNextBatch(job: BatchJob): Promise<{
           }
         } else {
           failed++;
-          job.results?.push({
+          results.push({
             id: result.id || result.input?.propertyId,
             success: false,
             error: result.error,
@@ -396,10 +449,9 @@ async function processNextBatch(job: BatchJob): Promise<{
         }
       }
     } else {
-      // Batch failed entirely
       failed = batchIds.length;
       for (const id of batchIds) {
-        job.results?.push({
+        results.push({
           id,
           success: false,
           error: data.error || "Batch skip trace failed",
@@ -409,73 +461,62 @@ async function processNextBatch(job: BatchJob): Promise<{
   } catch (err) {
     failed = batchIds.length;
     for (const id of batchIds) {
-      job.results?.push({ id, success: false, error: String(err) });
+      results.push({ id, success: false, error: String(err) });
     }
   }
 
   // Push to SMS draft queue if configured
   let smsQueued = 0;
-  if (
-    job.config.pushToSmsQueue &&
-    leadsWithPhones.length > 0 &&
-    job.config.smsTemplate
-  ) {
+  if (config?.pushToSmsQueue && leadsWithPhones.length > 0 && config?.smsTemplate) {
     const smsResult = smsQueueService.addToDraftQueue(leadsWithPhones, {
       templateCategory: "sms_initial",
-      templateMessage: job.config.smsTemplate,
+      templateMessage: config.smsTemplate,
       personality: "brooklyn_bestie",
-      campaignId: job.config.campaignId,
+      campaignId: config.campaignId,
       priority: 5,
-      agent: job.config.smsAgent || "gianna",
+      agent: config.smsAgent || "gianna",
     });
 
     smsQueued = smsResult.added;
-
-    if (!job.smsQueue) {
-      job.smsQueue = { added: 0, skipped: 0, queueIds: [] };
-    }
-    job.smsQueue.added += smsResult.added;
-    job.smsQueue.skipped += smsResult.skipped;
-    job.smsQueue.queueIds.push(...smsResult.queueIds);
-
     console.log(
-      `[Batch Jobs] Added ${smsResult.added} leads to SMS draft queue (campaign: ${job.config.campaignId})`,
+      `[Batch Jobs] Added ${smsResult.added} leads to SMS draft queue (campaign: ${config.campaignId})`
     );
   }
 
-  // Update progress
-  job.progress.currentBatch++;
-  job.progress.processed += batchIds.length;
-  job.progress.successful += successful;
-  job.progress.failed += failed;
-  job.progress.withPhones += withPhones;
-
   // Update daily usage
-  const today = new Date().toISOString().split("T")[0];
-  const usage = dailyUsage.get(today) || { used: 0, date: today };
-  usage.used += batchIds.length;
-  dailyUsage.set(today, usage);
+  await updateDailyUsage(teamId, batchIds.length);
 
-  job.dailyUsage = {
-    date: today,
-    used: usage.used,
-    limit: DAILY_LIMIT,
-    remaining: DAILY_LIMIT - usage.used,
-  };
+  // Update job in database
+  const newCurrentBatch = currentBatch + 1;
+  const isComplete = newCurrentBatch >= totalBatches;
 
-  // Check if job is complete
-  if (job.progress.currentBatch >= job.progress.totalBatches) {
-    job.status = "completed";
-    job.completedAt = new Date().toISOString();
+  await db
+    .update(batchJobs)
+    .set({
+      processed: (job.processed || 0) + batchIds.length,
+      successful: (job.successful || 0) + successful,
+      failed: (job.failed || 0) + failed,
+      results,
+      config: {
+        ...config,
+        currentBatch: newCurrentBatch,
+        withPhones: (config?.withPhones || 0) + withPhones,
+        smsQueued: (config?.smsQueued || 0) + smsQueued,
+      },
+      status: isComplete ? "completed" : "pending",
+      completedAt: isComplete ? new Date() : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(batchJobs.id, jobId));
+
+  if (isComplete) {
     console.log(
-      `[Batch Jobs] Job ${job.id} completed: ${job.progress.successful}/${job.progress.total} successful, ${job.progress.withPhones} with phones`,
+      `[Batch Jobs] Job ${jobId} completed: ${(job.successful || 0) + successful}/${job.total} successful`
     );
-  } else {
-    job.status = "paused"; // Pause after each batch so admin can continue
   }
 
   return {
-    batchNumber: job.progress.currentBatch,
+    batchNumber: newCurrentBatch,
     processed: batchIds.length,
     successful,
     failed,
@@ -484,99 +525,84 @@ async function processNextBatch(job: BatchJob): Promise<{
   };
 }
 
-// Run all batches for a scheduled job
-async function runJobBatches(job: BatchJob): Promise<void> {
-  job.status = "processing";
-  job.startedAt = new Date().toISOString();
-  batchJobs.set(job.id, job);
-
-  console.log(
-    `[Batch Jobs] Starting scheduled job ${job.id}: ${job.progress.total} items in ${job.progress.totalBatches} batches`,
-  );
-
-  while (job.progress.currentBatch < job.progress.totalBatches) {
-    // Check daily limit
-    const today = new Date().toISOString().split("T")[0];
-    const usage = dailyUsage.get(today) || { used: 0, date: today };
-
-    if (usage.used >= DAILY_LIMIT) {
-      console.log(`[Batch Jobs] Daily limit reached, pausing job ${job.id}`);
-      job.status = "paused";
-      batchJobs.set(job.id, job);
-      return;
-    }
-
-    // Process next batch
-    const result = await processNextBatch(job);
-    batchJobs.set(job.id, job);
-
-    console.log(
-      `[Batch Jobs] Batch ${result.batchNumber}/${job.progress.totalBatches}: ${result.successful} success, ${result.withPhones} phones, ${result.smsQueued} SMS queued`,
-    );
-
-    // Small delay between batches to avoid overwhelming the API
-    if (job.progress.currentBatch < job.progress.totalBatches) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
-  }
-
-  job.status = "completed";
-  job.completedAt = new Date().toISOString();
-  batchJobs.set(job.id, job);
-
-  console.log(`[Batch Jobs] Scheduled job ${job.id} completed!`);
-  console.log(`  - Processed: ${job.progress.processed}`);
-  console.log(`  - Successful: ${job.progress.successful}`);
-  console.log(`  - With phones: ${job.progress.withPhones}`);
-  console.log(`  - SMS queued: ${job.smsQueue?.added || 0}`);
-}
-
 // GET - List batch jobs or get job status
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get("id");
   const status = searchParams.get("status");
   const limit = parseInt(searchParams.get("limit") || "20");
+  const teamId = searchParams.get("teamId") || "default";
 
   // Get specific job
   if (jobId) {
-    const job = batchJobs.get(jobId);
+    const [job] = await db
+      .select()
+      .from(batchJobs)
+      .where(eq(batchJobs.id, jobId))
+      .limit(1);
+
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
-    return NextResponse.json({ success: true, job });
+
+    const config = job.config as any;
+    return NextResponse.json({
+      success: true,
+      job: {
+        ...job,
+        progress: {
+          total: job.total,
+          processed: job.processed,
+          successful: job.successful,
+          failed: job.failed,
+          withPhones: config?.withPhones || 0,
+          currentBatch: config?.currentBatch || 0,
+          totalBatches:
+            Math.ceil((job.total || 0) / BATCH_SIZE) || 0,
+        },
+      },
+    });
   }
 
   // Get today's usage
   const today = new Date().toISOString().split("T")[0];
-  const usage = dailyUsage.get(today) || { used: 0, date: today };
+  const usage = await getDailyUsage(teamId);
 
-  // List jobs
-  let jobs = Array.from(batchJobs.values());
-
-  // Filter by status if provided
+  // Build query conditions
+  const conditions = [eq(batchJobs.teamId, teamId)];
   if (status) {
-    jobs = jobs.filter((j) => j.status === status);
+    conditions.push(eq(batchJobs.status, status));
   }
 
-  // Sort by createdAt descending
-  jobs.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-
-  // Limit results
-  jobs = jobs.slice(0, limit);
+  // List jobs
+  const jobs = await db
+    .select()
+    .from(batchJobs)
+    .where(and(...conditions))
+    .orderBy(desc(batchJobs.createdAt))
+    .limit(limit);
 
   return NextResponse.json({
     success: true,
-    jobs: jobs.map((j) => ({
-      id: j.id,
-      type: j.type,
-      status: j.status,
-      progress: j.progress,
-      createdAt: j.createdAt,
-      completedAt: j.completedAt,
-    })),
+    jobs: jobs.map((j) => {
+      const config = j.config as any;
+      return {
+        id: j.id,
+        type: j.type,
+        status: j.status,
+        progress: {
+          total: j.total,
+          processed: j.processed,
+          successful: j.successful,
+          failed: j.failed,
+          withPhones: config?.withPhones || 0,
+          currentBatch: config?.currentBatch || 0,
+          totalBatches: Math.ceil((j.total || 0) / BATCH_SIZE) || 0,
+        },
+        createdAt: j.createdAt,
+        completedAt: j.completedAt,
+      };
+    }),
     count: jobs.length,
     dailyUsage: {
       date: today,

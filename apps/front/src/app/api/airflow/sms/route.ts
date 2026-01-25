@@ -1,9 +1,14 @@
 /**
  * Airflow SMS API Routes
  * Called by gianna_escalation_dag.py for sending SMS
+ *
+ * Uses appState table for persistence.
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { appState } from "@/lib/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 // SMS send log for tracking
 interface SMSRecord {
@@ -18,8 +23,78 @@ interface SMSRecord {
   error?: string;
 }
 
-const smsLog = new Map<string, SMSRecord>();
-const dailySendCount = { date: "", count: 0 };
+interface DailySendCount {
+  date: string;
+  count: number;
+}
+
+// Helper to get daily send count from database
+async function getDailySendCount(
+  teamId: string = "default"
+): Promise<DailySendCount> {
+  const today = new Date().toISOString().split("T")[0];
+  const key = `sms_daily_count:${today}`;
+
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (state?.value) {
+    return state.value as DailySendCount;
+  }
+
+  return { date: today, count: 0 };
+}
+
+// Helper to update daily send count
+async function incrementDailySendCount(
+  teamId: string = "default"
+): Promise<DailySendCount> {
+  const today = new Date().toISOString().split("T")[0];
+  const key = `sms_daily_count:${today}`;
+
+  const current = await getDailySendCount(teamId);
+  const newCount = { date: today, count: current.count + 1 };
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: newCount, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId,
+      key,
+      value: newCount,
+    });
+  }
+
+  return newCount;
+}
+
+// Helper to save SMS record
+async function saveSMSRecord(
+  record: SMSRecord,
+  teamId: string = "default"
+): Promise<void> {
+  const key = `sms_record:${record.id}`;
+
+  await db.insert(appState).values({
+    id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    teamId,
+    key,
+    value: record,
+  });
+}
 
 // POST /api/airflow/sms
 export async function POST(request: NextRequest) {
@@ -27,10 +102,11 @@ export async function POST(request: NextRequest) {
     const url = new URL(request.url);
     const action = url.searchParams.get("action") || "send";
     const body = await request.json();
+    const teamId = body.teamId || "default";
 
     switch (action) {
       case "send":
-        return handleSend(body);
+        return handleSend(body, teamId);
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
@@ -38,7 +114,7 @@ export async function POST(request: NextRequest) {
     console.error("[Airflow SMS] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -48,12 +124,13 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get("action") || "stats";
+    const teamId = url.searchParams.get("teamId") || "default";
 
     switch (action) {
       case "stats":
-        return handleStats();
+        return handleStats(teamId);
       case "log":
-        return handleLog(url.searchParams);
+        return handleLog(url.searchParams, teamId);
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
@@ -61,24 +138,27 @@ export async function GET(request: NextRequest) {
     console.error("[Airflow SMS] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
-async function handleSend(body: {
-  to: string;
-  message: string;
-  lead_id: string;
-  campaign_type: string;
-  escalation_step?: number;
-}) {
+async function handleSend(
+  body: {
+    to: string;
+    message: string;
+    lead_id: string;
+    campaign_type: string;
+    escalation_step?: number;
+  },
+  teamId: string
+) {
   const { to, message, lead_id, campaign_type, escalation_step } = body;
 
   if (!to || !message) {
     return NextResponse.json(
       { error: "Phone number and message required" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -87,26 +167,21 @@ async function handleSend(body: {
   if (cleanPhone.length < 10) {
     return NextResponse.json(
       { error: "Invalid phone number" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
   // Check daily limit
-  const today = new Date().toISOString().split("T")[0];
-  if (dailySendCount.date !== today) {
-    dailySendCount.date = today;
-    dailySendCount.count = 0;
-  }
-
-  if (dailySendCount.count >= 2000) {
+  const dailyCount = await getDailySendCount(teamId);
+  if (dailyCount.count >= 2000) {
     return NextResponse.json(
       { error: "Daily SMS limit reached" },
-      { status: 429 },
+      { status: 429 }
     );
   }
 
   // Create SMS record
-  const smsId = `sms_${Date.now()}`;
+  const smsId = `sms_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const record: SMSRecord = {
     id: smsId,
     to: cleanPhone,
@@ -119,7 +194,6 @@ async function handleSend(body: {
   };
 
   // In production: Call SignalHouse or Twilio API
-  // For demo, simulate send
   try {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -130,11 +204,6 @@ async function handleSend(body: {
 
     if (signalHouseApiKey) {
       // TODO: Actual SignalHouse integration
-      // const response = await fetch('https://api.signalhouse.com/v1/sms', {
-      //   method: 'POST',
-      //   headers: { 'Authorization': `Bearer ${signalHouseApiKey}` },
-      //   body: JSON.stringify({ to: cleanPhone, message })
-      // });
       record.status = "sent";
     } else if (twilioSid) {
       // TODO: Actual Twilio integration
@@ -144,11 +213,11 @@ async function handleSend(body: {
       record.status = "sent";
     }
 
-    dailySendCount.count++;
-    smsLog.set(smsId, record);
+    await incrementDailySendCount(teamId);
+    await saveSMSRecord(record, teamId);
 
     console.log(
-      `[Airflow SMS] Sent to ${cleanPhone.slice(-4)}: Step ${escalation_step}`,
+      `[Airflow SMS] Sent to ${cleanPhone.slice(-4)}: Step ${escalation_step}`
     );
 
     return NextResponse.json({
@@ -159,24 +228,34 @@ async function handleSend(body: {
   } catch (error) {
     record.status = "failed";
     record.error = error instanceof Error ? error.message : "Unknown error";
-    smsLog.set(smsId, record);
+    await saveSMSRecord(record, teamId);
 
     console.error(
-      `[Airflow SMS] Failed to send to ${cleanPhone}: ${record.error}`,
+      `[Airflow SMS] Failed to send to ${cleanPhone}: ${record.error}`
     );
 
     return NextResponse.json({ error: record.error }, { status: 500 });
   }
 }
 
-async function handleStats() {
+async function handleStats(teamId: string) {
   const today = new Date().toISOString().split("T")[0];
+
+  // Get all SMS records from database
+  const allStates = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.teamId, teamId));
+
+  const smsRecords = allStates
+    .filter((s) => s.key.startsWith("sms_record:") && s.value)
+    .map((s) => s.value as SMSRecord);
 
   // Count today's sends
   let sentToday = 0;
   let failedToday = 0;
 
-  smsLog.forEach((record) => {
+  for (const record of smsRecords) {
     if (record.sent_at.startsWith(today)) {
       if (record.status === "sent" || record.status === "delivered") {
         sentToday++;
@@ -184,21 +263,30 @@ async function handleStats() {
         failedToday++;
       }
     }
-  });
+  }
 
   return NextResponse.json({
     date: today,
     sent_today: sentToday,
     failed_today: failedToday,
-    total_logged: smsLog.size,
+    total_logged: smsRecords.length,
   });
 }
 
-async function handleLog(params: URLSearchParams) {
+async function handleLog(params: URLSearchParams, teamId: string) {
   const limit = parseInt(params.get("limit") || "100");
   const leadId = params.get("lead_id");
 
-  let records = Array.from(smsLog.values());
+  // Get all SMS records from database
+  const allStates = await db
+    .select()
+    .from(appState)
+    .where(eq(appState.teamId, teamId))
+    .orderBy(desc(appState.createdAt));
+
+  let records = allStates
+    .filter((s) => s.key.startsWith("sms_record:") && s.value)
+    .map((s) => s.value as SMSRecord);
 
   if (leadId) {
     records = records.filter((r) => r.lead_id === leadId);
@@ -206,7 +294,7 @@ async function handleLog(params: URLSearchParams) {
 
   // Sort by sent_at descending
   records.sort(
-    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime(),
+    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
   );
 
   return NextResponse.json({

@@ -1,13 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { appState } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 
-// In-memory storage for demo - in production, use database
-let globalData: Record<string, string>[] = [];
-let globalHeaders: string[] = [];
+/**
+ * Data Browser API
+ * Uses appState table for persistence.
+ */
+
+interface BrowserData {
+  headers: string[];
+  records: Record<string, string>[];
+  uploadedAt: string;
+  fileName?: string;
+}
+
+// Helper to get browser data from database
+async function getBrowserData(teamId: string): Promise<BrowserData | null> {
+  const key = `data_browser:${teamId}`;
+  const [state] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  return state?.value as BrowserData | null;
+}
+
+// Helper to save browser data to database
+async function saveBrowserData(
+  teamId: string,
+  data: BrowserData
+): Promise<void> {
+  const key = `data_browser:${teamId}`;
+
+  const [existing] = await db
+    .select()
+    .from(appState)
+    .where(and(eq(appState.key, key), eq(appState.teamId, teamId)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(appState)
+      .set({ value: data, updatedAt: new Date() })
+      .where(eq(appState.id, existing.id));
+  } else {
+    await db.insert(appState).values({
+      id: `as_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      teamId,
+      key,
+      value: data,
+    });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const teamId = formData.get("teamId")?.toString() || "default";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -22,7 +74,6 @@ export async function POST(request: NextRequest) {
 
     const headerLine = lines[0];
     const headers = headerLine.split(",").map((h) => h.trim());
-    globalHeaders = headers;
 
     const records: Record<string, string>[] = [];
     for (let i = 1; i < lines.length; i++) {
@@ -34,7 +85,14 @@ export async function POST(request: NextRequest) {
       records.push(record);
     }
 
-    globalData = records;
+    // Save to database
+    const browserData: BrowserData = {
+      headers,
+      records,
+      uploadedAt: new Date().toISOString(),
+      fileName: file.name,
+    };
+    await saveBrowserData(teamId, browserData);
 
     return NextResponse.json({
       message: "Data uploaded successfully",
@@ -56,8 +114,12 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "100");
     const searchTerm = searchParams.get("search") || "";
+    const teamId = searchParams.get("teamId") || "default";
 
-    if (globalData.length === 0) {
+    // Get data from database
+    const browserData = await getBrowserData(teamId);
+
+    if (!browserData || browserData.records.length === 0) {
       return NextResponse.json({
         data: [],
         headers: [],
@@ -67,7 +129,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const filteredData = globalData.filter((record) =>
+    const filteredData = browserData.records.filter((record) =>
       Object.values(record).some((value) =>
         value.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
@@ -81,7 +143,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       data: paginatedData,
-      headers: globalHeaders,
+      headers: browserData.headers,
       totalRecords,
       totalPages,
       currentPage: page,
