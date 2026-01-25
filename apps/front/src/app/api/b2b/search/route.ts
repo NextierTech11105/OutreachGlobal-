@@ -525,12 +525,21 @@ async function searchPostgreSQL(filters: {
       }
     }
 
+    // TRACERFY READY: Has first name + last name (+80) - REQUIRED for skip trace
+    const hasFirstName = !!(firstName && firstName.trim());
+    const hasLastName = !!(lastName && lastName.trim());
+    if (hasFirstName && hasLastName) {
+      priorityScore += 80; // Skip trace ready!
+    } else if (hasFirstName || hasLastName) {
+      priorityScore += 20; // Partial name
+    }
+
     // Decision maker bonus (+50)
     if (isDecisionMaker) {
       priorityScore += 50;
     }
 
-    // Has phone (+20)
+    // Has phone (+20) - Will be validated by Trestle before SMS
     if (biz.phone) {
       priorityScore += 20;
     }
@@ -538,6 +547,11 @@ async function searchPostgreSQL(filters: {
     // Has email (+10)
     if (biz.email) {
       priorityScore += 10;
+    }
+
+    // Has address for skip trace (+15)
+    if (biz.address && biz.city && biz.state) {
+      priorityScore += 15;
     }
 
     return {
@@ -565,6 +579,9 @@ async function searchPostgreSQL(filters: {
       sector_label: sectorLabel,
       sector_color: sectorColor,
       auto_tags: autoTags,
+      // TRACERFY READY - Has first + last name for skip trace
+      skip_trace_ready: hasFirstName && hasLastName,
+      has_contact_name: hasFirstName || hasLastName,
       metadata: {
         source: "postgresql",
         sector: matchedSector || biz.primarySectorId,
