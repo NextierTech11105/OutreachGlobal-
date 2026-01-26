@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
+import { ulid } from "ulidx";
 
 // USBizData CSV Column Mapping
 const USBIZDATA_COLUMNS: Record<string, string> = {
@@ -55,8 +56,8 @@ function mapRecordToLead(record: Record<string, string>, teamId: string, vertica
     return value && value.trim() ? value.trim() : null;
   };
 
-  // Generate a unique ID
-  const id = `lead_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Generate a unique ID using ULID format
+  const id = `lead_${ulid()}`;
 
   return {
     id,

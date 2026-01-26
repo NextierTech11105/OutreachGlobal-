@@ -20,6 +20,12 @@ import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { getIndustryById, ALL_INDUSTRIES } from "@/config/industries";
+import { ulid } from "ulidx";
+
+// Generate lead ID in the format the API expects: lead_ULID
+function generateLeadId(): string {
+  return `lead_${ulid()}`;
+}
 import {
   createLeadSourceBucket,
   type LeadSourceBucket,
@@ -117,7 +123,7 @@ export async function POST(request: NextRequest) {
         try {
           // Insert leads
           const insertData = batchLeads.map((lead) => ({
-            id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            id: generateLeadId(),
             firstName: lead.firstName || "",
             lastName: lead.lastName || "",
             phone: cleanPhone(lead.phone || ""),
@@ -268,7 +274,7 @@ export async function POST(request: NextRequest) {
 
         try {
           const insertData = batchLeads.map((lead) => ({
-            id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            id: generateLeadId(),
             firstName: lead.firstName || "",
             lastName: lead.lastName || "",
             phone: cleanPhone(lead.phone || ""),
