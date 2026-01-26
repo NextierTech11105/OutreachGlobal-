@@ -241,6 +241,24 @@ async function runMigrations(db: any) {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    // Add missing columns expected by frontend
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_users INTEGER DEFAULT 5`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_leads_per_month INTEGER DEFAULT 10000`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_property_searches INTEGER DEFAULT 500`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_sms_per_month INTEGER DEFAULT 2000`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_skip_traces INTEGER DEFAULT 500`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_campaigns INTEGER DEFAULT 10`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_ai_sdr_avatars INTEGER DEFAULT 3`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_power_dialer BOOLEAN DEFAULT true`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_email_campaigns BOOLEAN DEFAULT true`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_api_access BOOLEAN DEFAULT true`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_priority_support BOOLEAN DEFAULT false`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_white_label BOOLEAN DEFAULT false`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS is_popular BOOLEAN DEFAULT false`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS stripe_price_id_monthly VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS stripe_price_id_yearly VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE plans ADD COLUMN IF NOT EXISTS stripe_product_id VARCHAR(100)`);
     results.push("plans OK");
   } catch (e: any) {
     results.push(`plans: ${e.message}`);
