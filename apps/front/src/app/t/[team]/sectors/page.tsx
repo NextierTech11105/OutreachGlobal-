@@ -346,11 +346,15 @@ export default function SectorsPage() {
     fetchRealData();
   }, []);
 
-  // Handle CSV upload (two-step: storage upload -> import)
-  // Uses pre-signed URL for large files (>10MB) to avoid gateway timeout
+  // Handle CSV upload - DIRECT TO DATABASE (bypasses DO Spaces)
   const handleUpload = async () => {
     if (!uploadFile || !uploadName) {
       toast.error("Please select a file and enter a name");
+      return;
+    }
+
+    if (!teamId) {
+      toast.error("Team ID not found - cannot import leads");
       return;
     }
 
@@ -358,127 +362,40 @@ export default function SectorsPage() {
     setUploadResult(null);
 
     try {
-      const folder = `sectors/usbizdata/${uploadName.replace(/\s+/g, "-").toLowerCase()}`;
-      const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 10MB
-      let storagePath: string;
+      // Direct import to database - no DO Spaces needed
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("teamId", teamId);
+      formData.append("source", "csv-upload");
+      formData.append("bucketName", uploadName);
 
-      if (uploadFile.size > LARGE_FILE_THRESHOLD) {
-        // Large file: Use pre-signed URL for direct upload to DO Spaces
-        toast.info(`Large file (${(uploadFile.size / 1024 / 1024).toFixed(1)}MB) - uploading directly...`);
+      toast.info(`Importing ${uploadFile.name} directly to database...`);
 
-        // Step 1a: Get pre-signed URL
-        const presignRes = await fetch("/api/storage/presign", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filename: uploadFile.name,
-            folder,
-            contentType: uploadFile.type || "text/csv",
-            size: uploadFile.size,
-          }),
-        });
-
-        if (!presignRes.ok) {
-          throw new Error(`Failed to get upload URL: ${presignRes.status}`);
-        }
-
-        const presignData = await presignRes.json();
-        if (!presignData.presignedUrl) {
-          throw new Error("No presigned URL returned");
-        }
-
-        // Step 1b: Upload directly to DO Spaces
-        const uploadRes = await fetch(presignData.presignedUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": uploadFile.type || "text/csv",
-          },
-          body: uploadFile,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error(`Direct upload failed: ${uploadRes.status}`);
-        }
-
-        storagePath = presignData.storagePath;
-        toast.success("File uploaded to storage!");
-      } else {
-        // Small file: Use regular upload through API
-        const storageForm = new FormData();
-        storageForm.append("file", uploadFile);
-        storageForm.append("folder", folder);
-        storageForm.append("filename", uploadFile.name);
-        storageForm.append("tags", uploadTags);
-
-        const storageRes = await fetch("/api/storage/upload", {
-          method: "POST",
-          body: storageForm,
-        });
-
-        if (!storageRes.ok) {
-          const text = await storageRes.text().catch(() => "");
-          const isHtml = text.trim().startsWith("<");
-          const msg = isHtml
-            ? `Storage upload failed: server returned HTML (status ${storageRes.status})`
-            : text || `Storage upload failed: HTTP ${storageRes.status}`;
-          throw new Error(msg);
-        }
-
-        const storageData = await storageRes.json().catch(async () => {
-          const txt = await storageRes.text().catch(() => "");
-          throw new Error(txt || "Invalid JSON from storage upload");
-        });
-
-        storagePath = storageData.storagePath;
-        if (!storagePath) throw new Error("No storagePath returned from storage upload");
-      }
-
-      // Step 2: Trigger import (async processing) using /api/buckets/import
-      const importRes = await fetch("/api/buckets/import", {
+      const response = await fetch("/api/leads/import-direct", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storagePath }),
+        body: formData,
       });
 
-      if (!importRes.ok) {
-        const text = await importRes.text().catch(() => "");
-        const isHtml = text.trim().startsWith("<");
-        const msg = isHtml
-          ? `Import failed: server returned HTML (status ${importRes.status})`
-          : text || `Import failed: HTTP ${importRes.status}`;
-        throw new Error(msg);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(errorData.error || `Import failed: ${response.status}`);
       }
 
-      const importData = await importRes.json().catch(async () => {
-        const txt = await importRes.text().catch(() => "");
-        throw new Error(txt || "Invalid JSON from import");
-      });
+      const data = await response.json();
 
-      if (importData.error) throw new Error(importData.error);
+      if (!data.success) {
+        throw new Error(data.error || "Import failed");
+      }
 
       setUploadResult({
         success: true,
-        message: importData.success ? "CSV uploaded and import started" : importData.message || "Import started",
-        stats: importData.stats || importData.bucket?.stats,
+        message: data.message || `Imported ${data.results?.imported || 0} leads`,
+        stats: data.stats,
       });
-      toast.success("CSV uploaded and import started!");
+      toast.success(`Imported ${data.results?.imported || 0} leads to database!`);
 
-      // Refresh data lakes
-      const refreshResponse = await fetch("/api/buckets?perPage=100");
-      const refreshData = await refreshResponse.json();
-      if (refreshData.buckets) {
-        setDataLakes(refreshData.buckets);
-      }
-
-      // Reset form after success
-      setTimeout(() => {
-        setShowUploadDialog(false);
-        setUploadFile(null);
-        setUploadName("");
-        setUploadDescription("");
-        setUploadTags("");
-        setUploadResult(null);
-      }, 2000);
+      // Refresh the page data
+      window.location.reload();
     } catch (error) {
       console.error("Upload failed:", error);
       const msg = error instanceof Error ? error.message : "Upload failed";
