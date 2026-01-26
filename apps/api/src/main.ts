@@ -210,8 +210,13 @@ async function runMigrations(db: any) {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    // Add id column if table exists without it (fix for schema mismatch)
+    await db.execute(sql`ALTER TABLE team_settings ADD COLUMN IF NOT EXISTS id TEXT`);
+    // Populate existing rows with generated IDs
+    await db.execute(sql`UPDATE team_settings SET id = 'tset_' || encode(sha256((team_id || '_' || name || '_' || COALESCE(scope, ''))::bytea), 'hex') WHERE id IS NULL`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS team_settings_team_idx ON team_settings(team_id)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS team_settings_name_idx ON team_settings(name)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS team_settings_id_idx ON team_settings(id)`);
     results.push("team_settings OK");
   } catch (e: any) {
     results.push(`team_settings: ${e.message}`);
