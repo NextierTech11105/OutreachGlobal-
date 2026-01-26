@@ -10,14 +10,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { leads } from "@/lib/db/schema";
+import { leads, teams } from "@/lib/db/schema";
 import { eq, and, sql, or, gte, inArray } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
     const { userId, teamId } = await apiAuth();
-    if (!userId || !teamId) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is an owner (can see all leads)
+    let isOwner = false;
+    if (teamId) {
+      const teamResult = await db
+        .select({ ownerId: teams.ownerId })
+        .from(teams)
+        .where(eq(teams.id, teamId))
+        .limit(1);
+      isOwner = teamResult[0]?.ownerId === userId;
+    }
+
+    // Build where conditions - owners can qualify ALL validated leads
+    const whereConditions = [eq(leads.pipelineStatus, "validated")];
+    if (teamId && !isOwner) {
+      whereConditions.push(eq(leads.teamId, teamId));
     }
 
     // Get validated leads
@@ -28,12 +45,7 @@ export async function POST(request: NextRequest) {
         grade: leads.grade,
       })
       .from(leads)
-      .where(
-        and(
-          eq(leads.teamId, teamId),
-          eq(leads.pipelineStatus, "validated")
-        )
-      )
+      .where(and(...whereConditions))
       .limit(5000); // Process in batches
 
     if (validatedLeads.length === 0) {
