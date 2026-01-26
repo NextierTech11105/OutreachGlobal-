@@ -51,21 +51,19 @@ export async function GET(request: NextRequest) {
       .from(leads)
       .groupBy(leads.pipelineStatus);
 
-    // Get quality counts
+    // Get quality counts - use only columns that exist in schema
     const [withPhoneResult] = await db
       .select({ count: count() })
       .from(leads)
-      .where(isNotNull(leads.phone));
+      .where(sql`${leads.phone} IS NOT NULL AND ${leads.phone} != ''`);
 
-    const [withMobileResult] = await db
-      .select({ count: count() })
-      .from(leads)
-      .where(isNotNull(leads.mobilePhone));
+    // Note: No separate mobilePhone column in schema, phone column covers all
+    const withMobileResult = { count: 0 };
 
     const [withEmailResult] = await db
       .select({ count: count() })
       .from(leads)
-      .where(isNotNull(leads.email));
+      .where(sql`${leads.email} IS NOT NULL AND ${leads.email} != ''`);
 
     // Get enriched count (skip_traced or higher)
     const [enrichedResult] = await db
