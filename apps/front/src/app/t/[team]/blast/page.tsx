@@ -1,117 +1,368 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useCurrentTeam } from "@/features/team/team.context";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  Send,
+  Phone,
+  Users,
+  MessageSquare,
+  Rocket,
+  CalendarDays,
+  Save,
+  Flame,
+  Clock,
+  Eye,
+  AlertTriangle,
+  X,
+  Bookmark,
+  Zap,
+  Bell,
+  RotateCcw,
+  Tag,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Upload, Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { format } from "date-fns";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface Lead {
   firstName: string;
   lastName: string;
   phone: string;
   company?: string;
+  email?: string;
+  city?: string;
+  state?: string;
 }
 
+interface SavedTemplate {
+  id: string;
+  name: string;
+  label: string;
+  message: string;
+  createdAt: string;
+}
+
+type BlastStep = "upload" | "compose" | "confirm" | "sending" | "complete";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TEMPLATE_VARS = [
+  { key: "{firstName}", desc: "Lead first name" },
+  { key: "{lastName}", desc: "Lead last name" },
+  { key: "{company}", desc: "Company name" },
+  { key: "{city}", desc: "City" },
+  { key: "{state}", desc: "State" },
+];
+
+const MESSAGE_LABELS = [
+  { value: "initial", label: "Initial SMS", icon: MessageSquare, color: "bg-blue-500" },
+  { value: "reminder_1", label: "Reminder #1", icon: Bell, color: "bg-yellow-500" },
+  { value: "reminder_2", label: "Reminder #2", icon: Bell, color: "bg-orange-500" },
+  { value: "follow_up", label: "Follow Up", icon: RotateCcw, color: "bg-purple-500" },
+  { value: "hot_lead", label: "Hot Lead Push", icon: Flame, color: "bg-red-600" },
+  { value: "custom", label: "Custom", icon: Tag, color: "bg-gray-500" },
+];
+
+const STARTER_TEMPLATES = [
+  {
+    name: "Simple Intro",
+    label: "initial",
+    message: "Hi {firstName}, this is [Your Name] reaching out about {company}. Do you have 2 minutes for a quick chat?",
+  },
+  {
+    name: "Value Prop",
+    label: "initial",
+    message: "Hey {firstName}! I help businesses like {company} increase revenue by 20-40%. Would you be open to a quick call this week?",
+  },
+  {
+    name: "Follow Up",
+    label: "follow_up",
+    message: "Hi {firstName}, just following up on my last message. Is now a better time to connect? Let me know!",
+  },
+  {
+    name: "Reminder",
+    label: "reminder_1",
+    message: "Hey {firstName}, wanted to circle back. I know you're busy but this could really help {company}. Worth a quick call?",
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export default function BlastPage() {
-  const params = useParams();
-  const teamId = params.team as string;
+  const { teamId } = useCurrentTeam();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // State
+  // Step state
+  const [step, setStep] = useState<BlastStep>("upload");
+
+  // File & Leads
+  const [file, setFile] = useState<File | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [previewLead, setPreviewLead] = useState<Lead | null>(null);
+
+  // Message
   const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
+  const [selectedLabel, setSelectedLabel] = useState("initial");
+
+  // Templates
+  const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+
+  // Scheduling
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
+  const [scheduledTime, setScheduledTime] = useState("09:00");
+
+  // Options
+  const [pushToHotQueue, setPushToHotQueue] = useState(false);
+  const [maxLeads, setMaxLeads] = useState(100);
+
+  // Progress
   const [progress, setProgress] = useState({ sent: 0, failed: 0, total: 0 });
-  const [step, setStep] = useState<"upload" | "compose" | "sending" | "done">("upload");
+  const [error, setError] = useState<string | null>(null);
 
-  // Parse CSV
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const text = await file.text();
-    const lines = text.split("\n").filter(l => l.trim());
-    if (lines.length < 2) {
-      toast.error("CSV is empty");
-      return;
+  // Load saved templates
+  useEffect(() => {
+    const saved = localStorage.getItem(`blast_templates_${teamId}`);
+    if (saved) {
+      try {
+        setSavedTemplates(JSON.parse(saved));
+      } catch {
+        // Invalid JSON, ignore
+      }
     }
+  }, [teamId]);
 
-    // Parse headers
-    const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim().toLowerCase());
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // FILE HANDLING
+  // ═══════════════════════════════════════════════════════════════════════════════
 
-    // Find column indexes
-    const phoneIdx = headers.findIndex(h => h.includes("phone") || h.includes("mobile") || h.includes("cell"));
-    const firstNameIdx = headers.findIndex(h => h.includes("first") || h === "firstname");
-    const lastNameIdx = headers.findIndex(h => h.includes("last") || h === "lastname");
-    const companyIdx = headers.findIndex(h => h.includes("company") || h.includes("business"));
+  const handleFileSelect = useCallback(async (selectedFile: File) => {
+    setFile(selectedFile);
+    setError(null);
 
-    if (phoneIdx === -1) {
-      toast.error("CSV must have a phone column");
-      return;
+    try {
+      const text = await selectedFile.text();
+      const lines = text.split("\n").filter((l) => l.trim());
+
+      if (lines.length < 2) {
+        setError("CSV is empty or has no data rows");
+        return;
+      }
+
+      // Parse headers
+      const headers = lines[0].split(",").map((h) => h.replace(/"/g, "").trim().toLowerCase());
+
+      // Find column indexes
+      const phoneIdx = headers.findIndex((h) =>
+        h.includes("phone") || h.includes("mobile") || h.includes("cell")
+      );
+      const firstNameIdx = headers.findIndex((h) =>
+        h.includes("first") || h === "firstname" || h === "first_name"
+      );
+      const lastNameIdx = headers.findIndex((h) =>
+        h.includes("last") || h === "lastname" || h === "last_name"
+      );
+      const companyIdx = headers.findIndex((h) =>
+        h.includes("company") || h.includes("business")
+      );
+      const emailIdx = headers.findIndex((h) => h.includes("email"));
+      const cityIdx = headers.findIndex((h) => h === "city");
+      const stateIdx = headers.findIndex((h) => h === "state");
+
+      if (phoneIdx === -1) {
+        setError("CSV must have a column with 'phone', 'mobile', or 'cell' in the header");
+        return;
+      }
+
+      // Parse leads
+      const parsedLeads: Lead[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",").map((v) => v.replace(/"/g, "").trim());
+        const phone = values[phoneIdx];
+
+        // Clean phone - must have 10+ digits
+        const cleanPhone = phone?.replace(/\D/g, "");
+        if (!cleanPhone || cleanPhone.length < 10) continue;
+
+        parsedLeads.push({
+          firstName: firstNameIdx >= 0 ? values[firstNameIdx] || "" : "",
+          lastName: lastNameIdx >= 0 ? values[lastNameIdx] || "" : "",
+          phone: cleanPhone.length === 10 ? `+1${cleanPhone}` : `+${cleanPhone}`,
+          company: companyIdx >= 0 ? values[companyIdx] || "" : "",
+          email: emailIdx >= 0 ? values[emailIdx] || "" : "",
+          city: cityIdx >= 0 ? values[cityIdx] || "" : "",
+          state: stateIdx >= 0 ? values[stateIdx] || "" : "",
+        });
+      }
+
+      if (parsedLeads.length === 0) {
+        setError("No valid phone numbers found in CSV");
+        return;
+      }
+
+      setLeads(parsedLeads);
+      setPreviewLead(parsedLeads[0]);
+      setStep("compose");
+      toast.success(`Loaded ${parsedLeads.length} leads from ${selectedFile.name}`);
+    } catch {
+      setError("Could not parse CSV file. Please check the format.");
     }
+  }, []);
 
-    // Parse leads
-    const parsedLeads: Lead[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map(v => v.replace(/"/g, "").trim());
-      const phone = values[phoneIdx];
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const droppedFile = e.dataTransfer.files[0];
+      if (droppedFile?.name.endsWith(".csv")) {
+        handleFileSelect(droppedFile);
+      } else {
+        setError("Please upload a CSV file");
+      }
+    },
+    [handleFileSelect]
+  );
 
-      // Clean phone - must have 10+ digits
-      const cleanPhone = phone?.replace(/\D/g, "");
-      if (!cleanPhone || cleanPhone.length < 10) continue;
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // MESSAGE HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════════
 
-      parsedLeads.push({
-        firstName: firstNameIdx >= 0 ? values[firstNameIdx] || "" : "",
-        lastName: lastNameIdx >= 0 ? values[lastNameIdx] || "" : "",
-        phone: cleanPhone.length === 10 ? `+1${cleanPhone}` : `+${cleanPhone}`,
-        company: companyIdx >= 0 ? values[companyIdx] || "" : "",
-      });
-    }
+  const renderPreview = (lead: Lead | null) => {
+    if (!lead || !message) return message || "Enter your message above...";
 
-    if (parsedLeads.length === 0) {
-      toast.error("No valid phone numbers found");
-      return;
-    }
-
-    setLeads(parsedLeads);
-    setStep("compose");
-    toast.success(`Loaded ${parsedLeads.length} leads from ${file.name}`);
+    return message
+      .replace(/{firstName}/gi, lead.firstName || "")
+      .replace(/{lastName}/gi, lead.lastName || "")
+      .replace(/{company}/gi, lead.company || "")
+      .replace(/{city}/gi, lead.city || "")
+      .replace(/{state}/gi, lead.state || "")
+      .trim();
   };
 
-  // Send SMS
-  const handleSend = async () => {
+  const insertVariable = (varKey: string) => {
+    setMessage((prev) => prev + varKey);
+  };
+
+  const charCount = message.length;
+  const segmentCount = charCount === 0 ? 0 : Math.ceil(charCount / 160);
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // TEMPLATE HANDLING
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const handleSaveTemplate = () => {
+    if (!templateName.trim() || !message.trim()) {
+      toast.error("Please enter template name and message");
+      return;
+    }
+
+    const newTemplate: SavedTemplate = {
+      id: `tpl_${Date.now()}`,
+      name: templateName,
+      label: selectedLabel,
+      message: message,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [...savedTemplates, newTemplate];
+    setSavedTemplates(updated);
+    localStorage.setItem(`blast_templates_${teamId}`, JSON.stringify(updated));
+    setShowSaveDialog(false);
+    setTemplateName("");
+    toast.success("Template saved!");
+  };
+
+  const loadTemplate = (template: { name: string; label: string; message: string }) => {
+    setMessage(template.message);
+    setSelectedLabel(template.label);
+    toast.success(`Loaded: ${template.name}`);
+  };
+
+  const deleteTemplate = (id: string) => {
+    const updated = savedTemplates.filter((t) => t.id !== id);
+    setSavedTemplates(updated);
+    localStorage.setItem(`blast_templates_${teamId}`, JSON.stringify(updated));
+    toast.success("Template deleted");
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // SEND LOGIC
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const handleSendClick = () => {
     if (!message.trim()) {
-      toast.error("Enter a message");
+      toast.error("Please enter a message");
       return;
     }
+    setStep("confirm");
+  };
 
-    if (leads.length === 0) {
-      toast.error("No leads loaded");
-      return;
-    }
-
-    // Limit to 100 for safety
-    const toSend = leads.slice(0, 100);
-
-    setSending(true);
+  const executeSend = async () => {
+    const toSend = leads.slice(0, maxLeads);
     setStep("sending");
     setProgress({ sent: 0, failed: 0, total: toSend.length });
+    setError(null);
 
     let sent = 0;
     let failed = 0;
 
     for (const lead of toSend) {
       try {
-        // Personalize message
         const personalizedMsg = message
           .replace(/{firstName}/gi, lead.firstName || "")
           .replace(/{lastName}/gi, lead.lastName || "")
           .replace(/{company}/gi, lead.company || "")
+          .replace(/{city}/gi, lead.city || "")
+          .replace(/{state}/gi, lead.state || "")
           .trim();
 
         const res = await fetch("/api/sms/quick-send", {
@@ -133,124 +384,584 @@ export default function BlastPage() {
       }
 
       setProgress({ sent, failed, total: toSend.length });
-
-      // Small delay to avoid rate limiting
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 100));
     }
 
-    setSending(false);
-    setStep("done");
+    setStep("complete");
     toast.success(`Sent ${sent} messages, ${failed} failed`);
   };
 
-  return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold mb-2">SMS BLAST</h1>
-        <p className="text-zinc-400 mb-8">Upload CSV → Send SMS. That's it.</p>
+  const resetBlast = () => {
+    setStep("upload");
+    setFile(null);
+    setLeads([]);
+    setPreviewLead(null);
+    setMessage("");
+    setProgress({ sent: 0, failed: 0, total: 0 });
+    setError(null);
+    setScheduledDate(undefined);
+    setPushToHotQueue(false);
+  };
 
-        {/* Step 1: Upload */}
-        {step === "upload" && (
-          <div className="space-y-6">
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const stepIndex = ["upload", "compose", "confirm", "sending", "complete"].indexOf(step);
+  const labelInfo = MESSAGE_LABELS.find((l) => l.value === selectedLabel);
+  const effectiveLeadCount = Math.min(leads.length, maxLeads);
+
+  return (
+    <div className="container mx-auto py-8 max-w-4xl">
+      {/* Progress Steps */}
+      <div className="flex items-center justify-center gap-2 mb-8">
+        {["Upload", "Compose", "Confirm", "Send", "Done"].map((s, i) => (
+          <div key={s} className="flex items-center">
             <div
-              className="border-2 border-dashed border-zinc-700 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 transition-colors"
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                stepIndex === i
+                  ? "bg-primary text-primary-foreground"
+                  : stepIndex > i
+                  ? "bg-green-500 text-white"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {stepIndex > i ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+            </div>
+            {i < 4 && (
+              <div className={`w-8 h-0.5 ${stepIndex > i ? "bg-green-500" : "bg-muted"}`} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {/* STEP 1: UPLOAD */}
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {step === "upload" && (
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl flex items-center justify-center gap-2">
+              <Rocket className="h-6 w-6" />
+              SMS Blast
+            </CardTitle>
+            <CardDescription>
+              Upload CSV → Compose Message → Send to SignalHouse
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="h-16 w-16 mx-auto mb-4 text-zinc-500" />
-              <p className="text-xl font-medium mb-2">Drop CSV or Click to Upload</p>
-              <p className="text-zinc-500">Must have a phone column</p>
+              <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-lg font-medium mb-2">Drag & drop your CSV file here</p>
+              <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                aria-label="Upload CSV file"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFileSelect(f);
+                }}
+              />
+              <Button variant="outline">
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Select CSV File
+              </Button>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-          </div>
-        )}
 
-        {/* Step 2: Compose */}
-        {step === "compose" && (
-          <div className="space-y-6">
-            <div className="bg-zinc-900 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-green-500 font-medium">
-                  <CheckCircle2 className="h-5 w-5 inline mr-2" />
-                  {leads.length} leads loaded
-                </span>
-                <Button variant="ghost" size="sm" onClick={() => { setLeads([]); setStep("upload"); }}>
-                  Change File
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="mt-8 p-4 bg-muted/50 rounded-lg">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Required CSV Columns
+              </h3>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  <strong>phone</strong> (or mobile, cell) - Required
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
+                  firstName, lastName, company, city, state - Optional
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {/* STEP 2: COMPOSE */}
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {step === "compose" && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Compose Message</CardTitle>
+                  <CardDescription>{file?.name}</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-lg px-3 py-1">
+                    <Users className="h-4 w-4 mr-2" />
+                    {leads.length.toLocaleString()} leads
+                  </Badge>
+                  <Button variant="ghost" size="sm" onClick={resetBlast}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Options Row */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Message Type</Label>
+                  <Select value={selectedLabel} onValueChange={setSelectedLabel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MESSAGE_LABELS.map((label) => {
+                        const Icon = label.icon;
+                        return (
+                          <SelectItem key={label.value} value={label.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={`p-1 rounded ${label.color}`}>
+                                <Icon className="h-3 w-3 text-white" />
+                              </div>
+                              {label.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Max Recipients</Label>
+                  <Select value={maxLeads.toString()} onValueChange={(v) => setMaxLeads(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 (Test)</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="250">250</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                      <SelectItem value="1000">1,000</SelectItem>
+                      <SelectItem value="2000">2,000 (Max)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Starter Templates */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Quick Templates
+                </Label>
+                <div className="flex gap-2 flex-wrap">
+                  {STARTER_TEMPLATES.map((tpl, i) => (
+                    <Badge
+                      key={i}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => loadTemplate(tpl)}
+                    >
+                      {tpl.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Saved Templates */}
+              {savedTemplates.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Bookmark className="h-4 w-4" />
+                    Saved Templates
+                  </Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {savedTemplates.map((tpl) => (
+                      <Badge
+                        key={tpl.id}
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-muted group"
+                      >
+                        <span onClick={() => loadTemplate(tpl)}>{tpl.name}</span>
+                        <X
+                          className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTemplate(tpl.id);
+                          }}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Message Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Message</Label>
+                  <div className="flex gap-1">
+                    {TEMPLATE_VARS.map((v) => (
+                      <Button
+                        key={v.key}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs px-2"
+                        onClick={() => insertVariable(v.key)}
+                        title={v.desc}
+                      >
+                        {v.key}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Hey {firstName}, just wanted to reach out about..."
+                  className="min-h-[120px] font-mono text-sm"
+                  maxLength={480}
+                />
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>{charCount}/480 characters • {segmentCount} segment(s)</span>
+                  {segmentCount > 1 && (
+                    <span className="text-amber-500 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Multiple segments = higher cost
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Preview */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Label>Live Preview</Label>
+                  {leads.length > 1 && (
+                    <Select
+                      value={previewLead?.phone || ""}
+                      onValueChange={(phone) => setPreviewLead(leads.find((l) => l.phone === phone) || null)}
+                    >
+                      <SelectTrigger className="h-7 w-[180px]">
+                        <SelectValue placeholder="Select lead" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {leads.slice(0, 10).map((lead, i) => (
+                          <SelectItem key={i} value={lead.phone}>
+                            {lead.firstName} {lead.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border-l-4 border-green-500">
+                  <div className="flex items-start gap-3">
+                    <MessageSquare className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        To: {previewLead ? `${previewLead.firstName} ${previewLead.lastName}` : "[Lead Name]"}
+                      </p>
+                      <p className="mt-1 text-sm text-green-700 dark:text-green-300 whitespace-pre-wrap">
+                        {renderPreview(previewLead)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions Row */}
+              <div className="flex flex-wrap gap-2">
+                <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <CalendarDays className="h-4 w-4" />
+                      {scheduledDate ? format(scheduledDate, "PPP") : "Schedule"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-3 border-b">
+                      <Label>Send Time</Label>
+                      <Input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={scheduledDate}
+                      onSelect={(date) => {
+                        setScheduledDate(date);
+                        if (date) setShowCalendar(false);
+                      }}
+                      disabled={(date) => date < new Date()}
+                    />
+                    {scheduledDate && (
+                      <div className="p-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setScheduledDate(undefined);
+                            setShowCalendar(false);
+                          }}
+                        >
+                          Clear Schedule
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowSaveDialog(true)}>
+                  <Save className="h-4 w-4" />
+                  Save Template
+                </Button>
+
+                <Button
+                  variant={pushToHotQueue ? "default" : "outline"}
+                  size="sm"
+                  className={`gap-2 ${pushToHotQueue ? "bg-red-500 hover:bg-red-600" : ""}`}
+                  onClick={() => setPushToHotQueue(!pushToHotQueue)}
+                >
+                  <Flame className="h-4 w-4" />
+                  Hot Queue
                 </Button>
               </div>
 
-              {/* Preview */}
-              <div className="text-sm text-zinc-400 space-y-1">
-                <p>Sample: {leads[0]?.firstName} {leads[0]?.lastName} - {leads[0]?.phone}</p>
-                {leads.length > 1 && <p>Sample: {leads[1]?.firstName} {leads[1]?.lastName} - {leads[1]?.phone}</p>}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Main Action */}
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={resetBlast}>
+                  Back
+                </Button>
+                <Button onClick={handleSendClick} className="flex-1 bg-green-600 hover:bg-green-700">
+                  <Send className="mr-2 h-4 w-4" />
+                  Continue to {effectiveLeadCount.toLocaleString()} Leads
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {/* STEP 3: CONFIRM */}
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {step === "confirm" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirm SMS Blast
+            </CardTitle>
+            <CardDescription>
+              {scheduledDate
+                ? `Scheduling for ${format(scheduledDate, "PPP")} at ${scheduledTime}`
+                : `Sending to ${effectiveLeadCount.toLocaleString()} leads immediately`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Message Preview</span>
+                {labelInfo && <Badge className={labelInfo.color}>{labelInfo.label}</Badge>}
+              </div>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {renderPreview(previewLead)}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <Users className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+                <div className="text-lg font-bold">{effectiveLeadCount}</div>
+                <div className="text-xs text-muted-foreground">Recipients</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <MessageSquare className="h-5 w-5 mx-auto mb-1 text-green-500" />
+                <div className="text-lg font-bold">{segmentCount}</div>
+                <div className="text-xs text-muted-foreground">Segments</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <Clock className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+                <div className="text-lg font-bold">{scheduledDate ? "Scheduled" : "Now"}</div>
+                <div className="text-xs text-muted-foreground">Send Time</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <Flame className="h-5 w-5 mx-auto mb-1 text-red-500" />
+                <div className="text-lg font-bold">{pushToHotQueue ? "Yes" : "No"}</div>
+                <div className="text-xs text-muted-foreground">Hot Queue</div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Your Message</Label>
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Hi {firstName}, I wanted to reach out about..."
-                className="min-h-[150px] bg-zinc-900 border-zinc-700"
-              />
-              <p className="text-xs text-zinc-500">
-                Variables: {"{firstName}"} {"{lastName}"} {"{company}"}
-              </p>
-            </div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                This will send via SignalHouse. Daily limit: 2,000 messages. This action cannot be undone.
+              </AlertDescription>
+            </Alert>
 
-            <div className="bg-amber-900/30 border border-amber-700 rounded-lg p-4">
-              <p className="text-amber-200 text-sm">
-                <AlertCircle className="h-4 w-4 inline mr-2" />
-                Will send to first {Math.min(leads.length, 100)} leads (safety limit)
-              </p>
-            </div>
-
-            <Button
-              className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
-              onClick={handleSend}
-            >
-              <Send className="h-5 w-5 mr-2" />
-              Send to {Math.min(leads.length, 100)} Leads
-            </Button>
-          </div>
-        )}
-
-        {/* Step 3: Sending */}
-        {step === "sending" && (
-          <div className="space-y-6">
-            <div className="bg-zinc-900 rounded-xl p-8 text-center">
-              <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-blue-500" />
-              <p className="text-xl font-medium mb-4">Sending Messages...</p>
-              <Progress value={(progress.sent + progress.failed) / progress.total * 100} className="mb-4" />
-              <p className="text-zinc-400">
-                {progress.sent} sent, {progress.failed} failed of {progress.total}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Done */}
-        {step === "done" && (
-          <div className="space-y-6">
-            <div className="bg-zinc-900 rounded-xl p-8 text-center">
-              <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
-              <p className="text-2xl font-bold mb-2">Complete!</p>
-              <p className="text-zinc-400 mb-6">
-                {progress.sent} messages sent, {progress.failed} failed
-              </p>
-              <Button onClick={() => { setLeads([]); setMessage(""); setStep("upload"); }}>
-                Send Another Blast
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep("compose")}>
+                Back
+              </Button>
+              <Button onClick={executeSend} className="flex-1 bg-green-600 hover:bg-green-700">
+                <Zap className="mr-2 h-4 w-4" />
+                {scheduledDate ? "Confirm & Schedule" : "Confirm & Send"}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {/* STEP 4: SENDING */}
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {step === "sending" && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <MessageSquare className="h-8 w-8 text-primary animate-pulse" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Sending Messages...</h2>
+            <p className="text-muted-foreground mb-6">
+              {progress.sent + progress.failed} of {progress.total} processed
+            </p>
+            <div className="max-w-md mx-auto space-y-4">
+              <Progress value={(progress.sent + progress.failed) / progress.total * 100} className="h-3" />
+              <div className="flex justify-center gap-8 text-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span>{progress.sent} sent</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <span>{progress.failed} failed</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {/* STEP 5: COMPLETE */}
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {step === "complete" && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-green-500" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Blast Complete!</h2>
+            <p className="text-muted-foreground mb-6">
+              Your messages have been sent via SignalHouse
+            </p>
+
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-8">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold">{progress.total}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
+              <div className="p-4 bg-green-500/10 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{progress.sent}</div>
+                <div className="text-xs text-muted-foreground">Sent</div>
+              </div>
+              <div className="p-4 bg-red-500/10 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{progress.failed}</div>
+                <div className="text-xs text-muted-foreground">Failed</div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={resetBlast}>
+                <Rocket className="mr-2 h-4 w-4" />
+                Send Another Blast
+              </Button>
+              <Button asChild>
+                <a href="inbox">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  View Inbox
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {/* DIALOGS */}
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+
+      {/* Save Template Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as Template</DialogTitle>
+            <DialogDescription>Save this message for quick reuse later</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Template Name</Label>
+              <Input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g., Initial Outreach, Follow-up #1"
+              />
+            </div>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Message Preview:</p>
+              <p className="text-sm whitespace-pre-wrap">{message || "No message"}</p>
+            </div>
           </div>
-        )}
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTemplate}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
