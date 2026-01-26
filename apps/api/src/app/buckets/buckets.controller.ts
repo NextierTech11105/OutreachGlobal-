@@ -48,22 +48,16 @@ export class BucketsController {
         .select({
           id: dataSources.id,
           name: dataSources.name,
-          description: dataSources.description,
-          source: dataSources.source,
+          provider: dataSources.provider,
+          sourceType: dataSources.sourceType,
+          status: dataSources.status,
+          recordCount: dataSources.recordCount,
+          leadsCreated: dataSources.leadsCreated,
           createdAt: dataSources.createdAt,
           updatedAt: dataSources.updatedAt,
-          leadCount: sql<number>`count(${leads.id})`.mapWith(Number),
-          enrichedCount: sql<number>`
-            count(case when ${leads.enrichmentStatus} is not null then 1 end)
-          `.mapWith(Number),
-          contactedCount: sql<number>`
-            count(case when ${leads.leadState} != 'new' then 1 end)
-          `.mapWith(Number),
         })
         .from(dataSources)
-        .leftJoin(leads, and(eq(dataSources.id, leads.source), eq(leads.teamId, teamId)))
         .where(eq(dataSources.teamId, teamId))
-        .groupBy(dataSources.id)
         .orderBy(asc(dataSources.name))
         .limit(limit)
         .offset(offset);
@@ -116,8 +110,11 @@ export class BucketsController {
         .select({
           id: dataSources.id,
           name: dataSources.name,
-          description: dataSources.description,
-          source: dataSources.source,
+          provider: dataSources.provider,
+          sourceType: dataSources.sourceType,
+          status: dataSources.status,
+          recordCount: dataSources.recordCount,
+          leadsCreated: dataSources.leadsCreated,
           metadata: dataSources.metadata,
           createdAt: dataSources.createdAt,
           updatedAt: dataSources.updatedAt,
@@ -129,16 +126,7 @@ export class BucketsController {
         throw new BadRequestException("Bucket not found");
       }
 
-      // Get lead count for this bucket
-      const [leadCountResult] = await this.db
-        .select({ count: count(leads.id) })
-        .from(leads)
-        .where(and(eq(leads.source, id), eq(leads.teamId, teamId)));
-
-      return {
-        ...bucket,
-        leadCount: leadCountResult?.count || 0,
-      };
+      return bucket;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -150,7 +138,7 @@ export class BucketsController {
 
   /**
    * GET /api/buckets/:id/leads
-   * Get leads for a specific bucket
+   * Get leads for a specific bucket (by source)
    */
   @Get(":id/leads")
   async getLeads(
@@ -214,8 +202,8 @@ export class BucketsController {
     @Body()
     body: {
       name: string;
-      description?: string;
-      source?: string;
+      provider?: string;
+      sourceType?: string;
       metadata?: Record<string, unknown>;
     },
   ) {
@@ -229,8 +217,8 @@ export class BucketsController {
         .values({
           teamId,
           name: body.name,
-          description: body.description,
-          source: body.source || body.name.toLowerCase().replace(/\s+/g, "_"),
+          provider: (body.provider || "manual") as any,
+          sourceType: body.sourceType || "custom",
           metadata: body.metadata || {},
         })
         .returning();
