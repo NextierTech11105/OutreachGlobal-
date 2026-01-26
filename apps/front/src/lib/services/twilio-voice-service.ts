@@ -125,7 +125,7 @@ export class TwilioVoiceService {
     try {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app";
 
-      const callParams: Parameters<typeof this.client!.calls.create>[0] = {
+      const callParams: any = {
         to: options.to,
         from: fromNumber,
         statusCallback: options.statusCallback || `${appUrl}/api/twilio/voice/status`,
