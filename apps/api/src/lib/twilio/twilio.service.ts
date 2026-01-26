@@ -50,11 +50,11 @@ export class TwilioService {
 
   protected createVoiceResponse(
     words: string,
-    voice?: "man" | "woman",
+    voice?: string,
   ): string {
     const response = new Twilio.twiml.VoiceResponse();
 
-    response.say({ voice }, words);
+    response.say({ voice: voice as any }, words);
 
     return response.toString();
   }
