@@ -8,6 +8,7 @@ import { LeadSchedule } from "./schedules/lead.schedule";
 import { PropertyModule } from "../property/property.module";
 import { BusinessListService } from "./services/business-list.service";
 import { FacetResolver } from "./resolvers/facet.resolver";
+import { LeadsApiController } from "./controllers/leads-api.controller";
 import { BusinessListController } from "./controllers/business-list.controller";
 import { ApolloSearchController } from "./controllers/apollo-search.controller";
 import { ApolloTestController } from "./controllers/apollo-test.controller";
@@ -70,6 +71,7 @@ import { SicMapperService } from "./services/sic-mapper.service";
     SicMapperService,
   ],
   controllers: [
+    LeadsApiController,
     BusinessListController,
     ApolloSearchController,
     ApolloTestController,
