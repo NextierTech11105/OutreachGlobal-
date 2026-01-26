@@ -361,7 +361,7 @@ export default function SectorsPage() {
     setQualifyResult(null);
 
     try {
-      const res = await fetch(`/rest/api/luci/qualify`, {
+      const res = await fetch(`/api/luci/qualify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
