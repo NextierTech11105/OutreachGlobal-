@@ -127,3 +127,6 @@ export * from "./unified-lead.schema";
 
 // ===== LUCI ENGINE: DATA ENRICHMENT =====
 export * from "./enrichment-jobs.schema";
+
+// ===== VOICE BROADCAST & IVR =====
+export * from "./voice-broadcast.schema";
