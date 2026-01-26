@@ -66,6 +66,17 @@ async function runMigrations(db: any) {
     results.push(`businesses: ${e.message}`);
   }
 
+  // CAMPAIGNS TABLE
+  try {
+    await db.execute(sql`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS signalhouse_campaign_id VARCHAR`);
+    await db.execute(sql`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS approved_by TEXT`);
+    await db.execute(sql`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS campaigns_sh_campaign_idx ON campaigns(signalhouse_campaign_id)`);
+    results.push("campaigns columns OK");
+  } catch (e: any) {
+    results.push(`campaigns: ${e.message}`);
+  }
+
   // NEW TABLES
   try {
     await db.execute(sql`
