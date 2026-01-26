@@ -5,13 +5,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { leads } from "@/lib/db/schema";
+import { leads, teams } from "@/lib/db/schema";
 import { eq, and, or, sql, not, isNotNull } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
     const { userId, teamId } = await apiAuth();
-    if (!userId || !teamId) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,12 +19,29 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get("source") || "all";
     const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 2000);
 
+    // Check if user is team owner - owners can see all leads
+    let isOwner = false;
+    if (teamId) {
+      const teamResult = await db
+        .select({ ownerId: teams.ownerId })
+        .from(teams)
+        .where(eq(teams.id, teamId))
+        .limit(1);
+      isOwner = teamResult[0]?.ownerId === userId;
+    }
+
     // Build query based on source
-    let whereConditions = [
-      eq(leads.teamId, teamId),
+    // For team owners or if no teamId match: show all leads with phones
+    // For regular members: filter by teamId
+    let whereConditions: ReturnType<typeof eq>[] = [
       isNotNull(leads.phone),
       not(eq(leads.status, "opted_out")),
     ];
+
+    // Only filter by teamId for non-owners
+    if (teamId && !isOwner) {
+      whereConditions.push(eq(leads.teamId, teamId));
+    }
 
     // Add source-specific filters
     switch (source) {
