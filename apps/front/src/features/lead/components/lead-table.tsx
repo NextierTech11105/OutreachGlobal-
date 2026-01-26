@@ -69,19 +69,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const LIMIT = 15;
+// Page size options - larger defaults for managing big lead lists
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 250, 500] as const;
+const DEFAULT_PAGE_SIZE = 50;
 
 // Bulk outreach types
 type OutreachType = "sms" | "email" | "call";
 type OutreachTiming = "now" | "scheduled";
 
-const defaultCursor = createDefaultCursor({
-  first: LIMIT,
-});
-
 export const LeadTable = () => {
   const { teamId, isTeamReady } = useCurrentTeam();
-  const [cursor, setCursor] = useState(defaultCursor);
+
+  // Pagination state with configurable page size
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [cursor, setCursor] = useState(() => createDefaultCursor({ first: DEFAULT_PAGE_SIZE }));
+
+  // Handle page size change - reset to first page with new size
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCursor(createDefaultCursor({ first: newSize }));
+  };
 
   // Bulk outreach state
   const [outreachDialog, setOutreachDialog] = useState<{
@@ -1052,14 +1059,43 @@ export const LeadTable = () => {
         </TableBody>
       </Table>
 
+      {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+      {/* PAGINATION WITH PAGE SIZE SELECTOR */}
+      {/* ═══════════════════════════════════════════════════════════════════════════════ */}
       {!!pageInfo && (
-        <CursorPagination
-          data={pageInfo}
-          onPageChange={setCursor}
-          variant="table-footer"
-          className="border-t"
-          limit={LIMIT}
-        />
+        <div className="border-t px-4 py-3 flex items-center justify-between bg-muted/30">
+          {/* Left: Total count and page size selector */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{pageInfo.total?.toLocaleString()}</span> leads
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Show:</span>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(v) => handlePageSizeChange(parseInt(v))}
+              >
+                <SelectTrigger className="h-8 w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {/* Right: Navigation */}
+          <CursorPagination
+            data={pageInfo}
+            onPageChange={setCursor}
+            limit={pageSize}
+            hideResult
+          />
+        </div>
       )}
     </Card>
   );
