@@ -25,7 +25,7 @@ import { FastifyReply } from "fastify";
 import { ConfigService } from "@nestjs/config";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { TenantContext } from "@/app/apollo/decorators/tenant-context.decorator";
+import { TenantContext } from "@/app/auth/decorators/tenant-context.decorator";
 import { VoiceBroadcastService } from "../services/voice-broadcast.service";
 import {
   voiceCampaigns,
@@ -295,7 +295,7 @@ export class VoiceBroadcastController {
       ttsVoice: body.ttsVoice,
     });
 
-    return { success: result.success, ...result };
+    return result;
   }
 }
 
@@ -344,7 +344,7 @@ export class VoiceBroadcastWebhookController {
           response.play(campaign.recordingUrl);
         } else if (campaign?.ttsMessage) {
           response.say(
-            { voice: campaign.ttsVoice || "Polly.Joanna" },
+            { voice: (campaign.ttsVoice || "Polly.Joanna") as any },
             campaign.ttsMessage,
           );
         }
@@ -426,7 +426,7 @@ export class VoiceBroadcastWebhookController {
           response.play(campaign.recordingUrl);
         } else if (campaign.ttsMessage) {
           response.say(
-            { voice: campaign.ttsVoice || "Polly.Joanna" },
+            { voice: (campaign.ttsVoice || "Polly.Joanna") as any },
             campaign.ttsMessage,
           );
         }
@@ -439,7 +439,7 @@ export class VoiceBroadcastWebhookController {
         response.play(campaign.recordingUrl);
       } else if (campaign.ttsMessage) {
         response.say(
-          { voice: campaign.ttsVoice || "Polly.Joanna" },
+          { voice: (campaign.ttsVoice || "Polly.Joanna") as any },
           campaign.ttsMessage,
         );
       }

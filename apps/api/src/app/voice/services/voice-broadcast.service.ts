@@ -122,7 +122,7 @@ export class VoiceBroadcastService {
         method: "POST",
         machineDetection: "DetectMessageEnd", // Wait for beep before playing
         machineDetectionTimeout: 30,
-        asyncAmd: true, // Asynchronous AMD callback
+        asyncAmd: "true", // Asynchronous AMD callback
         asyncAmdStatusCallback: `${webhookBaseUrl}/webhook/voice/amd-status`,
         asyncAmdStatusCallbackMethod: "POST",
         statusCallback: `${webhookBaseUrl}/webhook/voice/broadcast-status`,
@@ -396,7 +396,7 @@ export class VoiceBroadcastService {
     if (menu.greetingRecordingUrl) {
       response.play(menu.greetingRecordingUrl);
     } else if (menu.greetingTts) {
-      response.say({ voice: menu.greetingVoice || "Polly.Joanna" }, menu.greetingTts);
+      response.say({ voice: (menu.greetingVoice || "Polly.Joanna") as any }, menu.greetingTts);
     }
 
     // Gather DTMF input
@@ -412,7 +412,7 @@ export class VoiceBroadcastService {
       response.play(menu.timeoutRecordingUrl);
     } else if (menu.timeoutTts) {
       response.say(
-        { voice: menu.greetingVoice || "Polly.Joanna" },
+        { voice: (menu.greetingVoice || "Polly.Joanna") as any },
         menu.timeoutTts,
       );
     }
@@ -449,7 +449,7 @@ export class VoiceBroadcastService {
         response.play(menu.invalidRecordingUrl);
       } else if (menu.invalidTts) {
         response.say(
-          { voice: menu.greetingVoice || "Polly.Joanna" },
+          { voice: (menu.greetingVoice || "Polly.Joanna") as any },
           menu.invalidTts,
         );
       }
@@ -469,7 +469,7 @@ export class VoiceBroadcastService {
 
       case "voicemail":
         response.say(
-          { voice: menu.greetingVoice || "Polly.Joanna" },
+          { voice: (menu.greetingVoice || "Polly.Joanna") as any },
           option.message || "Please leave a message after the beep.",
         );
         response.record({
@@ -483,7 +483,7 @@ export class VoiceBroadcastService {
         if (option.recordingUrl) {
           response.play(option.recordingUrl);
         } else if (option.message) {
-          response.say({ voice: menu.greetingVoice || "Polly.Joanna" }, option.message);
+          response.say({ voice: (menu.greetingVoice || "Polly.Joanna") as any }, option.message);
         }
         response.hangup();
         break;
@@ -558,7 +558,7 @@ export class VoiceBroadcastService {
   private getErrorTwiml(message: string): string {
     const VoiceResponse = Twilio.twiml.VoiceResponse;
     const response = new VoiceResponse();
-    response.say({ voice: "Polly.Joanna" }, message);
+    response.say({ voice: "Polly.Joanna" as any }, message);
     response.hangup();
     return response.toString();
   }
