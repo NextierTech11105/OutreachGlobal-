@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   jsonb,
   pgTable,
   text,
@@ -12,6 +13,7 @@ import { teamsRef } from "./teams.schema";
 export const teamSettings = pgTable(
   "team_settings",
   {
+    id: text("id").primaryKey(),
     teamId: teamsRef({ onDelete: "cascade" }).notNull(),
     name: varchar().notNull(),
     value: text(),
@@ -23,5 +25,8 @@ export const teamSettings = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [uniqueIndex().on(t.teamId, t.name, t.scope)],
+  (t) => [
+    uniqueIndex().on(t.teamId, t.name, t.scope),
+    index("team_settings_id_idx").on(t.id),
+  ],
 );
