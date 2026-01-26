@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
       failed: 0,
       withPhone: 0,
       withEmail: 0,
-      withMobile: 0,
     };
 
     for (let i = 0; i < parsedLeads.length; i += BATCH_SIZE) {
@@ -68,20 +67,18 @@ export async function POST(request: NextRequest) {
 
       try {
         const insertData = batch.map((lead) => {
-          const phone = cleanPhone(lead.phone || lead.mobile || lead.cell || "");
-          const mobilePhone = cleanPhone(lead.mobile || lead.cell || lead.mobilePhone || "");
+          // Use any phone field available
+          const phone = cleanPhone(lead.phone || lead.mobile || lead.cell || lead.mobilePhone || "");
           const email = lead.email || lead.emailAddress || null;
 
           if (phone) results.withPhone++;
-          if (mobilePhone) results.withMobile++;
           if (email) results.withEmail++;
 
           return {
             id: uuid(),
             firstName: lead.firstName || lead.first_name || lead.first || "",
             lastName: lead.lastName || lead.last_name || lead.last || "",
-            phone: phone,
-            mobilePhone: mobilePhone || null,
+            phone: phone || null,
             email: email,
             company: lead.company || lead.companyName || lead.business || null,
             title: lead.title || lead.jobTitle || lead.position || null,
@@ -91,12 +88,13 @@ export async function POST(request: NextRequest) {
             zipCode: lead.zip || lead.zipCode || lead.postalCode || null,
             source: source,
             pipelineStatus: "raw",
-            enrichmentStatus: "pending",
+            status: "new",
             teamId: teamId,
             customFields: {
               importedAt: new Date().toISOString(),
               bucketName: bucketName || file.name,
               batchNumber,
+              mobilePhone: lead.mobile || lead.cell || lead.mobilePhone || null,
               originalRow: lead,
             },
             createdAt: new Date(),
@@ -123,7 +121,6 @@ export async function POST(request: NextRequest) {
         total: results.total,
         withPhone: results.withPhone,
         withEmail: results.withEmail,
-        withMobile: results.withMobile,
         withAddress: parsedLeads.filter(l => l.address || l.city || l.state).length,
       }
     });
