@@ -5,8 +5,9 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const TWILIO_TWIML_APP_SID = process.env.TWILIO_TWIML_APP_SID || "";
 // API Key credentials (required for Voice SDK tokens)
-const TWILIO_API_KEY = process.env.TWILIO_API_KEY || "";
-const TWILIO_API_SECRET = process.env.TWILIO_API_SECRET || "";
+// Support both naming conventions
+const TWILIO_API_KEY = process.env.TWILIO_API_KEY || process.env.TWILIO_API_KEY_SID || "";
+const TWILIO_API_SECRET = process.env.TWILIO_API_SECRET || process.env.TWILIO_API_KEY_SECRET || "";
 
 // Generate a Twilio Capability Token for browser-based calling
 export async function POST(request: NextRequest) {
