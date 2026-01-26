@@ -212,6 +212,14 @@ export const navigationGroups: NavGroup[] = [
         description: "One-off messages",
       },
       {
+        label: "SMS Blast",
+        href: "/blast",
+        icon: Rocket,
+        badge: "CSV",
+        badgeVariant: "destructive",
+        description: "Upload CSV → Send SMS",
+      },
+      {
         label: "Digital Workers",
         href: "/digital-workers",
         icon: Bot,
