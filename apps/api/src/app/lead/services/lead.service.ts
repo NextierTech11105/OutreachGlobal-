@@ -93,7 +93,18 @@ export class LeadService {
           sicCode ? eq(t.sicCode, sicCode) : undefined,
           state ? eq(t.state, state) : undefined,
           sectorTag ? eq(t.sectorTag, sectorTag) : undefined,
-          enrichmentStatus ? eq(t.enrichmentStatus, enrichmentStatus) : undefined,
+          enrichmentStatus
+            ? eq(
+                t.enrichmentStatus,
+                enrichmentStatus as
+                  | "raw"
+                  | "traced"
+                  | "scored"
+                  | "ready"
+                  | "rejected"
+                  | "campaign",
+              )
+            : undefined,
           isNumber(minScore) ? gte(t.score, minScore) : undefined,
           isNumber(maxScore) ? lte(t.score, maxScore) : undefined,
         ),
