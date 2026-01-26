@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, leadTags, tags } from "@/lib/db/schema";
+import { leads, leadTags, tags, teams } from "@/lib/db/schema";
 import {
   eq,
   and,
@@ -11,13 +11,27 @@ import {
   sql,
   count as sqlCount,
 } from "drizzle-orm";
-import { requireTenantContext } from "@/lib/api-auth";
+import { apiAuth } from "@/lib/api-auth";
 
 // GET - List leads with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    // P0: Use requireTenantContext to enforce team isolation from JWT
-    const { userId, teamId } = await requireTenantContext();
+    // Get auth - allow owners without team
+    const { userId, teamId } = await apiAuth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is team owner - owners can see all leads
+    let isOwner = false;
+    if (teamId) {
+      const teamResult = await db
+        .select({ ownerId: teams.ownerId })
+        .from(teams)
+        .where(eq(teams.id, teamId))
+        .limit(1);
+      isOwner = teamResult[0]?.ownerId === userId;
+    }
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
@@ -36,11 +50,11 @@ export async function GET(request: NextRequest) {
       const pipeline: Record<string, number> = {};
 
       for (const stage of pipelineStages) {
-        // P0: Always scope by teamId from JWT
-        const conditions = [
-          eq(leads.pipelineStatus, stage),
-          eq(leads.teamId, teamId),
-        ];
+        // Scope by teamId only for non-owners
+        const conditions = [eq(leads.pipelineStatus, stage)];
+        if (teamId && !isOwner) {
+          conditions.push(eq(leads.teamId, teamId));
+        }
 
         const [result] = await db
           .select({ count: sqlCount() })
@@ -77,8 +91,11 @@ export async function GET(request: NextRequest) {
       engaged: ["replied"], // Have responded
     };
 
-    // P0: Always scope by teamId from JWT - never optional
-    const conditions: ReturnType<typeof eq>[] = [eq(leads.teamId, teamId)];
+    // For owners: show all leads. For members: scope by teamId
+    const conditions: ReturnType<typeof eq>[] = [];
+    if (teamId && !isOwner) {
+      conditions.push(eq(leads.teamId, teamId));
+    }
 
     // Check if status is a pre-queue status or traditional status
     if (status) {
@@ -235,8 +252,22 @@ export async function GET(request: NextRequest) {
 // PATCH - Update lead status
 export async function PATCH(request: NextRequest) {
   try {
-    // P0: Use requireTenantContext to enforce team isolation from JWT
-    const { teamId } = await requireTenantContext();
+    // Get auth - allow owners without team
+    const { userId, teamId } = await apiAuth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if owner
+    let isOwner = false;
+    if (teamId) {
+      const teamResult = await db
+        .select({ ownerId: teams.ownerId })
+        .from(teams)
+        .where(eq(teams.id, teamId))
+        .limit(1);
+      isOwner = teamResult[0]?.ownerId === userId;
+    }
 
     const body = await request.json();
     const { leadId, status, notes, priority } = body;
@@ -257,11 +288,16 @@ export async function PATCH(request: NextRequest) {
       updateData.notes = notes;
     }
 
-    // P0: Scope update by teamId from JWT
+    // Owners can update any lead, members scoped by teamId
+    const whereConditions = [eq(leads.id, leadId)];
+    if (teamId && !isOwner) {
+      whereConditions.push(eq(leads.teamId, teamId));
+    }
+
     const [updated] = await db
       .update(leads)
       .set(updateData)
-      .where(and(eq(leads.id, leadId), eq(leads.teamId, teamId)))
+      .where(and(...whereConditions))
       .returning();
 
     if (!updated) {
