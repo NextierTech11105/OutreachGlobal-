@@ -215,10 +215,18 @@ export async function POST(request: NextRequest) {
       const industryId = formData.get("industryId") as string;
       const campaign = (formData.get("campaign") as string) || "B2B";
       const bucketName = formData.get("bucketName") as string;
+      const teamId = formData.get("teamId") as string;
 
       if (!file) {
         return NextResponse.json(
           { error: "CSV file is required" },
+          { status: 400 },
+        );
+      }
+
+      if (!teamId) {
+        return NextResponse.json(
+          { error: "teamId is required for lead import" },
           { status: 400 },
         );
       }
@@ -242,12 +250,89 @@ export async function POST(request: NextRequest) {
         leadData.length,
       );
 
-      // Store bucket (actual import happens async)
+      // Process leads in 1K batches - ACTUALLY INSERT THEM
+      const results = {
+        total: leadData.length,
+        imported: 0,
+        failed: 0,
+        batches: [] as Array<{
+          batchNumber: number;
+          size: number;
+          status: string;
+        }>,
+      };
+
+      for (let i = 0; i < leadData.length; i += BATCH_SIZE) {
+        const batchLeads = leadData.slice(i, i + BATCH_SIZE);
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+
+        try {
+          const insertData = batchLeads.map((lead) => ({
+            id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            firstName: lead.firstName || "",
+            lastName: lead.lastName || "",
+            phone: cleanPhone(lead.phone || ""),
+            email: lead.email || null,
+            company: lead.company || null,
+            title: lead.title || null,
+            address: lead.address || null,
+            city: lead.city || null,
+            state: lead.state || null,
+            zipCode: lead.zip || null,
+            source: source,
+            pipelineStatus: "raw",
+            teamId: teamId,
+            customFields: {
+              industryId,
+              bucketId: bucket.id,
+              batchNumber,
+              importedAt: new Date().toISOString(),
+              ...Object.fromEntries(
+                Object.entries(lead).filter(
+                  ([key]) =>
+                    ![
+                      "firstName",
+                      "lastName",
+                      "phone",
+                      "email",
+                      "company",
+                      "title",
+                      "address",
+                      "city",
+                      "state",
+                      "zip",
+                    ].includes(key),
+                ),
+              ),
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
+
+          await db.insert(leads).values(insertData);
+
+          results.imported += batchLeads.length;
+          results.batches.push({
+            batchNumber,
+            size: batchLeads.length,
+            status: "imported",
+          });
+        } catch (error) {
+          console.error(`[Import CSV] Batch ${batchNumber} failed:`, error);
+          results.failed += batchLeads.length;
+          results.batches.push({
+            batchNumber,
+            size: batchLeads.length,
+            status: "failed",
+          });
+        }
+      }
+
+      // Store bucket
       leadBuckets.set(bucket.id, bucket);
 
       return NextResponse.json({
         success: true,
-        message: "CSV uploaded, processing in background",
         bucket: {
           id: bucket.id,
           name: bucket.name,
@@ -255,6 +340,7 @@ export async function POST(request: NextRequest) {
           batches: bucket.batches.length,
           batchSize: BATCH_SIZE,
         },
+        results,
         preview: leadData.slice(0, 5),
       });
     }
