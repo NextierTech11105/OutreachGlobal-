@@ -32,6 +32,38 @@ export class LeadConnectionArgs extends PageInfoArgs {
 
   @Field({ nullable: true })
   noStatus?: boolean;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SORTING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @StringField({ nullable: true })
+  sortBy?: string; // 'createdAt' | 'score' | 'company' | 'state' | 'sicCode'
+
+  @StringField({ nullable: true })
+  sortDirection?: string; // 'asc' | 'desc'
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FILTERING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @StringField({ nullable: true })
+  sicCode?: string;
+
+  @StringField({ nullable: true })
+  state?: string;
+
+  @StringField({ nullable: true })
+  sectorTag?: string;
+
+  @StringField({ nullable: true })
+  enrichmentStatus?: string;
+
+  @IntField({ nullable: true })
+  minScore?: number;
+
+  @IntField({ nullable: true })
+  maxScore?: number;
 }
 
 @ArgsType()

@@ -13,9 +13,13 @@ import { redis, isRedisAvailable } from "@/lib/redis";
 
 // Cost per operation (in cents)
 export const ENRICHMENT_COSTS = {
-  // RealEstateAPI Skip Trace
-  skip_trace_single: 25, // $0.25 per single trace
-  skip_trace_bulk: 10, // $0.10 per trace in bulk
+  // Tracerfy Skip Trace (UPDATED 2026-01-25)
+  skip_trace_single: 2, // $0.02 per trace (Tracerfy)
+  skip_trace_bulk: 2, // $0.02 per trace in bulk (Tracerfy)
+
+  // Trestle Real Contact (phone validation/scoring)
+  trestle_validate: 1.5, // $0.015 per phone validation
+  trestle_real_contact: 3, // $0.03 per real contact score
 
   // Apollo.io
   apollo_person_enrich: 10, // $0.10 per person enrichment
@@ -28,7 +32,7 @@ export const ENRICHMENT_COSTS = {
   neva_market_sizing: 50, // $0.50 per market sizing
 } as const;
 
-export type EnrichmentSource = "skip_trace" | "apollo" | "neva";
+export type EnrichmentSource = "skip_trace" | "trestle" | "apollo" | "neva";
 export type EnrichmentOperation = keyof typeof ENRICHMENT_COSTS;
 
 interface UsageRecord {
@@ -65,6 +69,7 @@ function getSourceFromOperation(
   operation: EnrichmentOperation,
 ): EnrichmentSource {
   if (operation.startsWith("skip_trace")) return "skip_trace";
+  if (operation.startsWith("trestle")) return "trestle";
   if (operation.startsWith("apollo")) return "apollo";
   if (operation.startsWith("neva")) return "neva";
   return "skip_trace"; // fallback
@@ -144,8 +149,8 @@ export async function getDailyEnrichmentUsage(
 ): Promise<DailyUsage> {
   const emptyUsage: DailyUsage = {
     date,
-    bySource: { skip_trace: 0, apollo: 0, neva: 0 },
-    byCost: { skip_trace: 0, apollo: 0, neva: 0 },
+    bySource: { skip_trace: 0, trestle: 0, apollo: 0, neva: 0 },
+    byCost: { skip_trace: 0, trestle: 0, apollo: 0, neva: 0 },
     totalOperations: 0,
     totalCostCents: 0,
   };
@@ -167,11 +172,13 @@ export async function getDailyEnrichmentUsage(
       date,
       bySource: {
         skip_trace: parseInt(data["ops:skip_trace"] || "0", 10),
+        trestle: parseInt(data["ops:trestle"] || "0", 10),
         apollo: parseInt(data["ops:apollo"] || "0", 10),
         neva: parseInt(data["ops:neva"] || "0", 10),
       },
       byCost: {
         skip_trace: parseInt(data["cost:skip_trace"] || "0", 10),
+        trestle: parseInt(data["cost:trestle"] || "0", 10),
         apollo: parseInt(data["cost:apollo"] || "0", 10),
         neva: parseInt(data["cost:neva"] || "0", 10),
       },
@@ -194,6 +201,7 @@ export async function getMonthlyEnrichmentUsage(
     month,
     bySource: {
       skip_trace: { operations: 0, costCents: 0 },
+      trestle: { operations: 0, costCents: 0 },
       apollo: { operations: 0, costCents: 0 },
       neva: { operations: 0, costCents: 0 },
     },
@@ -221,6 +229,10 @@ export async function getMonthlyEnrichmentUsage(
         skip_trace: {
           operations: parseInt(data["ops:skip_trace"] || "0", 10),
           costCents: parseInt(data["cost:skip_trace"] || "0", 10),
+        },
+        trestle: {
+          operations: parseInt(data["ops:trestle"] || "0", 10),
+          costCents: parseInt(data["cost:trestle"] || "0", 10),
         },
         apollo: {
           operations: parseInt(data["ops:apollo"] || "0", 10),

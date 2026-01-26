@@ -32,6 +32,14 @@ export const LEADS_QUERY: TypedDocumentNode<LeadsQuery, LeadsQueryVariables> =
       $searchQuery: String
       $hasPhone: Boolean
       $tags: [String!]
+      $sortBy: String
+      $sortDirection: String
+      $sicCode: String
+      $state: String
+      $sectorTag: String
+      $enrichmentStatus: String
+      $minScore: Int
+      $maxScore: Int
     ) {
       leads(
         first: $first
@@ -42,6 +50,14 @@ export const LEADS_QUERY: TypedDocumentNode<LeadsQuery, LeadsQueryVariables> =
         searchQuery: $searchQuery
         hasPhone: $hasPhone
         tags: $tags
+        sortBy: $sortBy
+        sortDirection: $sortDirection
+        sicCode: $sicCode
+        state: $state
+        sectorTag: $sectorTag
+        enrichmentStatus: $enrichmentStatus
+        minScore: $minScore
+        maxScore: $maxScore
       ) {
         pageInfo {
           ...PageInfo
@@ -59,6 +75,12 @@ export const LEADS_QUERY: TypedDocumentNode<LeadsQuery, LeadsQueryVariables> =
             company
             createdAt
             updatedAt
+            sicCode
+            sicDescription
+            sectorTag
+            enrichmentStatus
+            state
+            county
           }
         }
       }

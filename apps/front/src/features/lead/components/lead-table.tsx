@@ -49,6 +49,9 @@ import {
   Zap,
   Heart,
   Calendar,
+  ArrowUp,
+  ArrowDown,
+  X,
 } from "lucide-react";
 import { TeamLink } from "@/features/team/components/team-link";
 import {
@@ -84,11 +87,45 @@ export const LeadTable = () => {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [cursor, setCursor] = useState(() => createDefaultCursor({ first: DEFAULT_PAGE_SIZE }));
 
+  // Sort/filter state
+  const [sortBy, setSortBy] = useState<string>("createdAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = useState({
+    sicCode: "",
+    state: "",
+    sectorTag: "",
+    enrichmentStatus: "",
+  });
+
   // Handle page size change - reset to first page with new size
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setCursor(createDefaultCursor({ first: newSize }));
   };
+
+  // Reset to first page when sort/filter changes
+  const handleSortChange = (newSort: string) => {
+    if (newSort === sortBy) {
+      // Toggle direction if clicking same column
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(newSort);
+      setSortDirection("desc");
+    }
+    setCursor(createDefaultCursor({ first: pageSize }));
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((f) => ({ ...f, [key]: value }));
+    setCursor(createDefaultCursor({ first: pageSize }));
+  };
+
+  const clearFilters = () => {
+    setFilters({ sicCode: "", state: "", sectorTag: "", enrichmentStatus: "" });
+    setCursor(createDefaultCursor({ first: pageSize }));
+  };
+
+  const hasActiveFilters = filters.state || filters.enrichmentStatus || filters.sicCode || filters.sectorTag;
 
   // Bulk outreach state
   const [outreachDialog, setOutreachDialog] = useState<{
@@ -123,6 +160,12 @@ export const LeadTable = () => {
       variables: {
         ...cursor,
         teamId,
+        sortBy,
+        sortDirection,
+        sicCode: filters.sicCode || undefined,
+        state: filters.state || undefined,
+        sectorTag: filters.sectorTag || undefined,
+        enrichmentStatus: filters.enrichmentStatus || undefined,
       },
     },
   );
@@ -163,8 +206,8 @@ export const LeadTable = () => {
             },
           });
 
-          await refetch({ ...defaultCursor });
-          setCursor(defaultCursor);
+          await refetch({ ...createDefaultCursor({ first: pageSize }) });
+          setCursor(createDefaultCursor({ first: pageSize }));
 
           toast.success(`deleted ${selectedLeads.length} lead(s)`);
           setSelected([]);
@@ -292,7 +335,7 @@ export const LeadTable = () => {
                   : `${data.processed} leads enriched`,
             },
           );
-          await refetch({ ...defaultCursor });
+          await refetch({ ...createDefaultCursor({ first: pageSize }) });
           setSelected([]);
         } else {
           throw new Error(data.error || "Skip trace failed");
@@ -328,7 +371,7 @@ export const LeadTable = () => {
             `Apollo enrichment started for ${selectedLeads.length} leads`,
             { description: "Company and contact data being fetched" },
           );
-          await refetch({ ...defaultCursor });
+          await refetch({ ...createDefaultCursor({ first: pageSize }) });
           setSelected([]);
         } else {
           throw new Error(data.error || "Apollo enrichment failed");
@@ -990,6 +1033,96 @@ export const LeadTable = () => {
         </DialogContent>
       </Dialog>
 
+      {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+      {/* SORT & FILTER CONTROLS */}
+      {/* ═══════════════════════════════════════════════════════════════════════════════ */}
+      <CardContent className="border-b py-3 flex items-center gap-3 flex-wrap">
+        {/* Sort dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Sort:</span>
+          <Select value={sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="h-8 w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt">Date Added</SelectItem>
+              <SelectItem value="company">Company</SelectItem>
+              <SelectItem value="state">State</SelectItem>
+              <SelectItem value="sicCode">SIC Code</SelectItem>
+              <SelectItem value="score">Score</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+          >
+            {sortDirection === "asc" ? (
+              <ArrowUp className="h-4 w-4" />
+            ) : (
+              <ArrowDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+
+        <div className="h-6 w-px bg-border" />
+
+        {/* State filter */}
+        <Select
+          value={filters.state}
+          onValueChange={(v) => handleFilterChange("state", v)}
+        >
+          <SelectTrigger className="h-8 w-[100px]">
+            <SelectValue placeholder="State" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All States</SelectItem>
+            <SelectItem value="TX">Texas</SelectItem>
+            <SelectItem value="CA">California</SelectItem>
+            <SelectItem value="FL">Florida</SelectItem>
+            <SelectItem value="NY">New York</SelectItem>
+            <SelectItem value="IL">Illinois</SelectItem>
+            <SelectItem value="PA">Pennsylvania</SelectItem>
+            <SelectItem value="OH">Ohio</SelectItem>
+            <SelectItem value="GA">Georgia</SelectItem>
+            <SelectItem value="NC">N. Carolina</SelectItem>
+            <SelectItem value="MI">Michigan</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Enrichment Status */}
+        <Select
+          value={filters.enrichmentStatus}
+          onValueChange={(v) => handleFilterChange("enrichmentStatus", v)}
+        >
+          <SelectTrigger className="h-8 w-[110px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="raw">Raw</SelectItem>
+            <SelectItem value="traced">Traced</SelectItem>
+            <SelectItem value="scored">Scored</SelectItem>
+            <SelectItem value="ready">Ready</SelectItem>
+            <SelectItem value="campaign">Campaign</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1"
+            onClick={clearFilters}
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </Button>
+        )}
+      </CardContent>
+
       <Table>
         {!selectedLeads.length && (
           <TableHeader>
@@ -1001,11 +1134,29 @@ export const LeadTable = () => {
                 />
               </TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Address</TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted/50 select-none"
+                onClick={() => handleSortChange("company")}
+              >
+                Company{" "}
+                {sortBy === "company" && (sortDirection === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted/50 select-none"
+                onClick={() => handleSortChange("state")}
+              >
+                State{" "}
+                {sortBy === "state" && (sortDirection === "asc" ? "↑" : "↓")}
+              </TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Score</TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted/50 select-none"
+                onClick={() => handleSortChange("score")}
+              >
+                Score{" "}
+                {sortBy === "score" && (sortDirection === "asc" ? "↑" : "↓")}
+              </TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -1029,11 +1180,11 @@ export const LeadTable = () => {
                 </div>
               </TableCell>
               <TableCell>{lead.name || "-"}</TableCell>
-              <TableCell>{lead.email || "-"}</TableCell>
-              <TableCell>{lead.address || "-"}</TableCell>
+              <TableCell>{lead.company || "-"}</TableCell>
+              <TableCell>{lead.state || "-"}</TableCell>
               <TableCell>{lead.phone || "-"}</TableCell>
               <TableCell>
-                <Badge variant="secondary">{lead.status}</Badge>
+                <Badge variant="secondary">{lead.status || lead.enrichmentStatus || "-"}</Badge>
               </TableCell>
               <TableCell>
                 <Badge variant="outline">{lead.score}</Badge>

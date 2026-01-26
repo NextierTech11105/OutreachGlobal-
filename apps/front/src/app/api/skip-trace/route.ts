@@ -145,31 +145,76 @@ function isEntityOwner(ownerName: string): EntityCheckResult {
   return { isEntity: false };
 }
 
-// In-memory daily tracker (would be Redis/DB in production)
-const dailyUsage: { date: string; count: number } = {
+// ═══════════════════════════════════════════════════════════════════════════════
+// REDIS-BACKED DAILY TRACKER (Persists across restarts)
+// ═══════════════════════════════════════════════════════════════════════════════
+import { redis, isRedisAvailable } from "@/lib/redis";
+
+const SKIP_TRACE_DAILY_KEY_PREFIX = "skiptrace:daily:";
+
+// Fallback in-memory tracker (only used when Redis unavailable)
+const dailyUsageFallback: { date: string; count: number } = {
   date: new Date().toISOString().split("T")[0],
   count: 0,
 };
 
-function getDailyUsage(): { date: string; count: number; remaining: number } {
+async function getDailyUsage(): Promise<{
+  date: string;
+  count: number;
+  remaining: number;
+}> {
   const today = new Date().toISOString().split("T")[0];
-  if (dailyUsage.date !== today) {
-    dailyUsage.date = today;
-    dailyUsage.count = 0;
+
+  // Use Redis if available
+  if (isRedisAvailable()) {
+    try {
+      const key = `${SKIP_TRACE_DAILY_KEY_PREFIX}${today}`;
+      const count = parseInt((await redis!.get(key)) || "0", 10);
+      return {
+        date: today,
+        count,
+        remaining: DAILY_LIMIT - count,
+      };
+    } catch (err) {
+      console.warn("[Skip Trace] Redis error, falling back to memory:", err);
+    }
+  }
+
+  // Fallback to in-memory
+  if (dailyUsageFallback.date !== today) {
+    dailyUsageFallback.date = today;
+    dailyUsageFallback.count = 0;
   }
   return {
-    date: dailyUsage.date,
-    count: dailyUsage.count,
-    remaining: DAILY_LIMIT - dailyUsage.count,
+    date: dailyUsageFallback.date,
+    count: dailyUsageFallback.count,
+    remaining: DAILY_LIMIT - dailyUsageFallback.count,
   };
 }
 
-function incrementUsage(amount: number): boolean {
-  const usage = getDailyUsage();
+async function incrementUsage(amount: number): Promise<boolean> {
+  const usage = await getDailyUsage();
   if (usage.remaining < amount) {
     return false;
   }
-  dailyUsage.count += amount;
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // Use Redis if available
+  if (isRedisAvailable()) {
+    try {
+      const key = `${SKIP_TRACE_DAILY_KEY_PREFIX}${today}`;
+      await redis!.incrby(key, amount);
+      // Set TTL to 48 hours (auto-cleanup)
+      await redis!.expire(key, 60 * 60 * 48);
+      return true;
+    } catch (err) {
+      console.warn("[Skip Trace] Redis error, falling back to memory:", err);
+    }
+  }
+
+  // Fallback to in-memory
+  dailyUsageFallback.count += amount;
   return true;
 }
 
@@ -976,7 +1021,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check daily limit
-    const usage = getDailyUsage();
+    const usage = await getDailyUsage();
     const requestedCount = useBulkApi
       ? Math.min(propertyIds.length, BULK_BATCH_SIZE)
       : Math.min(inputs.length, BATCH_SIZE);
@@ -1009,7 +1054,7 @@ export async function POST(request: NextRequest) {
       const bulkResult = await bulkSkipTrace(idsToProcess);
 
       // Increment usage
-      incrementUsage(bulkResult.stats.total);
+      await incrementUsage(bulkResult.stats.total);
 
       // Auto-add to SMS queue if requested
       let smsQueueResult = null;
@@ -1140,7 +1185,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Increment usage
-    incrementUsage(batchInputs.length);
+    await incrementUsage(batchInputs.length);
 
     // Stats
     const successful = results.filter((r) => r.success);
@@ -1275,7 +1320,7 @@ export async function POST(request: NextRequest) {
 
 // GET - Check daily usage and API configuration status
 export async function GET() {
-  const usage = getDailyUsage();
+  const usage = await getDailyUsage();
   // Tracerfy is primary provider, RealEstateAPI is fallback
   const isConfigured = !!TRACERFY_TOKEN || !!REALESTATE_API_KEY;
   const activeProvider = TRACERFY_TOKEN ? "tracerfy" : REALESTATE_API_KEY ? "realestateapi" : null;

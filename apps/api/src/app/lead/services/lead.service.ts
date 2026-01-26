@@ -55,6 +55,17 @@ export class LeadService {
   ) {}
 
   paginate(options: LeadConnectionArgs) {
+    const {
+      sortBy,
+      sortDirection,
+      sicCode,
+      state,
+      sectorTag,
+      enrichmentStatus,
+      minScore,
+      maxScore,
+    } = options;
+
     const query = this.db
       .select()
       .from(leadsTable)
@@ -78,13 +89,40 @@ export class LeadService {
                 ilike(t.email, `%${options.searchQuery}%`),
                 ilike(t.phone, `%${options.searchQuery}%`),
               ),
+          // NEW FILTERS
+          sicCode ? eq(t.sicCode, sicCode) : undefined,
+          state ? eq(t.state, state) : undefined,
+          sectorTag ? eq(t.sectorTag, sectorTag) : undefined,
+          enrichmentStatus ? eq(t.enrichmentStatus, enrichmentStatus) : undefined,
+          isNumber(minScore) ? gte(t.score, minScore) : undefined,
+          isNumber(maxScore) ? lte(t.score, maxScore) : undefined,
         ),
       )
       .$dynamic();
 
+    // Dynamic sort column selection
+    const getSortColumn = () => {
+      switch (sortBy) {
+        case "score":
+          return leadsTable.score;
+        case "company":
+          return leadsTable.company;
+        case "state":
+          return leadsTable.state;
+        case "sicCode":
+          return leadsTable.sicCode;
+        case "createdAt":
+        default:
+          return leadsTable.createdAt;
+      }
+    };
+
     return this.dbService.withCursorPagination(query, {
       ...options,
-      cursors: (t) => [getCursorOrder(t.id, true)],
+      cursors: () => [
+        getCursorOrder(getSortColumn(), sortDirection !== "asc"),
+        getCursorOrder(leadsTable.id, true), // Secondary sort for stability
+      ],
     });
   }
 
