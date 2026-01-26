@@ -17,12 +17,24 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get("days") || "7", 10);
+    const type = searchParams.get("type") || "stats";
 
     if (!SIGNALHOUSE_API_KEY) {
       // Return mock data if API key not configured
+      const mockStats = getMockStats(days);
       return NextResponse.json({
         success: true,
-        stats: getMockStats(days),
+        stats: mockStats,
+        analytics: {
+          totalSent: mockStats.outboundSMS,
+          totalDelivered: Math.floor(mockStats.outboundSMS * 0.97),
+          totalFailed: mockStats.failedCount,
+          deliveryRate: mockStats.deliveryRate,
+          failureRate: mockStats.failureRate,
+          uniqueClicks: mockStats.uniqueClicks,
+          clickthroughRate: mockStats.clickthroughRate,
+        },
+        wallet: { balance: mockStats.balance, currency: "USD" },
         source: "mock",
       });
     }
@@ -32,41 +44,73 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Fetch from SignalHouse API
-    const response = await fetch(
-      `${SIGNALHOUSE_API_URL}/v1/analytics?` +
-        new URLSearchParams({
-          start_date: startDate.toISOString().split("T")[0],
-          end_date: endDate.toISOString().split("T")[0],
-          sub_group_id: SIGNALHOUSE_SUB_GROUP_ID,
-        }),
-      {
+    // Fetch analytics and wallet in parallel
+    const [analyticsResponse, walletResponse] = await Promise.all([
+      fetch(
+        `${SIGNALHOUSE_API_URL}/v1/analytics?` +
+          new URLSearchParams({
+            start_date: startDate.toISOString().split("T")[0],
+            end_date: endDate.toISOString().split("T")[0],
+            sub_group_id: SIGNALHOUSE_SUB_GROUP_ID,
+          }),
+        {
+          headers: {
+            "apiKey": SIGNALHOUSE_API_KEY,
+            "authToken": SIGNALHOUSE_AUTH_TOKEN,
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+      fetch(`${SIGNALHOUSE_API_URL}/v1/wallet/summary`, {
         headers: {
           "apiKey": SIGNALHOUSE_API_KEY,
           "authToken": SIGNALHOUSE_AUTH_TOKEN,
           "Content-Type": "application/json",
         },
-      },
-    );
+      }),
+    ]);
 
-    if (!response.ok) {
-      // Fall back to mock data on API error
+    // Get wallet data
+    let wallet = { balance: 0, currency: "USD" };
+    if (walletResponse.ok) {
+      const walletData = await walletResponse.json();
+      wallet = {
+        balance: walletData.balance || walletData.data?.balance || 0,
+        currency: walletData.currency || walletData.data?.currency || "USD",
+      };
+    } else {
+      console.error("[SignalHouse Wallet] API error:", await walletResponse.text());
+    }
+
+    if (!analyticsResponse.ok) {
+      // Fall back to mock data on API error but keep real wallet
       console.error(
         "[SignalHouse Analytics] API error:",
-        await response.text(),
+        await analyticsResponse.text(),
       );
+      const mockStats = getMockStats(days);
       return NextResponse.json({
         success: true,
-        stats: getMockStats(days),
-        source: "mock",
+        stats: { ...mockStats, balance: wallet.balance },
+        analytics: {
+          totalSent: mockStats.outboundSMS,
+          totalDelivered: Math.floor(mockStats.outboundSMS * 0.97),
+          totalFailed: mockStats.failedCount,
+          deliveryRate: mockStats.deliveryRate,
+          failureRate: mockStats.failureRate,
+          uniqueClicks: mockStats.uniqueClicks,
+          clickthroughRate: mockStats.clickthroughRate,
+        },
+        wallet,
+        source: "partial",
       });
     }
 
-    const data = await response.json();
+    const data = await analyticsResponse.json();
 
     // Transform SignalHouse response to our format
     const stats = {
-      balance: data.balance || 0,
+      balance: wallet.balance,
       outboundSMS: data.outbound_sms || 0,
       outboundMMS: data.outbound_mms || 0,
       inboundSMS: data.inbound_sms || 0,
@@ -87,9 +131,22 @@ export async function GET(request: NextRequest) {
       totalSegments: data.total_segments || 0,
     };
 
+    // Analytics object for SMSDashboard
+    const analytics = {
+      totalSent: data.outbound_sms || 0,
+      totalDelivered: data.delivered_count || Math.floor((data.outbound_sms || 0) * (data.delivery_rate || 97) / 100),
+      totalFailed: data.failed_count || 0,
+      deliveryRate: data.delivery_rate || 0,
+      failureRate: data.failure_rate || 0,
+      uniqueClicks: data.unique_clicks || 0,
+      clickthroughRate: data.clickthrough_rate || 0,
+    };
+
     return NextResponse.json({
       success: true,
       stats,
+      analytics,
+      wallet,
       dateRange: { start: startDate.toISOString(), end: endDate.toISOString() },
       source: "api",
     });
