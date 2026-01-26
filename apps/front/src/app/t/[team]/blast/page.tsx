@@ -109,6 +109,17 @@ const MESSAGE_LABELS = [
   { value: "custom", label: "Custom", icon: Tag, color: "bg-gray-500" },
 ];
 
+// Database lead sources
+const LEAD_SOURCES = [
+  { value: "all", label: "All Active Leads", badge: "ALL", badgeColor: "bg-gray-500" },
+  { value: "responded", label: "Responded Leads", badge: "GREEN", badgeColor: "bg-green-500" },
+  { value: "gold", label: "Email + Mobile Captured", badge: "GOLD", badgeColor: "bg-yellow-500" },
+  { value: "hot", label: "Hot Leads", badge: "HOT", badgeColor: "bg-red-500" },
+  { value: "warm", label: "Warm Leads", badge: "WARM", badgeColor: "bg-orange-500" },
+  { value: "ready", label: "Ready Status", badge: "READY", badgeColor: "bg-blue-500" },
+  { value: "validated", label: "Validated", badge: "VALID", badgeColor: "bg-purple-500" },
+];
+
 const STARTER_TEMPLATES = [
   {
     name: "Simple Intro",
@@ -142,6 +153,12 @@ export default function BlastPage() {
 
   // Step state
   const [step, setStep] = useState<BlastStep>("upload");
+
+  // Source mode: CSV or Database
+  const [sourceMode, setSourceMode] = useState<"csv" | "database">("database");
+  const [selectedSource, setSelectedSource] = useState("all");
+  const [dbLeadCount, setDbLeadCount] = useState(0);
+  const [loadingDbLeads, setLoadingDbLeads] = useState(false);
 
   // File & Leads
   const [file, setFile] = useState<File | null>(null);
@@ -181,6 +198,92 @@ export default function BlastPage() {
       }
     }
   }, [teamId]);
+
+  // Fetch database leads when source changes
+  const fetchDatabaseLeads = useCallback(async () => {
+    if (sourceMode !== "database") return;
+
+    setLoadingDbLeads(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/leads/count?source=${selectedSource}&limit=${maxLeads}&teamId=${teamId || ""}`
+      );
+      const data = await response.json();
+
+      setDbLeadCount(data.count || 0);
+
+      if (data.preview && data.preview.length > 0) {
+        const dbLeads: Lead[] = data.preview.map((l: Record<string, string>) => ({
+          firstName: l.firstName || "",
+          lastName: l.lastName || "",
+          phone: l.phone || "",
+          company: l.company || "",
+          email: l.email || "",
+          city: l.city || "",
+          state: l.state || "",
+        }));
+        setLeads(dbLeads);
+        setPreviewLead(dbLeads[0]);
+      } else {
+        setLeads([]);
+        setPreviewLead(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch leads:", err);
+      setError("Failed to load leads from database");
+      setDbLeadCount(0);
+    } finally {
+      setLoadingDbLeads(false);
+    }
+  }, [sourceMode, selectedSource, maxLeads, teamId]);
+
+  // Fetch leads when database mode or source changes
+  useEffect(() => {
+    if (sourceMode === "database") {
+      fetchDatabaseLeads();
+    }
+  }, [sourceMode, selectedSource, maxLeads, fetchDatabaseLeads]);
+
+  // Use database leads for sending
+  const handleUseDatabaseLeads = async () => {
+    if (dbLeadCount === 0) {
+      toast.error("No leads found for this source");
+      return;
+    }
+
+    // Fetch full lead list for sending
+    setLoadingDbLeads(true);
+    try {
+      const response = await fetch(
+        `/api/leads/list?source=${selectedSource}&limit=${maxLeads}&teamId=${teamId || ""}`
+      );
+      const data = await response.json();
+
+      if (data.leads && data.leads.length > 0) {
+        const dbLeads: Lead[] = data.leads.map((l: Record<string, string>) => ({
+          firstName: l.firstName || "",
+          lastName: l.lastName || "",
+          phone: l.phone || "",
+          company: l.company || "",
+          email: l.email || "",
+          city: l.city || "",
+          state: l.state || "",
+        }));
+        setLeads(dbLeads);
+        setPreviewLead(dbLeads[0]);
+        setStep("compose");
+        toast.success(`Loaded ${dbLeads.length} leads from database`);
+      } else {
+        toast.error("No leads found");
+      }
+    } catch {
+      toast.error("Failed to load leads");
+    } finally {
+      setLoadingDbLeads(false);
+    }
+  };
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // FILE HANDLING
@@ -436,7 +539,7 @@ export default function BlastPage() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════════ */}
-      {/* STEP 1: UPLOAD */}
+      {/* STEP 1: SELECT SOURCE */}
       {/* ════════════════════════════════════════════════════════════════════════ */}
       {step === "upload" && (
         <Card>
@@ -446,59 +549,162 @@ export default function BlastPage() {
               SMS Blast
             </CardTitle>
             <CardDescription>
-              Upload CSV → Compose Message → Send to SignalHouse
+              Select leads from database OR upload CSV → Compose → Send
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              className="border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg font-medium mb-2">Drag & drop your CSV file here</p>
-              <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                className="hidden"
-                aria-label="Upload CSV file"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFileSelect(f);
-                }}
-              />
-              <Button variant="outline">
+          <CardContent className="space-y-6">
+            {/* Source Mode Toggle */}
+            <div className="flex gap-2 p-1 bg-muted rounded-lg">
+              <Button
+                variant={sourceMode === "database" ? "default" : "ghost"}
+                className="flex-1"
+                onClick={() => setSourceMode("database")}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Database Leads
+              </Button>
+              <Button
+                variant={sourceMode === "csv" ? "default" : "ghost"}
+                className="flex-1"
+                onClick={() => setSourceMode("csv")}
+              >
                 <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Select CSV File
+                Upload CSV
               </Button>
             </div>
 
+            {/* DATABASE MODE */}
+            {sourceMode === "database" && (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Lead Source</Label>
+                    <Select value={selectedSource} onValueChange={setSelectedSource}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LEAD_SOURCES.map((source) => (
+                          <SelectItem key={source.value} value={source.value}>
+                            <div className="flex items-center gap-2">
+                              <Badge className={source.badgeColor}>{source.badge}</Badge>
+                              {source.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Max Recipients</Label>
+                    <Select value={maxLeads.toString()} onValueChange={(v) => setMaxLeads(parseInt(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 (Test)</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="250">250</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                        <SelectItem value="1000">1,000</SelectItem>
+                        <SelectItem value="2000">2,000 (Max)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Lead Count Display */}
+                <div className="p-6 bg-muted rounded-lg text-center">
+                  {loadingDbLeads ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Clock className="h-5 w-5 animate-spin" />
+                      <span>Loading leads...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-4xl font-bold mb-2">
+                        {dbLeadCount.toLocaleString()}
+                      </div>
+                      <div className="text-muted-foreground">
+                        leads available with {selectedSource === "all" ? "any status" : selectedSource} status
+                      </div>
+                      {dbLeadCount > 0 && previewLead && (
+                        <div className="mt-4 text-sm text-muted-foreground">
+                          Sample: {previewLead.firstName} {previewLead.lastName} - {previewLead.phone}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  onClick={handleUseDatabaseLeads}
+                  disabled={dbLeadCount === 0 || loadingDbLeads}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Use {Math.min(dbLeadCount, maxLeads).toLocaleString()} Leads from Database
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* CSV MODE */}
+            {sourceMode === "csv" && (
+              <>
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">Drag & drop your CSV file here</p>
+                  <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    aria-label="Upload CSV file"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileSelect(f);
+                    }}
+                  />
+                  <Button variant="outline">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Select CSV File
+                  </Button>
+                </div>
+
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Required CSV Columns
+                  </h3>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                      <strong>phone</strong> (or mobile, cell) - Required
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
+                      firstName, lastName, company, city, state - Optional
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
+
             {error && (
-              <Alert variant="destructive" className="mt-4">
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
-            <div className="mt-8 p-4 bg-muted/50 rounded-lg">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Required CSV Columns
-              </h3>
-              <ul className="space-y-1.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  <strong>phone</strong> (or mobile, cell) - Required
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
-                  firstName, lastName, company, city, state - Optional
-                </li>
-              </ul>
-            </div>
           </CardContent>
         </Card>
       )}
