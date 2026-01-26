@@ -155,6 +155,13 @@ export default function WorkflowsPage() {
   const [bulkLeadCount, setBulkLeadCount] = useState(100);
   const [bulkSending, setBulkSending] = useState(false);
 
+  // CSV Upload States
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadName, setUploadName] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
+  const [totalLeads, setTotalLeads] = useState(0);
+
   // Sequence States
   const [selectedCadence, setSelectedCadence] = useState<CadenceTemplate | null>(null);
   const [sequenceLeadIds, setSequenceLeadIds] = useState<string[]>([]);
@@ -174,6 +181,7 @@ export default function WorkflowsPage() {
 
   async function fetchStats() {
     try {
+      // Fetch SMS queue stats
       const res = await fetch("/api/sms/queue/stats");
       if (res.ok) {
         const data = await res.json();
@@ -184,8 +192,64 @@ export default function WorkflowsPage() {
           queueSize: data.queueSize || 0,
         });
       }
+
+      // Fetch total leads count
+      const leadsRes = await fetch("/api/sectors/stats");
+      if (leadsRes.ok) {
+        const leadsData = await leadsRes.json();
+        setTotalLeads(leadsData.totals?.totalRecords || 0);
+        if (leadsData.totals?.totalRecords > 0 && bulkLeadCount === 100) {
+          setBulkLeadCount(Math.min(leadsData.totals.totalRecords, 500));
+        }
+      }
     } catch (e) {
       console.error("Failed to fetch stats:", e);
+    }
+  }
+
+  // CSV UPLOAD HANDLER
+  async function handleUploadCSV() {
+    if (!uploadFile) {
+      toast({ title: "Error", description: "Select a CSV file first", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    setUploadResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("teamId", teamSlug);
+      formData.append("source", "workflow-upload");
+      formData.append("bucketName", uploadName || uploadFile.name);
+
+      const res = await fetch("/api/leads/import-direct", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setUploadResult({
+          success: true,
+          message: `Imported ${data.results?.imported || 0} leads!`,
+          count: data.results?.imported || 0,
+        });
+        toast({ title: "Success!", description: `${data.results?.imported || 0} leads imported to database` });
+        setUploadFile(null);
+        setUploadName("");
+        fetchStats(); // Refresh lead count
+      } else {
+        setUploadResult({ success: false, message: data.error || "Import failed" });
+        toast({ title: "Failed", description: data.error || "Import failed", variant: "destructive" });
+      }
+    } catch (e) {
+      setUploadResult({ success: false, message: "Network error" });
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -443,6 +507,67 @@ export default function WorkflowsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      {/* CSV UPLOAD + LEAD COUNT */}
+      {/* ════════════════════════════════════════════════════════════════════════ */}
+      <Card className="border-2 border-dashed border-primary/30 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Users className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Leads in Database</p>
+                <p className="text-3xl font-bold">{totalLeads.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  className="max-w-[200px]"
+                />
+                <Input
+                  placeholder="List name (optional)"
+                  value={uploadName}
+                  onChange={(e) => setUploadName(e.target.value)}
+                  className="max-w-[150px]"
+                />
+              </div>
+              <Button
+                onClick={handleUploadCSV}
+                disabled={!uploadFile || uploading}
+                className="gap-2"
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {uploading ? "Importing..." : "Upload CSV"}
+              </Button>
+            </div>
+          </div>
+
+          {uploadResult && (
+            <div className={`mt-4 p-3 rounded-lg flex items-center gap-2 ${
+              uploadResult.success ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"
+            }`}>
+              {uploadResult.success ? (
+                <CheckCircle2 className="h-5 w-5" />
+              ) : (
+                <AlertCircle className="h-5 w-5" />
+              )}
+              {uploadResult.message}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Main Tabs */}
       <Tabs defaultValue="quick" className="space-y-4">
