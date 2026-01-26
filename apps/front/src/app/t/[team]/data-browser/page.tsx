@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, Filter, Database, Users, MessageSquare, Building, Loader2 } from "lucide-react";
+import { Download, Search, Filter, Database, Users, MessageSquare, Building, Loader2, Zap, Phone, CheckCircle } from "lucide-react";
 import { useCurrentTeam } from "@/features/team/team.context";
 import { useQuery, gql } from "@apollo/client";
 import { TeamSection } from "@/features/team/layouts/team-section";
@@ -35,6 +36,9 @@ const LEADS_DATA_QUERY = gql`
           company
           status
           score
+          pipelineStatus
+          city
+          state
           createdAt
         }
       }
@@ -51,6 +55,9 @@ export default function DataBrowserPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [afterCursor, setAfterCursor] = useState<string | null>(null);
   const [cursors, setCursors] = useState<string[]>([]);
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [enriching, setEnriching] = useState(false);
+  const [enrichResult, setEnrichResult] = useState<{success: boolean; message: string} | null>(null);
   const pageSize = 50;
 
   const { data, loading, error, refetch } = useQuery(LEADS_DATA_QUERY, {
@@ -122,6 +129,74 @@ export default function DataBrowserPage() {
       a.href = url;
       a.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+    }
+  };
+
+  // Toggle single lead selection
+  const toggleLeadSelection = (leadId: string) => {
+    setSelectedLeads(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(leadId)) {
+        newSet.delete(leadId);
+      } else {
+        newSet.add(leadId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all visible leads
+  const toggleSelectAll = () => {
+    if (selectedLeads.size === leads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(leads.map((l: any) => l.id)));
+    }
+  };
+
+  // Enrich selected leads
+  const handleEnrich = async (provider: 'tracerfy' | 'trestle') => {
+    if (selectedLeads.size === 0) {
+      setEnrichResult({ success: false, message: 'Select leads first' });
+      return;
+    }
+
+    setEnriching(true);
+    setEnrichResult(null);
+
+    try {
+      const response = await fetch('/api/leads/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadIds: Array.from(selectedLeads),
+          provider,
+          teamId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setEnrichResult({
+          success: true,
+          message: `Enriched ${result.stats.successful} leads ($${result.stats.cost})`,
+        });
+        setSelectedLeads(new Set());
+        refetch(); // Refresh data
+      } else {
+        setEnrichResult({
+          success: false,
+          message: result.error || 'Enrichment failed',
+        });
+      }
+    } catch (error) {
+      setEnrichResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error',
+      });
+    } finally {
+      setEnriching(false);
     }
   };
 
@@ -209,8 +284,43 @@ export default function DataBrowserPage() {
           <TabsContent value="leads" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Leads Data Lake</CardTitle>
-                <CardDescription>Raw imported data - {totalCount.toLocaleString()} records</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Leads Data Lake - Window Shop</CardTitle>
+                    <CardDescription>Browse {totalCount.toLocaleString()} raw records - Enrich on demand</CardDescription>
+                  </div>
+                  {selectedLeads.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{selectedLeads.size} selected</Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEnrich('tracerfy')}
+                        disabled={enriching}
+                        className="flex items-center gap-1"
+                      >
+                        <Zap className="h-4 w-4" />
+                        {enriching ? 'Enriching...' : `Tracerfy ($${(selectedLeads.size * 0.02).toFixed(2)})`}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEnrich('trestle')}
+                        disabled={enriching}
+                        className="flex items-center gap-1"
+                      >
+                        <Phone className="h-4 w-4" />
+                        {enriching ? 'Verifying...' : `Trestle ($${(selectedLeads.size * 0.03).toFixed(2)})`}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {enrichResult && (
+                  <div className={`mt-2 p-2 rounded text-sm ${enrichResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    {enrichResult.success && <CheckCircle className="h-4 w-4 inline mr-1" />}
+                    {enrichResult.message}
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 {error && (
@@ -232,30 +342,62 @@ export default function DataBrowserPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead className="w-10">
+                              <Checkbox
+                                checked={selectedLeads.size === leads.length && leads.length > 0}
+                                onCheckedChange={toggleSelectAll}
+                              />
+                            </TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Phone</TableHead>
                             <TableHead>Company</TableHead>
+                            <TableHead>Location</TableHead>
                             <TableHead>Score</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>Pipeline</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {leads.map((lead: any) => (
-                            <TableRow key={lead.id}>
+                            <TableRow
+                              key={lead.id}
+                              className={selectedLeads.has(lead.id) ? 'bg-blue-50' : ''}
+                            >
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedLeads.has(lead.id)}
+                                  onCheckedChange={() => toggleLeadSelection(lead.id)}
+                                />
+                              </TableCell>
                               <TableCell className="font-medium">
                                 {lead.name || `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || '-'}
                               </TableCell>
-                              <TableCell>{lead.email || '-'}</TableCell>
-                              <TableCell>{lead.phone || '-'}</TableCell>
+                              <TableCell className="text-sm">{lead.email || <span className="text-muted-foreground">No email</span>}</TableCell>
+                              <TableCell className="text-sm">
+                                {lead.phone ? (
+                                  <span className="text-green-600">{lead.phone}</span>
+                                ) : (
+                                  <span className="text-orange-500">No phone</span>
+                                )}
+                              </TableCell>
                               <TableCell>{lead.company || '-'}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {[lead.city, lead.state].filter(Boolean).join(', ') || '-'}
+                              </TableCell>
                               <TableCell>
-                                <Badge variant={lead.score >= 70 ? "default" : "secondary"}>
+                                <Badge variant={lead.score >= 70 ? "default" : lead.score >= 50 ? "secondary" : "outline"}>
                                   {lead.score || 0}
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline">{lead.status || 'new'}</Badge>
+                                <Badge
+                                  variant={
+                                    lead.pipelineStatus === 'verified' ? 'default' :
+                                    lead.pipelineStatus === 'traced' ? 'secondary' : 'outline'
+                                  }
+                                >
+                                  {lead.pipelineStatus || 'raw'}
+                                </Badge>
                               </TableCell>
                             </TableRow>
                           ))}
