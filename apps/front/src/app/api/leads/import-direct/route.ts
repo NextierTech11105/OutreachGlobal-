@@ -11,7 +11,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
-import { v4 as uuid } from "uuid";
+import { ulid } from "ulidx";
+
+// Generate lead ID in the format the API expects: lead_ULID
+function generateLeadId(): string {
+  return `lead_${ulid()}`;
+}
 
 const BATCH_SIZE = 500;
 
@@ -75,7 +80,7 @@ export async function POST(request: NextRequest) {
           if (email) results.withEmail++;
 
           return {
-            id: uuid(),
+            id: generateLeadId(),
             firstName: lead.firstName || lead.first_name || lead.first || "",
             lastName: lead.lastName || lead.last_name || lead.last || "",
             phone: phone || null,

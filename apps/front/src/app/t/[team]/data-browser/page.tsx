@@ -310,7 +310,7 @@ export default function DataBrowserPage() {
                         className="flex items-center gap-1"
                       >
                         <Phone className="h-4 w-4" />
-                        {enriching ? 'Verifying...' : `Trestle ($${(selectedLeads.size * 0.03).toFixed(2)})`}
+                        {enriching ? 'Verifying...' : `Trestle ($${(selectedLeads.size * 0.015).toFixed(2)})`}
                       </Button>
                     </div>
                   )}
