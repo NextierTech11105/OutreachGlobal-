@@ -310,27 +310,29 @@ export default function WorkflowsPage() {
 
     setBulkSending(true);
     try {
+      // Use the instant-execute endpoint with correct parameters
       const res = await fetch("/api/campaigns/instant-execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: bulkMessage,
-          limit: bulkLeadCount,
-          source: "datalake", // Pull from data lake
+          macro: "B2B", // Default to B2B campaign
+          teamId: teamSlug, // Team ID from URL params
+          batchSize: bulkLeadCount,
+          templateOverride: bulkMessage, // Use user's custom message
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
         toast({
-          title: "Blast Started!",
-          description: `Sending to ${data.queued || bulkLeadCount} leads`
+          title: "Blast Sent!",
+          description: `${data.stats?.sent || 0} messages sent, ${data.stats?.failed || 0} failed`
         });
         setBulkMessage("");
         fetchStats();
       } else {
         const error = await res.json();
-        toast({ title: "Failed", description: error.message || "Blast failed", variant: "destructive" });
+        toast({ title: "Failed", description: error.error || error.message || "Blast failed", variant: "destructive" });
       }
     } catch (e) {
       toast({ title: "Error", description: "Network error", variant: "destructive" });
