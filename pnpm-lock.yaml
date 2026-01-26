@@ -592,6 +592,9 @@ importers:
       twilio:
         specifier: ^5.7.1
         version: 5.7.1
+      ulidx:
+        specifier: ^2.4.1
+        version: 2.4.1
       usehooks-ts:
         specifier: ^3.1.1
         version: 3.1.1(react@19.1.0)

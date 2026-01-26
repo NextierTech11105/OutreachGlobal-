@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const TWILIO_TWIML_APP_SID = process.env.TWILIO_TWIML_APP_SID || "";
+// API Key credentials (required for Voice SDK tokens)
+const TWILIO_API_KEY = process.env.TWILIO_API_KEY || "";
+const TWILIO_API_SECRET = process.env.TWILIO_API_SECRET || "";
 
 // Generate a Twilio Capability Token for browser-based calling
 export async function POST(request: NextRequest) {
@@ -34,6 +37,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Voice SDK requires API Key credentials
+    if (!TWILIO_API_KEY || !TWILIO_API_SECRET) {
+      return NextResponse.json(
+        {
+          error: "Twilio API Key not configured",
+          configured: false,
+          message: "TWILIO_API_KEY and TWILIO_API_SECRET are required for Voice SDK",
+        },
+        { status: 503 },
+      );
+    }
+
     // Generate capability token using Twilio's JWT
     // We need to create a JWT token that grants capabilities
     const token = await generateCapabilityToken(identity);
@@ -56,7 +71,9 @@ export async function GET() {
   const configured = !!(
     TWILIO_ACCOUNT_SID &&
     TWILIO_AUTH_TOKEN &&
-    TWILIO_TWIML_APP_SID
+    TWILIO_TWIML_APP_SID &&
+    TWILIO_API_KEY &&
+    TWILIO_API_SECRET
   );
 
   return NextResponse.json({
@@ -64,13 +81,15 @@ export async function GET() {
     hasAccountSid: !!TWILIO_ACCOUNT_SID,
     hasAuthToken: !!TWILIO_AUTH_TOKEN,
     hasTwimlApp: !!TWILIO_TWIML_APP_SID,
+    hasApiKey: !!TWILIO_API_KEY,
+    hasApiSecret: !!TWILIO_API_SECRET,
   });
 }
 
 // Generate a capability token for Twilio Client
 async function generateCapabilityToken(identity: string): Promise<string> {
   // Create a JWT token with Twilio capability grants
-  // This is the server-side token generation for Twilio.Device
+  // IMPORTANT: Voice SDK tokens must use API Key (not Auth Token)
 
   const now = Math.floor(Date.now() / 1000);
   const expiry = now + 3600; // 1 hour validity
@@ -83,9 +102,10 @@ async function generateCapabilityToken(identity: string): Promise<string> {
   };
 
   // JWT Payload with Twilio grants
+  // NOTE: iss must be API Key SID, sub must be Account SID
   const payload = {
-    jti: `${TWILIO_ACCOUNT_SID}-${now}`,
-    iss: TWILIO_ACCOUNT_SID,
+    jti: `${TWILIO_API_KEY}-${now}`,
+    iss: TWILIO_API_KEY,
     sub: TWILIO_ACCOUNT_SID,
     nbf: now,
     exp: expiry,
@@ -113,10 +133,10 @@ async function generateCapabilityToken(identity: string): Promise<string> {
   const payloadEncoded = base64UrlEncode(payload);
   const signatureInput = `${headerEncoded}.${payloadEncoded}`;
 
-  // Create HMAC-SHA256 signature using Node.js crypto
+  // Create HMAC-SHA256 signature using API Secret (not Auth Token)
   const crypto = await import("crypto");
   const signature = crypto
-    .createHmac("sha256", TWILIO_AUTH_TOKEN)
+    .createHmac("sha256", TWILIO_API_SECRET)
     .update(signatureInput)
     .digest("base64")
     .replace(/\+/g, "-")
