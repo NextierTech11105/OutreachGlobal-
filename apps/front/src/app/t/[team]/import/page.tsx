@@ -722,10 +722,10 @@ export default function ImportPage() {
                 Import More
               </Button>
               <Button asChild>
-                <a href="/leads">View Leads</a>
+                <a href={`/t/${team?.id}/leads`}>View Leads</a>
               </Button>
               <Button variant="default" asChild>
-                <a href="/campaign-builder">
+                <a href={`/t/${team?.id}/blast`}>
                   <Zap className="mr-2 h-4 w-4" />
                   Create Campaign
                 </a>
