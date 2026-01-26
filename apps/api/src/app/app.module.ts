@@ -55,6 +55,8 @@ import { GiannaModule } from "./gianna/gianna.module";
 import { NevaModule } from "./neva/neva.module";
 import { CathyModule } from "./cathy/cathy.module";
 import { DemoModule } from "./demo/demo.module";
+import { BucketsModule } from "./buckets/buckets.module";
+import { SectorsModule } from "./sectors/sectors.module";
 
 @Module({
   imports: [
@@ -118,6 +120,8 @@ import { DemoModule } from "./demo/demo.module";
     NevaModule,
     CathyModule,
     DemoModule,
+    BucketsModule,
+    SectorsModule,
   ],
   providers: [
     AppRunner,
