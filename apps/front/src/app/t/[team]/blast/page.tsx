@@ -207,28 +207,53 @@ export default function BlastPage() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/leads/count?source=${selectedSource}&limit=${maxLeads}&teamId=${teamId || ""}`
+      // Try count endpoint first
+      const countResponse = await fetch(
+        `/api/leads/count?source=${selectedSource}&limit=${maxLeads}`
       );
-      const data = await response.json();
+      const countData = await countResponse.json();
 
-      setDbLeadCount(data.count || 0);
+      if (countData.success) {
+        setDbLeadCount(countData.count || countData.totalAvailable || 0);
 
-      if (data.preview && data.preview.length > 0) {
-        const dbLeads: Lead[] = data.preview.map((l: Record<string, string>) => ({
-          firstName: l.firstName || "",
-          lastName: l.lastName || "",
-          phone: l.phone || "",
-          company: l.company || "",
-          email: l.email || "",
-          city: l.city || "",
-          state: l.state || "",
-        }));
-        setLeads(dbLeads);
-        setPreviewLead(dbLeads[0]);
+        if (countData.preview && countData.preview.length > 0) {
+          const dbLeads: Lead[] = countData.preview.map((l: Record<string, string>) => ({
+            firstName: l.firstName || "",
+            lastName: l.lastName || "",
+            phone: l.phone || "",
+            company: l.company || "",
+            email: l.email || "",
+            city: l.city || "",
+            state: l.state || "",
+          }));
+          setLeads(dbLeads);
+          setPreviewLead(dbLeads[0]);
+        }
       } else {
-        setLeads([]);
-        setPreviewLead(null);
+        // Fallback: use main leads API to get count
+        const fallbackResponse = await fetch(`/api/leads?limit=5`);
+        const fallbackData = await fallbackResponse.json();
+
+        if (fallbackData.pagination) {
+          setDbLeadCount(fallbackData.pagination.total || 0);
+        }
+
+        if (fallbackData.leads && fallbackData.leads.length > 0) {
+          const dbLeads: Lead[] = fallbackData.leads
+            .filter((l: Record<string, string>) => l.phone)
+            .slice(0, 5)
+            .map((l: Record<string, string>) => ({
+              firstName: l.firstName || "",
+              lastName: l.lastName || "",
+              phone: l.phone || "",
+              company: l.company || "",
+              email: l.email || "",
+              city: l.city || "",
+              state: l.state || "",
+            }));
+          setLeads(dbLeads);
+          if (dbLeads.length > 0) setPreviewLead(dbLeads[0]);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch leads:", err);
@@ -237,7 +262,7 @@ export default function BlastPage() {
     } finally {
       setLoadingDbLeads(false);
     }
-  }, [sourceMode, selectedSource, maxLeads, teamId]);
+  }, [sourceMode, selectedSource, maxLeads]);
 
   // Fetch leads when database mode or source changes
   useEffect(() => {
@@ -248,38 +273,58 @@ export default function BlastPage() {
 
   // Use database leads for sending
   const handleUseDatabaseLeads = async () => {
-    if (dbLeadCount === 0) {
-      toast.error("No leads found for this source");
-      return;
-    }
-
-    // Fetch full lead list for sending
+    // Fetch full lead list for sending using the main leads API
     setLoadingDbLeads(true);
     try {
-      const response = await fetch(
-        `/api/leads/list?source=${selectedSource}&limit=${maxLeads}&teamId=${teamId || ""}`
-      );
+      // Build query params based on selected source
+      const params = new URLSearchParams({
+        limit: maxLeads.toString(),
+        page: "1",
+      });
+
+      // Map source to status/pipelineStatus filters
+      if (selectedSource === "ready") {
+        params.set("status", "ready");
+      } else if (selectedSource === "validated") {
+        params.set("status", "validated");
+      } else if (selectedSource === "hot") {
+        params.set("status", "hot_lead");
+      } else if (selectedSource === "warm") {
+        params.set("status", "warm");
+      }
+      // "all" and others don't set a status filter
+
+      const response = await fetch(`/api/leads?${params.toString()}`);
       const data = await response.json();
 
       if (data.leads && data.leads.length > 0) {
-        const dbLeads: Lead[] = data.leads.map((l: Record<string, string>) => ({
-          firstName: l.firstName || "",
-          lastName: l.lastName || "",
-          phone: l.phone || "",
-          company: l.company || "",
-          email: l.email || "",
-          city: l.city || "",
-          state: l.state || "",
-        }));
+        const dbLeads: Lead[] = data.leads
+          .filter((l: Record<string, string>) => l.phone) // Only leads with phone
+          .map((l: Record<string, string>) => ({
+            firstName: l.firstName || "",
+            lastName: l.lastName || "",
+            phone: l.phone || "",
+            company: l.company || "",
+            email: l.email || "",
+            city: l.city || "",
+            state: l.state || "",
+          }));
+
+        if (dbLeads.length === 0) {
+          toast.error("No leads with phone numbers found");
+          return;
+        }
+
         setLeads(dbLeads);
         setPreviewLead(dbLeads[0]);
         setStep("compose");
         toast.success(`Loaded ${dbLeads.length} leads from database`);
       } else {
-        toast.error("No leads found");
+        toast.error("No leads found - try a different source or import leads first");
       }
-    } catch {
-      toast.error("Failed to load leads");
+    } catch (err) {
+      console.error("Failed to load leads:", err);
+      toast.error("Failed to load leads from database");
     } finally {
       setLoadingDbLeads(false);
     }

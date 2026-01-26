@@ -44,6 +44,12 @@ export async function GET(request: NextRequest) {
           or(eq(leads.status, "warm"), eq(leads.status, "interested"))!
         );
         break;
+      case "ready":
+        whereConditions.push(eq(leads.pipelineStatus, "ready"));
+        break;
+      case "validated":
+        whereConditions.push(eq(leads.pipelineStatus, "validated"));
+        break;
       case "all":
         // All active leads with phone
         break;
