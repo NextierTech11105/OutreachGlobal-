@@ -163,31 +163,36 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
 
-    // Get tags for each lead
+    // Get tags for each lead (skip if table doesn't exist)
     const leadIds = results.map((l: { id: string }) => l.id);
     let leadTagsMap: Record<string, string[]> = {};
 
     if (leadIds.length > 0) {
-      const tagResults = await db
-        .select({
-          leadId: leadTags.leadId,
-          tagName: tags.name,
-        })
-        .from(leadTags)
-        .innerJoin(tags, eq(leadTags.tagId, tags.id))
-        .where(inArray(leadTags.leadId, leadIds));
+      try {
+        const tagResults = await db
+          .select({
+            leadId: leadTags.leadId,
+            tagName: tags.name,
+          })
+          .from(leadTags)
+          .innerJoin(tags, eq(leadTags.tagId, tags.id))
+          .where(inArray(leadTags.leadId, leadIds));
 
-      leadTagsMap = tagResults.reduce(
-        (
-          acc: Record<string, string[]>,
-          { leadId, tagName }: { leadId: string; tagName: string },
-        ) => {
-          if (!acc[leadId]) acc[leadId] = [];
-          acc[leadId].push(tagName);
-          return acc;
-        },
-        {} as Record<string, string[]>,
-      );
+        leadTagsMap = tagResults.reduce(
+          (
+            acc: Record<string, string[]>,
+            { leadId, tagName }: { leadId: string; tagName: string },
+          ) => {
+            if (!acc[leadId]) acc[leadId] = [];
+            acc[leadId].push(tagName);
+            return acc;
+          },
+          {} as Record<string, string[]>,
+        );
+      } catch {
+        // lead_tags table may not exist yet - continue without tags
+        console.warn("[Leads API] Could not fetch tags - table may not exist");
+      }
     }
 
     // Transform leads to match frontend type
