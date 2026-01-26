@@ -12,9 +12,8 @@ import {
 import { TenantContext } from "@/app/auth/decorators";
 import { CombinedAuthGuard } from "@/app/auth/guards/combined-auth.guard";
 import { InjectDB } from "@/database/decorators";
-import { DrizzleClient } from "@/database/client";
-import { leads } from "@/database/schema/leads";
-import { dataSources } from "@/database/schema/data-sources.schema";
+import { DrizzleClient } from "@/database/types";
+import { leadsTable as leads, dataSourcesTable as dataSources } from "@/database/schema-alias";
 import { and, eq, sql, count, asc } from "drizzle-orm";
 
 /**

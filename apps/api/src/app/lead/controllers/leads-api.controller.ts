@@ -7,16 +7,14 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   BadRequestException,
   Logger,
 } from "@nestjs/common";
-import { Auth, UseAuthGuard } from "@/app/auth/decorators";
+import { TenantContext, UseAuthGuard } from "@/app/auth/decorators";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { leads } from "@/database/schema-alias";
-import { sql, eq, and, asc, desc, like, or } from "drizzle-orm";
-import { User } from "@/app/user/models/user.model";
+import { leadsTable as leads } from "@/database/schema-alias";
+import { sql, eq, and, desc, like, or } from "drizzle-orm";
 import { ulid } from "ulid";
 
 /**
@@ -38,7 +36,7 @@ export class LeadsApiController {
    */
   @Get()
   async list(
-    @Auth() user: User,
+    @TenantContext("teamId") teamId: string,
     @Query("perPage") perPage?: string,
     @Query("page") page?: string,
     @Query("search") search?: string,
@@ -46,7 +44,6 @@ export class LeadsApiController {
     @Query("source") source?: string,
   ) {
     try {
-      const teamId = user.teamId;
       if (!teamId) {
         return { leads: [], total: 0 };
       }
@@ -66,15 +63,16 @@ export class LeadsApiController {
       }
 
       if (search) {
-        conditions.push(
-          or(
-            like(leads.firstName, `%${search}%`),
-            like(leads.lastName, `%${search}%`),
-            like(leads.company, `%${search}%`),
-            like(leads.email, `%${search}%`),
-            like(leads.phone, `%${search}%`),
-          )
+        const searchCondition = or(
+          like(leads.firstName, `%${search}%`),
+          like(leads.lastName, `%${search}%`),
+          like(leads.company, `%${search}%`),
+          like(leads.email, `%${search}%`),
+          like(leads.phone, `%${search}%`),
         );
+        if (searchCondition) {
+          conditions.push(searchCondition);
+        }
       }
 
       // Get leads
@@ -127,9 +125,8 @@ export class LeadsApiController {
    * Get a single lead by ID
    */
   @Get(":id")
-  async get(@Auth() user: User, @Param("id") id: string) {
+  async get(@TenantContext("teamId") teamId: string, @Param("id") id: string) {
     try {
-      const teamId = user.teamId;
       if (!teamId) {
         throw new BadRequestException("User not associated with a team");
       }
@@ -183,7 +180,7 @@ export class LeadsApiController {
    */
   @Post()
   async create(
-    @Auth() user: User,
+    @TenantContext("teamId") teamId: string,
     @Body()
     body: {
       firstName?: string;
@@ -199,7 +196,6 @@ export class LeadsApiController {
     },
   ) {
     try {
-      const teamId = user.teamId;
       if (!teamId) {
         throw new BadRequestException("User not associated with a team");
       }
@@ -240,7 +236,7 @@ export class LeadsApiController {
    */
   @Put(":id")
   async update(
-    @Auth() user: User,
+    @TenantContext("teamId") teamId: string,
     @Param("id") id: string,
     @Body()
     body: {
@@ -258,7 +254,6 @@ export class LeadsApiController {
     },
   ) {
     try {
-      const teamId = user.teamId;
       if (!teamId) {
         throw new BadRequestException("User not associated with a team");
       }
@@ -310,9 +305,8 @@ export class LeadsApiController {
    * Delete a lead
    */
   @Delete(":id")
-  async delete(@Auth() user: User, @Param("id") id: string) {
+  async delete(@TenantContext("teamId") teamId: string, @Param("id") id: string) {
     try {
-      const teamId = user.teamId;
       if (!teamId) {
         throw new BadRequestException("User not associated with a team");
       }

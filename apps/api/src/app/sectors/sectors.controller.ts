@@ -1,15 +1,13 @@
 import {
   Controller,
   Get,
-  UseGuards,
   Logger,
 } from "@nestjs/common";
-import { Auth, UseAuthGuard } from "@/app/auth/decorators";
+import { TenantContext, UseAuthGuard } from "@/app/auth/decorators";
 import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
-import { leads } from "@/database/schema-alias";
+import { leadsTable as leads } from "@/database/schema-alias";
 import { sql, eq, and, desc } from "drizzle-orm";
-import { User } from "@/app/user/models/user.model";
 
 /**
  * Sectors API Controller
@@ -29,9 +27,8 @@ export class SectorsController {
    * Get aggregate statistics by pipeline status
    */
   @Get("stats")
-  async stats(@Auth() user: User) {
+  async stats(@TenantContext("teamId") teamId: string) {
     try {
-      const teamId = user.teamId;
       if (!teamId) {
         return {
           raw: 0,
@@ -155,9 +152,8 @@ export class SectorsController {
    * List all sectors with lead counts
    */
   @Get()
-  async list(@Auth() user: User) {
+  async list(@TenantContext("teamId") teamId: string) {
     try {
-      const teamId = user.teamId;
       if (!teamId) {
         return { sectors: [], totalLeads: 0 };
       }
