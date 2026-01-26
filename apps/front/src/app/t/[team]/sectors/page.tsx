@@ -167,6 +167,10 @@ export default function SectorsPage() {
     withEmail: 0,
   });
 
+  // Qualify state
+  const [isQualifying, setIsQualifying] = useState(false);
+  const [qualifyResult, setQualifyResult] = useState<{ ready: number; rejected: number } | null>(null);
+
   // CSV Upload state
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -345,6 +349,39 @@ export default function SectorsPage() {
 
     fetchRealData();
   }, []);
+
+  // Qualify scored leads - moves them from VALIDATED to READY
+  const handleQualify = async () => {
+    if (!teamId) {
+      toast.error("Team ID not found");
+      return;
+    }
+
+    setIsQualifying(true);
+    setQualifyResult(null);
+
+    try {
+      const res = await fetch(`/rest/api/luci/qualify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setQualifyResult({ ready: data.data?.ready || 0, rejected: data.data?.rejected || 0 });
+        toast.success(`${data.data?.ready || 0} leads now READY, ${data.data?.rejected || 0} rejected`);
+        // Refresh stats
+        window.location.reload();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Qualification failed");
+      }
+    } catch (error) {
+      toast.error("Network error");
+    } finally {
+      setIsQualifying(false);
+    }
+  };
 
   // Handle CSV upload - DIRECT TO DATABASE (bypasses DO Spaces)
   const handleUpload = async () => {
@@ -1052,6 +1089,17 @@ export default function SectorsPage() {
                 <div className="text-[10px] text-muted-foreground mt-1">
                   Trestle scored
                 </div>
+                {pipelineStats.validated > 0 && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-2 h-6 text-[10px] px-2"
+                    onClick={handleQualify}
+                    disabled={isQualifying}
+                  >
+                    {isQualifying ? "..." : "→ Qualify"}
+                  </Button>
+                )}
               </div>
 
               {/* READY */}
