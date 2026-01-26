@@ -283,6 +283,51 @@ export async function GET(request: NextRequest) {
     // Load real buckets from DO Spaces
     let buckets = await listBuckets();
 
+    // If no buckets from DO Spaces, create virtual buckets from database leads
+    if (buckets.length === 0) {
+      try {
+        // Import dynamically to avoid circular deps
+        const { db } = await import("@/lib/db");
+        const { leads } = await import("@/lib/db/schema");
+        const { sql, count, isNotNull } = await import("drizzle-orm");
+
+        if (db) {
+          // Get lead stats from database
+          const [totalResult] = await db.select({ count: count() }).from(leads);
+          const [withPhoneResult] = await db
+            .select({ count: count() })
+            .from(leads)
+            .where(sql`${leads.phone} IS NOT NULL AND ${leads.phone} != ''`);
+
+          const totalLeads = Number(totalResult?.count || 0);
+          const enrichedLeads = Number(withPhoneResult?.count || 0);
+
+          if (totalLeads > 0) {
+            // Create a virtual bucket representing all database leads
+            const virtualBucket: Bucket = {
+              id: "db-leads",
+              name: "Database Leads",
+              description: "All leads imported directly to database",
+              source: "csv",
+              filters: {},
+              tags: ["database", "imported"],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              totalLeads,
+              enrichedLeads,
+              queuedLeads: 0,
+              contactedLeads: 0,
+              enrichmentStatus: enrichedLeads > 0 ? "completed" : "pending",
+            };
+            buckets.push(virtualBucket);
+            console.log(`[Buckets API] Added virtual bucket with ${totalLeads} database leads`);
+          }
+        }
+      } catch (dbError) {
+        console.error("[Buckets API] Database fallback failed:", dbError);
+      }
+    }
+
     // Filter by source
     if (source) {
       buckets = buckets.filter((b) => b.source === source);
