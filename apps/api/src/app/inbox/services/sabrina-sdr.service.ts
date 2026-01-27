@@ -3,7 +3,7 @@ import { InjectDB } from "@/database/decorators";
 import { DrizzleClient } from "@/database/types";
 import { eq, and } from "drizzle-orm";
 import { AiOrchestratorService } from "@/app/ai-orchestrator/ai-orchestrator.service";
-import { v4 as uuid } from "uuid";
+import { ULIDGenerator } from "@/lib/id-generator";
 import {
   inboxItemsTable,
   leadsTable,

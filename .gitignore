@@ -204,11 +204,17 @@ ios/Pods/Flipper-RSocket
 
 .vercel
 
-# MCP Config (contains secrets)
+# MCP Config (contains secrets via env var references)
 .mcp.json
+.mcp.disabled.json
+
+# MCP template is safe to commit
+!.mcp.json.example
 
 # Local scripts with secrets
 *.ps1
+# But allow tools directory scripts
+!tools/*.ps1
 do-spec-backup.yaml
 homeowner-advisors-spec.yaml
 nextier-spec-current.yaml

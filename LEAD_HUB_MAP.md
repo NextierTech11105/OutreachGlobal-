@@ -59,8 +59,59 @@ This file orients every layer of the Outreach Global Lead Hub to the scripts, do
 | Property valuation | `scripts/valuation_report.py` (see `valuation-workflow.md`) | `python scripts/valuation_report.py --address "123 Main St" --city "Austin"` |
 | Dashboard / Start docs | `leads/DASHBOARD.md`, `leads/organized/START_HERE.md` | open in editor |
 
+---
+
+## QUICK NAVIGATION (Live links & quick actions)
+
+- **Nextier** — Platform root and admin panels
+- **SECTORS / Dashboard** — Frontend: `/t/{team}/sectors` (per-team dashboard), REST: `GET /rest/sectors/stats`
+- **HUB / Import** — `scripts/import-campaign-blocks.ts` or Frontend: `/t/{team}/data-hub`
+- **B2B Search** — API: `POST /api/b2b/search` (used by Lead Lab and B2B workflows)
+- **Skip Trace** — Enrichment endpoints and scripts: `scripts/assess_leads.py`, `apps/api/src/app/enrichment/` (skiptrace)
+- **Lead Lab** — Frontend: `/lead-lab` or `/leadlab` (experimental); use `leads/` organized datasets
+- **Leads** — Frontend: `/t/{team}/leads` ; REST: `GET /rest/leads`
+- **Data Browser / LAKE** — Raw & organized: `/t/{team}/data-hub`, LUCI endpoints: `/api/luci/*`
+
+**Owner quick links (use only if you are the platform owner):**
+- SMS Blast (live staging): `https://monkfish-app-mb7h3.ondigitalocean.app/t/thomas-borrusos-team-f4371/blast`
+- Dashboard (local): open `tools/lead-dashboard/dashboard.html` after running `pnpm generate:lead-hub`
+
+**Usage tips:**
+- Replace `{team}` with your team slug (e.g., `thomas-borrusos-team-f4371`) when opening frontend links.
+- To run an owner-level action when team context is missing, set `FEATURE_OWNER_BYPASS=true` in your DO env (be careful; usage is audited).
+
+If you'd like, I can convert this into a clickable HTML quick-nav page in `tools/lead-dashboard` for one-click access. Tell me if you want that and I'll add it.
 ## Next Steps
 
 - Run the valuation script, drop the generated markdown under `leads/valuations/`, then load it into your Claude or Luci workflow and link it from the inbox when you reply over SMS.
 - Extend the `sigalahsoue.io` inbox page by wiring the nav items (SMS queue, auto-respond, property link) to this document so every teammate can follow the same mission.
 - Ship additional CLI wrappers (e.g., a menu for Content Hub / Campaign Builder / Valuation / Inbox) once the command list above is stable.
+
+---
+
+## Generated Inventory & Live Dashboard (automated)
+
+- A generator script now exists at `scripts/generate_lead_hub.js` that scans the repo for all CSVs and creates a machine-readable manifest and a quick static dashboard.
+
+How to run:
+
+1. From repo root:
+
+```bash
+node scripts/generate_lead_hub.js
+```
+
+- Output files it writes:
+  - `leads/LEAD_HUB.json` — full JSON manifest (generated, do not manually edit)
+  - `leads/LEAD_HUB_INVENTORY.md` — a readable table of every CSV found (generated)
+  - `tools/lead-dashboard/dashboard.html` — a simple, searchable static dashboard you can open in your browser or VS Code to see every CSV at a glance
+
+Notes:
+- This is safe to run locally. It does not modify CSVs — it only reads them to build indexes and the dashboard.
+- If you want this to run as part of CI or a scheduling job, add a step that runs `node scripts/generate_lead_hub.js` and archives the generated outputs to a build artifact or DO Space.
+
+If you'd like, I can now:
+- Add a package.json script to run the generator (one-line), and
+- Wire a VS Code Task or a simple GitHub Action to run it on demand.
+
+Tell me which option you want next and I will implement it.

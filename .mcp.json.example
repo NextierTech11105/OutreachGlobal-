@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "nx-mcp": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "nx-mcp@latest"]
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      }
+    },
+    "realestate-api-mcp": {
+      "type": "sse",
+      "url": "https://mcp.realestateapi.com/sse",
+      "headers": {
+        "X-API-Key": "${REALESTATE_API_KEY}"
+      }
+    },
+    "reapi-developer": {
+      "type": "sse",
+      "url": "https://developer.mcp.realestateapi.com/sse"
+    },
+    "digitalocean": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-fetch", "https://api.digitalocean.com"],
+      "env": {
+        "DIGITALOCEAN_ACCESS_TOKEN": "${DIGITALOCEAN_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
