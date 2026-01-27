@@ -43,13 +43,51 @@ export default function CampaignHubPage() {
     setSelected(new Set(withPhone.slice(0, 2000).map((l) => l.id)));
   };
 
-  const sendCampaign = () => {
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("Hey {firstName}, I wanted to reach out about your business {company}. Quick question - are you open to a brief conversation this week?");
+
+  const sendCampaign = async () => {
     if (selected.size === 0) {
       alert("Select leads first!");
       return;
     }
-    alert(`Sending ${selected.size} leads to SignalHouse SMS campaign...`);
-    // TODO: actual API call
+    if (!message.trim()) {
+      alert("Enter a message first!");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const selectedList = leads.filter(l => selected.has(l.id) && l.phone);
+      const phones = selectedList.map(l => ({
+        number: l.phone,
+        leadId: l.id,
+      }));
+
+      const res = await fetch("/api/signalhouse/bulk-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          to: phones,
+          message,
+          teamId: team?.id,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(`✅ SUCCESS!\n\nSent: ${data.sent}\nFailed: ${data.failed}\nDaily remaining: ${data.dailyRemaining}`);
+        setSelected(new Set());
+      } else {
+        alert(`❌ ERROR: ${data.error}`);
+      }
+    } catch (err) {
+      alert(`Failed: ${err}`);
+    } finally {
+      setSending(false);
+    }
   };
 
   if (loading) {
@@ -83,20 +121,45 @@ export default function CampaignHubPage() {
         </div>
       </div>
 
-      {/* BIG BUTTONS */}
-      <div className="px-6 flex gap-4">
-        <Button size="lg" variant="outline" className="text-xl py-8 px-12" onClick={selectBatch}>
-          📋 Select 2,000 Leads
-        </Button>
-        <Button
-          size="lg"
-          className="text-xl py-8 px-12 bg-green-600 hover:bg-green-700 flex-1"
-          onClick={sendCampaign}
-          disabled={selected.size === 0}
-        >
-          <Send className="w-6 h-6 mr-3" />
-          SEND TO CAMPAIGN
-        </Button>
+      {/* MESSAGE + BUTTONS */}
+      <div className="px-6 space-y-4">
+        {/* Message Templates */}
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setMessage("Hey {firstName}, I wanted to reach out about your business {company}. Quick question - are you open to a brief conversation this week?")}>
+            Intro
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setMessage("Hi {firstName}! Following up on my last message. Would love to chat about {company} when you have a moment.")}>
+            Follow Up
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setMessage("{firstName}, quick question about {company} - is now a good time to discuss business growth opportunities?")}>
+            Direct
+          </Button>
+        </div>
+
+        {/* Message Input */}
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="w-full h-24 p-4 border rounded-lg bg-background text-lg"
+          placeholder="Enter your message... Use {firstName}, {company}, {city}, etc."
+        />
+        <div className="text-sm text-muted-foreground">{message.length}/480 characters</div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-4">
+          <Button size="lg" variant="outline" className="text-xl py-8 px-12" onClick={selectBatch}>
+            📋 Select 2,000 Leads
+          </Button>
+          <Button
+            size="lg"
+            className="text-xl py-8 px-12 bg-green-600 hover:bg-green-700 flex-1"
+            onClick={sendCampaign}
+            disabled={selected.size === 0 || sending || !message.trim()}
+          >
+            {sending ? <Loader2 className="w-6 h-6 mr-3 animate-spin" /> : <Send className="w-6 h-6 mr-3" />}
+            {sending ? "SENDING..." : `SEND TO ${selected.size} LEADS`}
+          </Button>
+        </div>
       </div>
 
       {/* SIMPLE LIST */}
