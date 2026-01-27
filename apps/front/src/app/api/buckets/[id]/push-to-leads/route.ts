@@ -256,11 +256,21 @@ export async function POST(
             leadTags.push("gold");
           }
 
+          // Handle USBizData "Contact Name" field - split into first/last if needed
+          let firstName = keys.firstName || "";
+          let lastName = keys.lastName || "";
+
+          if (!firstName && keys.contactName) {
+            const nameParts = keys.contactName.trim().split(/\s+/);
+            firstName = nameParts[0] || "";
+            lastName = nameParts.slice(1).join(" ") || "";
+          }
+
           await db.insert(leads).values({
             id: leadId,
             teamId,
-            firstName: keys.firstName || "",
-            lastName: keys.lastName || "",
+            firstName,
+            lastName,
             email: email || "",
             phone: phone ? normalizePhone(phone) : "",
             // mobilePhone: phone ? normalizePhone(phone) : "", // Also set mobile
