@@ -155,6 +155,12 @@ export const navigationGroups: NavGroup[] = [
         icon: Briefcase,
         description: "Active deals",
       },
+      {
+        label: "Properties",
+        href: "/properties",
+        icon: MapPin,
+        description: "Property database",
+      },
     ],
   },
 
