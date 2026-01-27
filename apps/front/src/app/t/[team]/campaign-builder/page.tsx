@@ -1116,16 +1116,16 @@ export default function CampaignBuilderPage() {
               <div>
                 <label className="text-sm font-medium">State</label>
                 <Select
-                  value={universeFilters.state}
+                  value={universeFilters.state || "__all__"}
                   onValueChange={(v) =>
-                    setUniverseFilters({ ...universeFilters, state: v })
+                    setUniverseFilters({ ...universeFilters, state: v === "__all__" ? "" : v })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All States" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All States</SelectItem>
+                    <SelectItem value="__all__">All States</SelectItem>
                     <SelectItem value="NY">New York</SelectItem>
                     <SelectItem value="CA">California</SelectItem>
                     <SelectItem value="TX">Texas</SelectItem>
@@ -1331,16 +1331,16 @@ export default function CampaignBuilderPage() {
                       )}
                     </div>
                     <Select
-                      value={fieldMappings[field.key] || ""}
+                      value={fieldMappings[field.key] || "__none__"}
                       onValueChange={(v) =>
-                        setFieldMappings((m) => ({ ...m, [field.key]: v }))
+                        setFieldMappings((m) => ({ ...m, [field.key]: v === "__none__" ? "" : v }))
                       }
                     >
                       <SelectTrigger className="flex-1 bg-background">
                         <SelectValue placeholder="Select column..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">-- Not mapped --</SelectItem>
+                        <SelectItem value="__none__">-- Not mapped --</SelectItem>
                         {csvHeaders.map((header) => (
                           <SelectItem key={header} value={header}>
                             {header}

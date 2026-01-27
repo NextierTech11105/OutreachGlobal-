@@ -1070,14 +1070,14 @@ export const LeadTable = () => {
 
         {/* State filter */}
         <Select
-          value={filters.state}
-          onValueChange={(v) => handleFilterChange("state", v)}
+          value={filters.state || "__all__"}
+          onValueChange={(v) => handleFilterChange("state", v === "__all__" ? "" : v)}
         >
           <SelectTrigger className="h-8 w-[100px]">
             <SelectValue placeholder="State" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All States</SelectItem>
+            <SelectItem value="__all__">All States</SelectItem>
             <SelectItem value="TX">Texas</SelectItem>
             <SelectItem value="CA">California</SelectItem>
             <SelectItem value="FL">Florida</SelectItem>
@@ -1093,14 +1093,14 @@ export const LeadTable = () => {
 
         {/* Enrichment Status */}
         <Select
-          value={filters.enrichmentStatus}
-          onValueChange={(v) => handleFilterChange("enrichmentStatus", v)}
+          value={filters.enrichmentStatus || "__all__"}
+          onValueChange={(v) => handleFilterChange("enrichmentStatus", v === "__all__" ? "" : v)}
         >
           <SelectTrigger className="h-8 w-[110px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="__all__">All Status</SelectItem>
             <SelectItem value="raw">Raw</SelectItem>
             <SelectItem value="traced">Traced</SelectItem>
             <SelectItem value="scored">Scored</SelectItem>
