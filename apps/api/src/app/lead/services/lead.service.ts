@@ -111,29 +111,30 @@ export class LeadService {
       )
       .$dynamic();
 
-    // Dynamic sort column selection
-    const getSortColumn = () => {
-      switch (sortBy) {
-        case "score":
-          return leadsTable.score;
-        case "company":
-          return leadsTable.company;
-        case "state":
-          return leadsTable.state;
-        case "sicCode":
-          return leadsTable.sicCode;
-        case "createdAt":
-        default:
-          return leadsTable.createdAt;
-      }
-    };
-
     return this.dbService.withCursorPagination(query, {
       ...options,
-      cursors: () => [
-        getCursorOrder(getSortColumn(), sortDirection !== "asc"),
-        getCursorOrder(leadsTable.id, true), // Secondary sort for stability
-      ],
+      cursors: (sq) => {
+        // Use CTE columns (sq) instead of table columns to avoid qualified names in ORDER BY
+        const getSortColumn = () => {
+          switch (sortBy) {
+            case "score":
+              return sq.score;
+            case "company":
+              return sq.company;
+            case "state":
+              return sq.state;
+            case "sicCode":
+              return sq.sicCode;
+            case "createdAt":
+            default:
+              return sq.createdAt;
+          }
+        };
+        return [
+          getCursorOrder(getSortColumn(), sortDirection !== "asc"),
+          getCursorOrder(sq.id, true), // Secondary sort for stability
+        ];
+      },
     });
   }
 
