@@ -20,7 +20,7 @@ const LEADS_DATA_QUERY = gql`
     leads(teamId: $teamId, first: $first, after: $after, searchQuery: $searchQuery) {
       pageInfo {
         hasNextPage
-        hasPreviousPage
+        hasPrevPage
         startCursor
         endCursor
       }
