@@ -78,7 +78,9 @@ export default function CampaignHubPage() {
 
       try {
         // Use the leads API with pipeline_stats action
-        const statsRes = await fetch(`/api/leads?action=pipeline_stats`);
+        const statsRes = await fetch(`/api/leads?action=pipeline_stats`, {
+          credentials: "include",
+        });
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           if (statsData.pipeline) {
@@ -94,7 +96,9 @@ export default function CampaignHubPage() {
 
         // Don't pass status filter when "all" is selected
         const statusParam = statusFilter !== "all" ? `&status=${statusFilter}` : "";
-        const leadsRes = await fetch(`/api/leads?limit=100${statusParam}`);
+        const leadsRes = await fetch(`/api/leads?limit=100${statusParam}`, {
+          credentials: "include",
+        });
         if (leadsRes.ok) {
           const leadsData = await leadsRes.json();
           setLeads(leadsData.leads || []);
