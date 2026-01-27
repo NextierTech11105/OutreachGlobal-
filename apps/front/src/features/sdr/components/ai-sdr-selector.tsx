@@ -45,18 +45,26 @@ const DEFAULT_AI_SDRS = [
 
 interface AiSdrAvatarsQuery {
   aiSdrAvatars: {
-    id: string;
-    name: string;
-    avatarUrl?: string | null;
-  }[];
+    edges: Array<{
+      node: {
+        id: string;
+        name: string;
+        avatarUrl?: string | null;
+      };
+    }>;
+  };
 }
 
 const AI_SDR_AVATARS_QUERY: TypedDocumentNode<AiSdrAvatarsQuery> = gql`
   query AiSdrAvatars($teamId: ID!) {
     aiSdrAvatars(teamId: $teamId) {
-      id
-      name
-      avatarUrl
+      edges {
+        node {
+          id
+          name
+          avatarUrl
+        }
+      }
     }
   }
 `;
@@ -130,7 +138,7 @@ export const AiSdrSelector = forwardRef<HTMLButtonElement, AiSdrSelectorProps>(
     });
 
     // Use database avatars if available, otherwise use defaults
-    const dbAvatars = data?.aiSdrAvatars || [];
+    const dbAvatars = data?.aiSdrAvatars?.edges?.map(e => e.node) || [];
     const useDefaults = dbAvatars.length === 0;
 
     const selectedSdr = DEFAULT_AI_SDRS.find((sdr) => sdr.id === value);
