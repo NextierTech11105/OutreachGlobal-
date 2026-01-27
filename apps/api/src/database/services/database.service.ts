@@ -68,13 +68,30 @@ export class DatabaseService {
 
     const cursor = generateCursor(cursorConfig);
 
+    // Sanitize orderBy clauses to remove any table qualifiers (e.g. "leads"."created_at")
+    // so the outer query ordering references the CTE columns (created_at, id) instead of the inner table alias.
+    const rawOrderBy: any[] = cursor.orderBy || [];
+    const sanitizedOrderBy = rawOrderBy.map((ob: any) => {
+      try {
+        // Convert to string and strip any "table". qualifiers from identifiers
+        const s = String(ob);
+        const stripped = s.replace(/"[^" ]+"\./g, "");
+        // Use sql.raw to preserve ordering fragments
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { sql } = require("drizzle-orm");
+        return sql.raw(stripped);
+      } catch (e) {
+        return ob;
+      }
+    });
+
     const query = this.db
       .with(sq)
       .select()
       .from(sq)
       .where(cursor.where(cursorToken))
       .limit(limit)
-      .orderBy(...cursor.orderBy)
+      .orderBy(...sanitizedOrderBy)
       .$dynamic();
 
     const results = await query;
