@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useTeam } from "@/features/team/hooks/use-team";
+import { useCurrentTeam } from "@/features/team/team.context";
 import {
   Database,
   Send,
@@ -55,7 +55,7 @@ interface PipelineStats {
 }
 
 export default function CampaignHubPage() {
-  const { team } = useTeam();
+  const { team } = useCurrentTeam();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
