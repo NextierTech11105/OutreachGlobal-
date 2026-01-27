@@ -1131,9 +1131,9 @@ export async function POST(request: NextRequest) {
           ).length,
         },
         usage: {
-          today: dailyUsage.count,
+          today: dailyUsageFallback.count,
           limit: DAILY_LIMIT,
-          remaining: DAILY_LIMIT - dailyUsage.count,
+          remaining: DAILY_LIMIT - dailyUsageFallback.count,
         },
         remaining: propertyIds.length - idsToProcess.length,
         nextBatchIds: propertyIds.slice(
@@ -1262,9 +1262,9 @@ export async function POST(request: NextRequest) {
         ...result,
         success: result?.success || false,
         usage: {
-          today: dailyUsage.count,
+          today: dailyUsageFallback.count,
           limit: DAILY_LIMIT,
-          remaining: DAILY_LIMIT - dailyUsage.count,
+          remaining: DAILY_LIMIT - dailyUsageFallback.count,
         },
         ...(smsQueueResult && {
           smsQueue: {
@@ -1298,9 +1298,9 @@ export async function POST(request: NextRequest) {
         failed: batchInputs.length - successful.length,
       },
       usage: {
-        today: dailyUsage.count,
+        today: dailyUsageFallback.count,
         limit: DAILY_LIMIT,
-        remaining: DAILY_LIMIT - dailyUsage.count,
+        remaining: DAILY_LIMIT - dailyUsageFallback.count,
       },
       ...(smsQueueResult && {
         smsQueue: {
