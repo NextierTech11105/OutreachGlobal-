@@ -5,7 +5,7 @@ import { DrizzleClient } from "../../types";
 describe("DatabaseService.withCursorPagination (sanitized ordering)", () => {
   test("does not throw when cursor order contains table-qualified identifiers", async () => {
     // We can't run a real DB here; test focuses on not throwing when building the query
-    const fakeDb: any = {
+    const fakeDb = {
       $with: (name: string) => ({ name }),
       with: function () { return this; },
       select: function () { return this; },
@@ -14,7 +14,7 @@ describe("DatabaseService.withCursorPagination (sanitized ordering)", () => {
       limit: function () { return this; },
       orderBy: function () { return this; },
       $dynamic: async function () { return []; },
-    } as DrizzleClient;
+    } as unknown as DrizzleClient;
 
     const svc = new DatabaseService(fakeDb as any);
 
