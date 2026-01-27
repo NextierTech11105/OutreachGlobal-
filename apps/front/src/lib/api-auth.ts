@@ -79,6 +79,9 @@ export async function apiAuth(): Promise<{
   userId: string | null;
   teamId: string | null;
   tenantId: string | null;
+  role: string | null;
+  isOwner: boolean;
+  canBypass: boolean;
 }> {
   try {
     const cookieStore = await cookies();
@@ -88,7 +91,7 @@ export async function apiAuth(): Promise<{
       cookieStore.get("session")?.value;
 
     if (!token) {
-      return { userId: null, teamId: null, tenantId: null };
+      return { userId: null, teamId: null, tenantId: null, role: null, isOwner: false, canBypass: false };
     }
 
     // Decode JWT (verification happens on backend via GraphQL)
@@ -96,7 +99,7 @@ export async function apiAuth(): Promise<{
 
     // Check if token is expired
     if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-      return { userId: null, teamId: null, tenantId: null };
+      return { userId: null, teamId: null, tenantId: null, role: null, isOwner: false, canBypass: false };
     }
 
     // Get teamId from JWT or lookup from database
@@ -105,14 +108,45 @@ export async function apiAuth(): Promise<{
       teamId = await lookupUserTeam(decoded.sub);
     }
 
+    // Fetch role and ownership info from DB if available
+    let role: string | null = null;
+    let isOwner = false;
+    try {
+      if (decoded.sub && db) {
+        const userResult = await db
+          .select({ id: users.id, role: users.role })
+          .from(users)
+          .where(eq(users.id, decoded.sub))
+          .limit(1);
+        if (userResult.length > 0) {
+          role = userResult[0].role ?? null;
+        }
+
+        // Check if user is an owner of any team
+        const ownerCheck = await db
+          .select({ id: teams.id })
+          .from(teams)
+          .where(eq(teams.ownerId, decoded.sub))
+          .limit(1);
+        isOwner = ownerCheck.length > 0;
+      }
+    } catch (e) {
+      console.error('[apiAuth] role/owner lookup failed', e);
+    }
+
+    const canBypass = (process.env.FEATURE_OWNER_BYPASS === 'true' && isOwner) || role === SUPER_ADMIN_ROLE;
+
     return {
       userId: decoded.sub,
       teamId,
       tenantId: decoded.tenantId ?? null,
+      role,
+      isOwner,
+      canBypass,
     };
   } catch (error) {
     console.error("[apiAuth] Error:", error);
-    return { userId: null, teamId: null, tenantId: null };
+    return { userId: null, teamId: null, tenantId: null, role: null, isOwner: false, canBypass: false };
   }
 }
 
@@ -127,6 +161,9 @@ export async function getApiAuthContext(): Promise<{
   email: string | null;
   tenantId: string | null;
   teamId: string | null;
+  role: string | null;
+  isOwner: boolean;
+  canBypass: boolean;
 }> {
   try {
     const cookieStore = await cookies();
@@ -141,6 +178,9 @@ export async function getApiAuthContext(): Promise<{
         email: null,
         tenantId: null,
         teamId: null,
+        role: null,
+        isOwner: false,
+        canBypass: false,
       };
     }
 
@@ -153,6 +193,9 @@ export async function getApiAuthContext(): Promise<{
         email: null,
         tenantId: null,
         teamId: null,
+        role: null,
+        isOwner: false,
+        canBypass: false,
       };
     }
 
@@ -162,12 +205,43 @@ export async function getApiAuthContext(): Promise<{
       teamId = await lookupUserTeam(decoded.sub);
     }
 
+    // Fetch role and ownership info from DB if available
+    let role: string | null = null;
+    let isOwner = false;
+    try {
+      if (decoded.sub && db) {
+        const userResult = await db
+          .select({ id: users.id, role: users.role })
+          .from(users)
+          .where(eq(users.id, decoded.sub))
+          .limit(1);
+        if (userResult.length > 0) {
+          role = userResult[0].role ?? null;
+        }
+
+        // Check if user is an owner of any team
+        const ownerCheck = await db
+          .select({ id: teams.id })
+          .from(teams)
+          .where(eq(teams.ownerId, decoded.sub))
+          .limit(1);
+        isOwner = ownerCheck.length > 0;
+      }
+    } catch (e) {
+      console.error('[getApiAuthContext] role/owner lookup failed', e);
+    }
+
+    const canBypass = (process.env.FEATURE_OWNER_BYPASS === 'true' && isOwner) || role === SUPER_ADMIN_ROLE;
+
     return {
       userId: decoded.sub,
       token,
       email: decoded.username,
       tenantId: decoded.tenantId ?? null,
       teamId,
+      role,
+      isOwner,
+      canBypass,
     };
   } catch (error) {
     console.error("[getApiAuthContext] Error:", error);
@@ -177,6 +251,9 @@ export async function getApiAuthContext(): Promise<{
       email: null,
       tenantId: null,
       teamId: null,
+      role: null,
+      isOwner: false,
+      canBypass: false,
     };
   }
 }
@@ -187,10 +264,13 @@ export async function getApiAuthContext(): Promise<{
  */
 export async function requireTenantContext(): Promise<{
   userId: string;
-  teamId: string;
+  teamId: string | null;
   tenantId: string | null;
   token: string;
   email: string | null;
+  role?: string | null;
+  isOwner?: boolean;
+  canBypass?: boolean;
 }> {
   const ctx = await getApiAuthContext();
 
@@ -198,17 +278,50 @@ export async function requireTenantContext(): Promise<{
     throw new Error("Unauthorized: missing session token");
   }
 
-  if (!ctx.teamId) {
-    throw new Error("Unauthorized: team context required");
+  // If we have a team context, return it immediately
+  if (ctx.teamId) {
+    return {
+      userId: ctx.userId,
+      teamId: ctx.teamId,
+      tenantId: ctx.tenantId,
+      token: ctx.token,
+      email: ctx.email,
+      role: ctx.role,
+      isOwner: ctx.isOwner,
+      canBypass: ctx.canBypass,
+    };
   }
 
-  return {
-    userId: ctx.userId,
-    teamId: ctx.teamId,
-    tenantId: ctx.tenantId,
-    token: ctx.token,
-    email: ctx.email,
-  };
+  // Owner bypass enabled and user can bypass (owner or super-admin)
+  if (ctx.canBypass) {
+    // Audit: log that an owner bypass occurred (structured console warn for now)
+    try {
+      console.warn(JSON.stringify({
+        level: 'warn',
+        source: 'auth',
+        message: `Owner bypass used by user ${ctx.userId}`,
+        userId: ctx.userId,
+        note: 'FEATURE_OWNER_BYPASS',
+        timestamp: new Date().toISOString(),
+      }));
+    } catch {
+      // Ignore logging errors
+    }
+
+    return {
+      userId: ctx.userId,
+      teamId: null,
+      tenantId: ctx.tenantId,
+      token: ctx.token,
+      email: ctx.email,
+      role: ctx.role,
+      isOwner: ctx.isOwner,
+      canBypass: ctx.canBypass,
+    };
+  }
+
+  // Default: require a team context
+  throw new Error("Unauthorized: team context required");
 }
 
 /**
