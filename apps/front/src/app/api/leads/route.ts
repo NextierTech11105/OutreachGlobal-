@@ -231,10 +231,10 @@ export async function GET(request: NextRequest) {
       const sicCodeVal = get("sicCode", "sic_code", "sic", "SIC Code", "Primary SIC Code", "primary_sic_code") || "";
       const sicDescVal = get("sicDescription", "sic_description", "SIC Description", "Primary SIC Description", "primary_sic_description") || "";
 
-      // Handle names - check multiple formats including "Contact Name" which needs splitting
-      const contactName = get("contactName", "contact_name", "Contact Name") as string || "";
-      const firstNameVal = lead.firstName || get("firstName", "first_name", "first") || contactName.split(" ")[0] || "";
-      const lastNameVal = lead.lastName || get("lastName", "last_name", "last") || contactName.split(" ").slice(1).join(" ") || "";
+      // Handle names - check ALL USBizData variations including Key Person, Owner, Principal
+      const contactName = get("contactName", "contact_name", "Contact Name", "keyPerson", "key_person", "Key Person", "ownerName", "owner_name", "Owner Name", "principalName", "principal_name", "Principal Name") as string || "";
+      const firstNameVal = lead.firstName || get("firstName", "first_name", "first", "key_person_first_name", "Key Person First Name", "owner_first_name", "Owner First Name") || contactName.split(" ")[0] || "";
+      const lastNameVal = lead.lastName || get("lastName", "last_name", "last", "key_person_last_name", "Key Person Last Name", "owner_last_name", "Owner Last Name") || contactName.split(" ").slice(1).join(" ") || "";
       const companyVal = lead.company || get("company", "companyName", "company_name", "Company Name", "business", "business_name") || "";
 
       return {

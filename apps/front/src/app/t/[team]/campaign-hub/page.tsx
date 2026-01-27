@@ -64,6 +64,8 @@ const SORT_OPTIONS = [
   { value: "state", label: "State" },
   { value: "revenue", label: "Revenue" },
   { value: "employees", label: "Employees" },
+  { value: "sicCode", label: "SIC Code" },
+  { value: "industry", label: "Industry" },
 ];
 
 function formatRevenue(rev: number | null): string {

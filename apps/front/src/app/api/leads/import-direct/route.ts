@@ -82,11 +82,15 @@ export async function POST(request: NextRequest) {
           // Extract street address from various fields
           const streetAddr = lead.streetAddress || lead.address || lead.address1 || null;
 
+          // Get full name from various USBizData fields for splitting
+          const fullName = lead.contactName || lead.keyPerson || lead.ownerName || lead.principalName || "";
+          const nameParts = fullName.split(" ");
+
           return {
             id: generateLeadId(),
-            // Names - handle contactName split
-            firstName: lead.firstName || lead.contactName?.split(" ")[0] || "",
-            lastName: lead.lastName || lead.contactName?.split(" ").slice(1).join(" ") || "",
+            // Names - check direct fields first, then split full name
+            firstName: lead.firstName || nameParts[0] || "",
+            lastName: lead.lastName || nameParts.slice(1).join(" ") || "",
             phone: phone || null,
             email: email,
             company: lead.company || lead.companyName || lead.business || null,
@@ -221,15 +225,34 @@ function normalizeHeader(header: string): string {
 
   // COMPREHENSIVE MAPPINGS - includes USBizData exact column names
   const mappings: Record<string, string> = {
-    // Names
+    // Names - ALL USBIZDATA VARIATIONS
     first_name: "firstName",
     firstname: "firstName",
     first: "firstName",
+    key_person_first_name: "firstName",
+    keypersonfirstname: "firstName",
+    owner_first_name: "firstName",
+    ownerfirstname: "firstName",
+    contact_first_name: "firstName",
+    contactfirstname: "firstName",
+    principal_first_name: "firstName",
     contact_name: "contactName",
     contactname: "contactName",
+    key_person: "contactName",
+    keyperson: "contactName",
+    owner_name: "contactName",
+    ownername: "contactName",
+    principal_name: "contactName",
     last_name: "lastName",
     lastname: "lastName",
     last: "lastName",
+    key_person_last_name: "lastName",
+    keypersonlastname: "lastName",
+    owner_last_name: "lastName",
+    ownerlastname: "lastName",
+    contact_last_name: "lastName",
+    contactlastname: "lastName",
+    principal_last_name: "lastName",
 
     // Phone
     phone_number: "phone",
