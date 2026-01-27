@@ -33,6 +33,8 @@ interface Lead {
   city: string;
   state: string;
   zipCode: string;
+  county: string | null;
+  areaCode: string | null;
   source: string;
   revenue: number | null;
   employees: number | null;
@@ -43,6 +45,7 @@ interface Lead {
   yearEstablished: number | null;
   website: string | null;
   listSource: string | null;
+  originalData?: Record<string, unknown>;
 }
 
 const LIST_SOURCES = [
@@ -394,6 +397,7 @@ export default function CampaignHubPage() {
                       <div className="text-xs">
                         {lead.address && <div className="font-medium">{lead.address}</div>}
                         <div>{lead.city}, {lead.state} {lead.zipCode}</div>
+                        {lead.county && <div className="text-muted-foreground">{lead.county} County</div>}
                       </div>
                     </td>
                     <td className="p-2">
