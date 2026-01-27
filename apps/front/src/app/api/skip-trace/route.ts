@@ -152,12 +152,13 @@ import { redis, isRedisAvailable } from "@/lib/redis";
 
 const SKIP_TRACE_DAILY_KEY_PREFIX = "skiptrace:daily:";
 
-// Fallback in-memory tracker (only used when Redis unavailable)
-const dailyUsageFallback: { date: string; count: number } = {
+type DailyUsage = { date: string; count: number };
+
+// In-memory tracker (used when Redis is unavailable)
+const dailyUsage: DailyUsage = {
   date: new Date().toISOString().split("T")[0],
   count: 0,
 };
-
 async function getDailyUsage(): Promise<{
   date: string;
   count: number;
@@ -181,14 +182,14 @@ async function getDailyUsage(): Promise<{
   }
 
   // Fallback to in-memory
-  if (dailyUsageFallback.date !== today) {
-    dailyUsageFallback.date = today;
-    dailyUsageFallback.count = 0;
+  if (dailyUsage.date !== today) {
+    dailyUsage.date = today;
+    dailyUsage.count = 0;
   }
   return {
-    date: dailyUsageFallback.date,
-    count: dailyUsageFallback.count,
-    remaining: DAILY_LIMIT - dailyUsageFallback.count,
+    date: dailyUsage.date,
+    count: dailyUsage.count,
+    remaining: DAILY_LIMIT - dailyUsage.count,
   };
 }
 
@@ -214,7 +215,7 @@ async function incrementUsage(amount: number): Promise<boolean> {
   }
 
   // Fallback to in-memory
-  dailyUsageFallback.count += amount;
+  dailyUsage.count += amount;
   return true;
 }
 
@@ -1131,9 +1132,9 @@ export async function POST(request: NextRequest) {
           ).length,
         },
         usage: {
-          today: dailyUsageFallback.count,
+          today: usage.count,
           limit: DAILY_LIMIT,
-          remaining: DAILY_LIMIT - dailyUsageFallback.count,
+          remaining: usage.remaining,
         },
         remaining: propertyIds.length - idsToProcess.length,
         nextBatchIds: propertyIds.slice(
@@ -1262,9 +1263,9 @@ export async function POST(request: NextRequest) {
         ...result,
         success: result?.success || false,
         usage: {
-          today: dailyUsageFallback.count,
+          today: usage.count,
           limit: DAILY_LIMIT,
-          remaining: DAILY_LIMIT - dailyUsageFallback.count,
+          remaining: usage.remaining,
         },
         ...(smsQueueResult && {
           smsQueue: {
@@ -1298,9 +1299,9 @@ export async function POST(request: NextRequest) {
         failed: batchInputs.length - successful.length,
       },
       usage: {
-        today: dailyUsageFallback.count,
+        today: usage.count,
         limit: DAILY_LIMIT,
-        remaining: DAILY_LIMIT - dailyUsageFallback.count,
+        remaining: usage.remaining,
       },
       ...(smsQueueResult && {
         smsQueue: {

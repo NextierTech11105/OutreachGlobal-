@@ -255,6 +255,11 @@ export class SubscriptionService implements OnModuleInit {
       }
     }
 
+    // Ensure plan exists before creating subscription
+    if (!plan) {
+      throw new Error("Failed to find or create starter plan");
+    }
+
     // Create the subscription
     const [subscription] = await this.db
       .insert(subscriptionsTable)
