@@ -48,13 +48,14 @@ interface Lead {
   originalData?: Record<string, unknown>;
 }
 
+// Filter values must match what's stored in leads.source column
 const LIST_SOURCES = [
   { value: "all", label: "All" },
-  { value: "usbizdata", label: "USBizData" },
-  { value: "apollo", label: "Apollo" },
-  { value: "tracerfy", label: "Tracerfy" },
-  { value: "propwire", label: "PropWire" },
-  { value: "csv", label: "CSV" },
+  { value: "csv-import", label: "CSV Import" },
+  { value: "csv_import", label: "CSV" },
+  { value: "import", label: "Import" },
+  { value: "api", label: "API" },
+  { value: "skip-trace", label: "Skip Trace" },
 ];
 
 const SORT_OPTIONS = [
