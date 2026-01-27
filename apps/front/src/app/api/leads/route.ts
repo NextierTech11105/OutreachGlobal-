@@ -195,46 +195,63 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Transform leads to match frontend type
-    const transformedLeads = results.map((lead: (typeof results)[number]) => ({
-      id: lead.id,
-      firstName: lead.firstName || "",
-      lastName: lead.lastName || "",
-      name:
-        [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
-      company: lead.company || "",
-      title: lead.title || "",
-      address: lead.address || "",
-      city: lead.city || "",
-      state: lead.state || "",
-      zipCode: lead.zipCode || "",
-      email: lead.email || "",
-      phone: lead.phone || "",
-      phoneNumbers: lead.phone
-        ? [
-            {
-              number: lead.phone,
-              label: "Primary",
-              isPrimary: true,
-              lineType: "mobile",
-              verified: true,
-              lastVerified: new Date().toISOString(),
-            },
-          ]
-        : [],
-      status: mapDbStatusToFrontend(lead.status || "new"),
-      pipelineStatus: lead.pipelineStatus,
-      score: lead.score || 0,
-      source: lead.source || "import",
-      priority: "Medium" as const,
-      assignedTo: undefined,
-      lastContactDate: undefined,
-      nextFollowUp: undefined,
-      notes: lead.notes || "",
-      tags: leadTagsMap[lead.id] || [],
-      createdAt: lead.createdAt.toISOString(),
-      updatedAt: lead.updatedAt.toISOString(),
-    }));
+    // Transform leads to match frontend type - INCLUDE ALL USBIZDATA FIELDS
+    const transformedLeads = results.map((lead: (typeof results)[number]) => {
+      // Extract USBizData fields from metadata
+      const meta = (lead.metadata as Record<string, unknown>) || {};
+
+      return {
+        id: lead.id,
+        firstName: lead.firstName || "",
+        lastName: lead.lastName || "",
+        name:
+          [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
+        company: lead.company || "",
+        title: lead.title || "",
+        address: lead.address || "",
+        city: lead.city || "",
+        state: lead.state || "",
+        zipCode: lead.zipCode || "",
+        email: lead.email || "",
+        phone: lead.phone || "",
+        phoneNumbers: lead.phone
+          ? [
+              {
+                number: lead.phone,
+                label: "Primary",
+                isPrimary: true,
+                lineType: "mobile",
+                verified: true,
+                lastVerified: new Date().toISOString(),
+              },
+            ]
+          : [],
+        status: mapDbStatusToFrontend(lead.status || "new"),
+        pipelineStatus: lead.pipelineStatus,
+        score: lead.score || 0,
+        source: lead.source || "import",
+        priority: "Medium" as const,
+        assignedTo: undefined,
+        lastContactDate: undefined,
+        nextFollowUp: undefined,
+        notes: lead.notes || "",
+        tags: leadTagsMap[lead.id] || [],
+        createdAt: lead.createdAt.toISOString(),
+        updatedAt: lead.updatedAt.toISOString(),
+        // === USBIZDATA FIELDS FROM METADATA ===
+        revenue: meta.revenue || meta.salesVolume || meta.annualRevenue || null,
+        employees: meta.employees || meta.employeeCount || meta.numEmployees || null,
+        sicCode: meta.sicCode || meta.sic || meta.primarySicCode || null,
+        sicDescription: meta.sicDescription || meta.primarySicDescription || null,
+        naicsCode: meta.naicsCode || meta.naics || null,
+        industry: meta.industry || meta.industryCategory || null,
+        yearEstablished: meta.yearEstablished || meta.yearStarted || null,
+        website: meta.website || meta.url || null,
+        listSource: meta.listSource || meta.dataSource || lead.source || null,
+        // Raw metadata for anything else
+        metadata: meta,
+      };
+    });
 
     return NextResponse.json({
       success: true,
