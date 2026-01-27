@@ -215,28 +215,34 @@ export async function GET(request: NextRequest) {
         return null;
       };
 
-      // USBIZDATA FIELDS - check normalized keys AND original column names
-      // CSV headers like "Street Address" become "streetAddress" after normalization
-      const streetAddress = lead.address || get("streetAddress", "address", "Street Address", "Address") || "";
+      // USBIZDATA FIELDS - check ALL possible key formats:
+      // 1. camelCase (new imports): annualRevenue
+      // 2. snake_case (old imports): annual_revenue
+      // 3. Original CSV headers: "Annual Revenue"
+      const streetAddress = lead.address || get("streetAddress", "street_address", "address", "Street Address", "Address") || "";
       const cityVal = lead.city || get("city", "City") || "";
       const stateVal = lead.state || get("state", "State") || "";
-      const zipVal = lead.zipCode || get("zipCode", "zip", "Zip Code", "Zip") || "";
+      const zipVal = lead.zipCode || get("zipCode", "zip_code", "zip", "Zip Code", "Zip") || "";
       const countyVal = get("county", "County") || "";
-      const areaCode = get("areaCode", "Area Code") || "";
-      const websiteUrl = get("website", "websiteUrl", "Website URL", "Website", "url", "webAddress") || "";
-      const numEmployees = get("employees", "employeeCount", "Number of Employees", "Employees") || null;
-      const annualRev = get("annualRevenue", "revenue", "salesVolume", "Annual Revenue", "Sales Volume") || null;
-      const sicCodeVal = get("sicCode", "SIC Code", "sic", "Primary SIC Code") || "";
-      const sicDescVal = get("sicDescription", "SIC Description", "Primary SIC Description") || "";
+      const areaCode = get("areaCode", "area_code", "Area Code") || "";
+      const websiteUrl = get("website", "websiteUrl", "website_url", "web_address", "Website URL", "Website", "url") || "";
+      const numEmployees = get("employees", "employeeCount", "employee_count", "number_of_employees", "Number of Employees", "Employees") || null;
+      const annualRev = get("annualRevenue", "annual_revenue", "revenue", "salesVolume", "sales_volume", "Annual Revenue", "Sales Volume") || null;
+      const sicCodeVal = get("sicCode", "sic_code", "sic", "SIC Code", "Primary SIC Code", "primary_sic_code") || "";
+      const sicDescVal = get("sicDescription", "sic_description", "SIC Description", "Primary SIC Description", "primary_sic_description") || "";
+
+      // Handle names - check multiple formats including "Contact Name" which needs splitting
+      const contactName = get("contactName", "contact_name", "Contact Name") as string || "";
+      const firstNameVal = lead.firstName || get("firstName", "first_name", "first") || contactName.split(" ")[0] || "";
+      const lastNameVal = lead.lastName || get("lastName", "last_name", "last") || contactName.split(" ").slice(1).join(" ") || "";
+      const companyVal = lead.company || get("company", "companyName", "company_name", "Company Name", "business", "business_name") || "";
 
       return {
         id: lead.id,
-        firstName: lead.firstName || get("Contact Name", "contactName", "first_name") || "",
-        lastName: lead.lastName || "",
-        name:
-          [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
-          (get("Contact Name") as string) || "Unknown",
-        company: lead.company || get("Company Name", "companyName", "company") || "",
+        firstName: firstNameVal,
+        lastName: lastNameVal,
+        name: [firstNameVal, lastNameVal].filter(Boolean).join(" ") || contactName || companyVal || "Unknown",
+        company: companyVal,
         title: lead.title || "",
         // FULL ADDRESS
         address: streetAddress,
