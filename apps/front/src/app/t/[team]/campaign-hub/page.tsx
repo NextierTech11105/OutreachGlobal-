@@ -74,6 +74,8 @@ export default function CampaignHubPage() {
   const [smsMessage, setSmsMessage] = useState("");
   const [activePanel, setActivePanel] = useState<"sms" | "enrich" | "queue" | null>("sms");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("createdAt");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch leads and stats
@@ -99,9 +101,12 @@ export default function CampaignHubPage() {
           }
         }
 
-        // Don't pass status filter when "all" is selected
-        const statusParam = statusFilter !== "all" ? `&status=${statusFilter}` : "";
-        const leadsRes = await fetch(`/api/leads?limit=100${statusParam}`, {
+        // Build query params
+        const params = new URLSearchParams({ limit: "100", sortBy });
+        if (statusFilter !== "all") params.append("status", statusFilter);
+        if (sourceFilter !== "all") params.append("source", sourceFilter);
+
+        const leadsRes = await fetch(`/api/leads?${params.toString()}`, {
           credentials: "include",
         });
         if (leadsRes.ok) {
@@ -116,7 +121,7 @@ export default function CampaignHubPage() {
     };
 
     fetchData();
-  }, [team?.id, statusFilter]);
+  }, [team?.id, statusFilter, sourceFilter, sortBy]);
 
   const toggleLeadSelection = (leadId: string) => {
     const newSelection = new Set(selectedLeads);
@@ -238,14 +243,38 @@ export default function CampaignHubPage() {
               className="flex-1"
             />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger className="w-28">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="raw">Raw</SelectItem>
                 <SelectItem value="traced">Traced</SelectItem>
                 <SelectItem value="ready">Ready</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="usbizdata">USBizData</SelectItem>
+                <SelectItem value="apollo">Apollo</SelectItem>
+                <SelectItem value="tracerfy">Tracerfy</SelectItem>
+                <SelectItem value="propwire">PropWire</SelectItem>
+                <SelectItem value="import">CSV Import</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-28">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="createdAt">Newest</SelectItem>
+                <SelectItem value="score">Score</SelectItem>
+                <SelectItem value="company">Company</SelectItem>
+                <SelectItem value="state">State</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" onClick={select2KBatch}>
