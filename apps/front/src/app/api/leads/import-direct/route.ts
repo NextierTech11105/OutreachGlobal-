@@ -79,27 +79,47 @@ export async function POST(request: NextRequest) {
           if (phone) results.withPhone++;
           if (email) results.withEmail++;
 
+          // Extract street address from various fields
+          const streetAddr = lead.streetAddress || lead.address || lead.address1 || null;
+
           return {
             id: generateLeadId(),
-            firstName: lead.firstName || lead.first_name || lead.first || "",
-            lastName: lead.lastName || lead.last_name || lead.last || "",
+            // Names - handle contactName split
+            firstName: lead.firstName || lead.contactName?.split(" ")[0] || "",
+            lastName: lead.lastName || lead.contactName?.split(" ").slice(1).join(" ") || "",
             phone: phone || null,
             email: email,
             company: lead.company || lead.companyName || lead.business || null,
             title: lead.title || lead.jobTitle || lead.position || null,
-            address: lead.address || lead.streetAddress || lead.address1 || null,
+            // ADDRESS - store street in address column
+            address: streetAddr,
             city: lead.city || null,
             state: lead.state || null,
-            zipCode: lead.zip || lead.zipCode || lead.postalCode || null,
+            zipCode: lead.zipCode || lead.zip || lead.postalCode || null,
             source: source,
             pipelineStatus: "raw",
             status: "new",
             teamId: teamId,
+            // Store ALL business data in metadata for API retrieval
+            metadata: {
+              // USBizData fields
+              county: lead.county || null,
+              areaCode: lead.areaCode || null,
+              annualRevenue: lead.annualRevenue || lead.revenue || lead.salesVolume || null,
+              employees: lead.employees || lead.employeeCount || null,
+              sicCode: lead.sicCode || null,
+              sicDescription: lead.sicDescription || null,
+              naicsCode: lead.naicsCode || null,
+              website: lead.website || lead.websiteUrl || lead.webAddress || null,
+              yearEstablished: lead.yearEstablished || lead.yearFounded || null,
+              industry: lead.industry || lead.sicDescription || null,
+            },
             customFields: {
               importedAt: new Date().toISOString(),
               bucketName: bucketName || file.name,
               batchNumber,
               mobilePhone: lead.mobile || lead.cell || lead.mobilePhone || null,
+              // IMPORTANT: Store ALL original fields for fallback
               originalRow: lead,
             },
             createdAt: new Date(),
@@ -199,13 +219,19 @@ function normalizeHeader(header: string): string {
     .trim()
     .replace(/[^a-z0-9]/g, "_");
 
+  // COMPREHENSIVE MAPPINGS - includes USBizData exact column names
   const mappings: Record<string, string> = {
+    // Names
     first_name: "firstName",
     firstname: "firstName",
     first: "firstName",
+    contact_name: "contactName",
+    contactname: "contactName",
     last_name: "lastName",
     lastname: "lastName",
     last: "lastName",
+
+    // Phone
     phone_number: "phone",
     phonenumber: "phone",
     telephone: "phone",
@@ -215,25 +241,71 @@ function normalizeHeader(header: string): string {
     cell: "cell",
     cell_phone: "cell",
     cellphone: "cell",
+    area_code: "areaCode",
+    areacode: "areaCode",
+
+    // Email
     email_address: "email",
     emailaddress: "email",
     e_mail: "email",
+
+    // Company
     company_name: "company",
     companyname: "company",
     business: "company",
     business_name: "company",
     organization: "company",
+
+    // Title/Position
     job_title: "title",
     jobtitle: "title",
     position: "title",
-    street_address: "address",
-    streetaddress: "address",
+
+    // Address - USBIZDATA EXACT
+    street_address: "streetAddress",
+    streetaddress: "streetAddress",
     address_1: "address",
     address1: "address",
-    zip_code: "zip",
-    zipcode: "zip",
-    postal_code: "zip",
-    postalcode: "zip",
+
+    // Location
+    zip_code: "zipCode",
+    zipcode: "zipCode",
+    postal_code: "zipCode",
+    postalcode: "zipCode",
+
+    // USBizData Business Data
+    annual_revenue: "annualRevenue",
+    annualrevenue: "annualRevenue",
+    revenue: "revenue",
+    sales_volume: "salesVolume",
+    salesvolume: "salesVolume",
+    number_of_employees: "employees",
+    numberofemployees: "employees",
+    employee_count: "employeeCount",
+    employeecount: "employeeCount",
+
+    // SIC/NAICS
+    sic_code: "sicCode",
+    siccode: "sicCode",
+    primary_sic_code: "sicCode",
+    sic_description: "sicDescription",
+    sicdescription: "sicDescription",
+    primary_sic_description: "sicDescription",
+    naics_code: "naicsCode",
+    naicscode: "naicsCode",
+
+    // Website
+    website_url: "website",
+    websiteurl: "website",
+    web_address: "website",
+    webaddress: "website",
+    url: "website",
+
+    // Year/Established
+    year_established: "yearEstablished",
+    yearestablished: "yearEstablished",
+    year_founded: "yearEstablished",
+    yearfounded: "yearEstablished",
   };
 
   return mappings[normalized] || normalized;

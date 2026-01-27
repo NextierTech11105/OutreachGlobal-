@@ -202,30 +202,51 @@ export async function GET(request: NextRequest) {
       const custom = (lead.customFields as Record<string, unknown>) || {};
       const orig = (custom.originalRow as Record<string, unknown>) || {};
 
-      // Helper to get field from multiple sources
+      // Helper to get field from multiple sources - checks metadata FIRST (where new imports store data)
       const get = (...keys: string[]) => {
         for (const k of keys) {
-          if (orig[k]) return orig[k];
-          if (meta[k]) return meta[k];
-          if (custom[k]) return custom[k];
+          // Check metadata first (new import format)
+          if (meta[k] !== undefined && meta[k] !== null && meta[k] !== "") return meta[k];
+          // Then originalRow (CSV columns after normalization)
+          if (orig[k] !== undefined && orig[k] !== null && orig[k] !== "") return orig[k];
+          // Then customFields
+          if (custom[k] !== undefined && custom[k] !== null && custom[k] !== "") return custom[k];
         }
         return null;
       };
 
+      // USBIZDATA FIELDS - check normalized keys AND original column names
+      // CSV headers like "Street Address" become "streetAddress" after normalization
+      const streetAddress = lead.address || get("streetAddress", "address", "Street Address", "Address") || "";
+      const cityVal = lead.city || get("city", "City") || "";
+      const stateVal = lead.state || get("state", "State") || "";
+      const zipVal = lead.zipCode || get("zipCode", "zip", "Zip Code", "Zip") || "";
+      const countyVal = get("county", "County") || "";
+      const areaCode = get("areaCode", "Area Code") || "";
+      const websiteUrl = get("website", "websiteUrl", "Website URL", "Website", "url", "webAddress") || "";
+      const numEmployees = get("employees", "employeeCount", "Number of Employees", "Employees") || null;
+      const annualRev = get("annualRevenue", "revenue", "salesVolume", "Annual Revenue", "Sales Volume") || null;
+      const sicCodeVal = get("sicCode", "SIC Code", "sic", "Primary SIC Code") || "";
+      const sicDescVal = get("sicDescription", "SIC Description", "Primary SIC Description") || "";
+
       return {
         id: lead.id,
-        firstName: lead.firstName || "",
+        firstName: lead.firstName || get("Contact Name", "contactName", "first_name") || "",
         lastName: lead.lastName || "",
         name:
-          [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
-        company: lead.company || "",
+          [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+          (get("Contact Name") as string) || "Unknown",
+        company: lead.company || get("Company Name", "companyName", "company") || "",
         title: lead.title || "",
-        address: lead.address || get("address", "streetAddress", "address1") || "",
-        city: lead.city || "",
-        state: lead.state || "",
-        zipCode: lead.zipCode || "",
-        email: lead.email || "",
-        phone: lead.phone || "",
+        // FULL ADDRESS
+        address: streetAddress,
+        city: cityVal,
+        state: stateVal,
+        zipCode: zipVal,
+        county: countyVal,
+        areaCode: areaCode,
+        email: lead.email || get("Email Address", "email", "emailAddress") || "",
+        phone: lead.phone || get("Phone Number", "phone", "phoneNumber") || "",
         phoneNumbers: lead.phone
           ? [
               {
@@ -250,17 +271,17 @@ export async function GET(request: NextRequest) {
         tags: leadTagsMap[lead.id] || [],
         createdAt: lead.createdAt.toISOString(),
         updatedAt: lead.updatedAt.toISOString(),
-        // === USBIZDATA FIELDS FROM metadata + customFields.originalRow ===
-        revenue: get("revenue", "salesVolume", "annualRevenue", "Sales Volume", "Annual Revenue"),
-        employees: get("employees", "employeeCount", "numEmployees", "Employees", "Number of Employees"),
-        sicCode: get("sicCode", "sic", "primarySicCode", "SIC Code", "Primary SIC Code"),
-        sicDescription: get("sicDescription", "primarySicDescription", "SIC Description", "Primary SIC Description"),
-        naicsCode: get("naicsCode", "naics", "NAICS Code"),
-        industry: get("industry", "industryCategory", "Industry", "Industry Category"),
-        yearEstablished: get("yearEstablished", "yearStarted", "Year Established", "Year Started"),
-        website: get("website", "url", "Website", "Web Address"),
+        // === ALL USBIZDATA FIELDS ===
+        revenue: annualRev,
+        employees: numEmployees,
+        sicCode: sicCodeVal,
+        sicDescription: sicDescVal,
+        naicsCode: get("NAICS Code", "naicsCode", "naics") || null,
+        industry: sicDescVal || get("Industry", "industry") || null,
+        yearEstablished: get("Year Established", "yearEstablished") || null,
+        website: websiteUrl,
         listSource: get("listSource", "dataSource", "bucketName") || lead.source || null,
-        // Include ALL original CSV fields
+        // Include ALL original CSV fields for debugging
         originalData: orig,
       };
     });
