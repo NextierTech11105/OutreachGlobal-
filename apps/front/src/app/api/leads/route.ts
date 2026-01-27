@@ -197,8 +197,20 @@ export async function GET(request: NextRequest) {
 
     // Transform leads to match frontend type - INCLUDE ALL USBIZDATA FIELDS
     const transformedLeads = results.map((lead: (typeof results)[number]) => {
-      // Extract USBizData fields from metadata
+      // Extract USBizData fields from metadata AND customFields.originalRow
       const meta = (lead.metadata as Record<string, unknown>) || {};
+      const custom = (lead.customFields as Record<string, unknown>) || {};
+      const orig = (custom.originalRow as Record<string, unknown>) || {};
+
+      // Helper to get field from multiple sources
+      const get = (...keys: string[]) => {
+        for (const k of keys) {
+          if (orig[k]) return orig[k];
+          if (meta[k]) return meta[k];
+          if (custom[k]) return custom[k];
+        }
+        return null;
+      };
 
       return {
         id: lead.id,
@@ -208,7 +220,7 @@ export async function GET(request: NextRequest) {
           [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown",
         company: lead.company || "",
         title: lead.title || "",
-        address: lead.address || "",
+        address: lead.address || get("address", "streetAddress", "address1") || "",
         city: lead.city || "",
         state: lead.state || "",
         zipCode: lead.zipCode || "",
@@ -238,18 +250,18 @@ export async function GET(request: NextRequest) {
         tags: leadTagsMap[lead.id] || [],
         createdAt: lead.createdAt.toISOString(),
         updatedAt: lead.updatedAt.toISOString(),
-        // === USBIZDATA FIELDS FROM METADATA ===
-        revenue: meta.revenue || meta.salesVolume || meta.annualRevenue || null,
-        employees: meta.employees || meta.employeeCount || meta.numEmployees || null,
-        sicCode: meta.sicCode || meta.sic || meta.primarySicCode || null,
-        sicDescription: meta.sicDescription || meta.primarySicDescription || null,
-        naicsCode: meta.naicsCode || meta.naics || null,
-        industry: meta.industry || meta.industryCategory || null,
-        yearEstablished: meta.yearEstablished || meta.yearStarted || null,
-        website: meta.website || meta.url || null,
-        listSource: meta.listSource || meta.dataSource || lead.source || null,
-        // Raw metadata for anything else
-        metadata: meta,
+        // === USBIZDATA FIELDS FROM metadata + customFields.originalRow ===
+        revenue: get("revenue", "salesVolume", "annualRevenue", "Sales Volume", "Annual Revenue"),
+        employees: get("employees", "employeeCount", "numEmployees", "Employees", "Number of Employees"),
+        sicCode: get("sicCode", "sic", "primarySicCode", "SIC Code", "Primary SIC Code"),
+        sicDescription: get("sicDescription", "primarySicDescription", "SIC Description", "Primary SIC Description"),
+        naicsCode: get("naicsCode", "naics", "NAICS Code"),
+        industry: get("industry", "industryCategory", "Industry", "Industry Category"),
+        yearEstablished: get("yearEstablished", "yearStarted", "Year Established", "Year Started"),
+        website: get("website", "url", "Website", "Web Address"),
+        listSource: get("listSource", "dataSource", "bucketName") || lead.source || null,
+        // Include ALL original CSV fields
+        originalData: orig,
       };
     });
 
