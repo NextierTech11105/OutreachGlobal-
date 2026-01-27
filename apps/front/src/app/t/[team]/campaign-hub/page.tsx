@@ -77,13 +77,24 @@ export default function CampaignHubPage() {
       if (!team?.id) return;
 
       try {
-        const statsRes = await fetch(`/api/pipeline/stats?teamId=${team.id}`);
+        // Use the leads API with pipeline_stats action
+        const statsRes = await fetch(`/api/leads?action=pipeline_stats`);
         if (statsRes.ok) {
           const statsData = await statsRes.json();
-          setStats(statsData);
+          if (statsData.pipeline) {
+            setStats({
+              raw: statsData.pipeline.raw || 0,
+              skipTraced: 0, // Will calculate from enrichment status later
+              validated: 0,
+              ready: statsData.pipeline.ready || 0,
+              campaign: (statsData.pipeline.queued || 0) + (statsData.pipeline.sent || 0),
+            });
+          }
         }
 
-        const leadsRes = await fetch(`/api/leads?teamId=${team.id}&limit=100&status=${statusFilter}`);
+        // Don't pass status filter when "all" is selected
+        const statusParam = statusFilter !== "all" ? `&status=${statusFilter}` : "";
+        const leadsRes = await fetch(`/api/leads?limit=100${statusParam}`);
         if (leadsRes.ok) {
           const leadsData = await leadsRes.json();
           setLeads(leadsData.leads || []);
@@ -190,7 +201,7 @@ export default function CampaignHubPage() {
         {/* LEFT PANEL - Lead List */}
         <div className="flex-1 flex flex-col border-r">
           {/* Stats Bar */}
-          <div className="flex gap-2 p-3 border-b bg-gray-50">
+          <div className="flex gap-2 p-3 border-b bg-background">
             <Badge variant="outline" className="px-3 py-1">
               <Database className="w-3 h-3 mr-1" />
               {stats.raw.toLocaleString()} Raw
@@ -239,7 +250,7 @@ export default function CampaignHubPage() {
 
           {/* Selection Bar */}
           {selectedLeads.size > 0 && (
-            <div className="flex items-center gap-2 p-2 bg-blue-50 border-b">
+            <div className="flex items-center gap-2 p-2 bg-primary/10 border-b">
               <Badge>{selectedLeads.size} selected</Badge>
               <Button size="sm" variant="ghost" onClick={() => setSelectedLeads(new Set())}>
                 <X className="w-3 h-3 mr-1" /> Clear
@@ -263,7 +274,7 @@ export default function CampaignHubPage() {
             ) : (
               <div className="divide-y">
                 {/* Select All Header */}
-                <div className="flex items-center gap-3 p-3 bg-gray-50 sticky top-0">
+                <div className="flex items-center gap-3 p-3 bg-muted sticky top-0">
                   <Checkbox
                     checked={selectedLeads.size === leads.length && leads.length > 0}
                     onCheckedChange={selectAll}
@@ -274,8 +285,8 @@ export default function CampaignHubPage() {
                 {filteredLeads.map((lead) => (
                   <div
                     key={lead.id}
-                    className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer ${
-                      selectedLeads.has(lead.id) ? "bg-blue-50" : ""
+                    className={`flex items-center gap-3 p-3 hover:bg-muted cursor-pointer ${
+                      selectedLeads.has(lead.id) ? "bg-primary/10" : ""
                     }`}
                     onClick={() => toggleLeadSelection(lead.id)}
                   >
@@ -315,25 +326,25 @@ export default function CampaignHubPage() {
         </div>
 
         {/* RIGHT PANEL - Actions */}
-        <div className="w-96 flex flex-col bg-gray-50">
+        <div className="w-96 flex flex-col bg-muted/50">
           {/* Panel Tabs */}
           <div className="flex border-b">
             <button
-              className={`flex-1 p-3 text-sm font-medium ${activePanel === "sms" ? "bg-white border-b-2 border-blue-500" : ""}`}
+              className={`flex-1 p-3 text-sm font-medium ${activePanel === "sms" ? "bg-background border-b-2 border-primary" : ""}`}
               onClick={() => setActivePanel("sms")}
             >
               <MessageSquare className="w-4 h-4 inline mr-1" />
               SMS
             </button>
             <button
-              className={`flex-1 p-3 text-sm font-medium ${activePanel === "enrich" ? "bg-white border-b-2 border-blue-500" : ""}`}
+              className={`flex-1 p-3 text-sm font-medium ${activePanel === "enrich" ? "bg-background border-b-2 border-primary" : ""}`}
               onClick={() => setActivePanel("enrich")}
             >
               <Zap className="w-4 h-4 inline mr-1" />
               Enrich
             </button>
             <button
-              className={`flex-1 p-3 text-sm font-medium ${activePanel === "queue" ? "bg-white border-b-2 border-blue-500" : ""}`}
+              className={`flex-1 p-3 text-sm font-medium ${activePanel === "queue" ? "bg-background border-b-2 border-primary" : ""}`}
               onClick={() => setActivePanel("queue")}
             >
               <Clock className="w-4 h-4 inline mr-1" />
@@ -358,16 +369,35 @@ export default function CampaignHubPage() {
               </div>
 
               <div className="flex gap-1 flex-wrap">
-                {["{firstName}", "{lastName}", "{company}", "{city}"].map((tag) => (
+                {["{firstName}", "{lastName}", "{company}", "{city}", "{state}", "{address}", "{phone}", "{email}"].map((tag) => (
                   <Badge
                     key={tag}
                     variant="outline"
-                    className="cursor-pointer hover:bg-gray-100"
+                    className="cursor-pointer hover:bg-muted"
                     onClick={() => setSmsMessage((m) => m + tag)}
                   >
                     {tag}
                   </Badge>
                 ))}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Campaign Topic</label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select topic..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ai-consulting">AI Consulting</SelectItem>
+                    <SelectItem value="platform-whitelabel">Platform White Label</SelectItem>
+                    <SelectItem value="business-exits">Business Exits</SelectItem>
+                    <SelectItem value="capital-connect">Capital Connect</SelectItem>
+                    <SelectItem value="foundational-dataverse">Foundational Dataverse</SelectItem>
+                    <SelectItem value="terminals">Terminals</SelectItem>
+                    <SelectItem value="blueprints">Blueprints</SelectItem>
+                    <SelectItem value="system-mapping">System Mapping</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Card>
