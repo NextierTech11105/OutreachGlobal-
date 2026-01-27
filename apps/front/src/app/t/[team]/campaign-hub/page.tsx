@@ -41,7 +41,12 @@ interface Lead {
   company: string;
   phone: string;
   email: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
   enrichmentStatus: string;
+  pipelineStatus: string;
   score: number;
   createdAt: string;
 }
@@ -304,6 +309,9 @@ export default function CampaignHubPage() {
                       </div>
                       <div className="text-sm text-muted-foreground truncate">
                         {lead.company}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {[lead.address, lead.city, lead.state, lead.zipCode].filter(Boolean).join(", ") || "No address"}
                       </div>
                     </div>
                     <div className="text-right">
