@@ -137,17 +137,30 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(totalCount / limit);
     const offset = (page - 1) * limit;
 
-    // Get leads with sorting
+    // Get leads with sorting - include ALL sort options from Campaign Hub
     const orderColumn = (() => {
       switch (sortBy) {
         case "name":
           return leads.firstName;
+        case "company":
+          return leads.company;
+        case "state":
+          return leads.state;
         case "status":
           return leads.status;
         case "score":
           return leads.score;
         case "updatedAt":
           return leads.updatedAt;
+        // USBizData fields - stored in metadata JSON
+        case "revenue":
+          return sql`(${leads.metadata}->>'annualRevenue')::numeric`;
+        case "employees":
+          return sql`(${leads.metadata}->>'employees')::integer`;
+        case "sicCode":
+          return sql`${leads.metadata}->>'sicCode'`;
+        case "industry":
+          return sql`COALESCE(${leads.metadata}->>'industry', ${leads.metadata}->>'sicDescription')`;
         default:
           return leads.createdAt;
       }

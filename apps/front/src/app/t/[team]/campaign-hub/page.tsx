@@ -6,6 +6,7 @@ import { TeamHeader } from "@/features/team/layouts/team-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useCurrentTeam } from "@/features/team/team.context";
 import {
   Send,
@@ -19,6 +20,9 @@ import {
   ArrowUpDown,
   Zap,
   CheckCircle,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface Lead {
@@ -81,6 +85,8 @@ function formatEmployees(emp: number | null): string {
   return emp.toString();
 }
 
+const PAGE_SIZE = 200;
+
 export default function CampaignHubPage() {
   const { team } = useCurrentTeam();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -92,6 +98,8 @@ export default function CampaignHubPage() {
   const [sending, setSending] = useState(false);
   const [skipTracing, setSkipTracing] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(
     "Hey {firstName}, I wanted to reach out about your business {company}. Quick question - are you open to a brief conversation this week?"
   );
@@ -99,9 +107,16 @@ export default function CampaignHubPage() {
   useEffect(() => {
     if (!team?.id) return;
     setLoading(true);
-    const params = new URLSearchParams({ limit: "500", sortBy });
+    const params = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      page: String(currentPage + 1), // API uses 1-indexed pages
+      sortBy
+    });
     if (listFilter !== "all") {
       params.set("source", listFilter);
+    }
+    if (searchTerm.trim()) {
+      params.set("search", searchTerm.trim());
     }
     fetch(`/api/leads?${params}`, { credentials: "include" })
       .then((r) => r.json())
@@ -110,7 +125,16 @@ export default function CampaignHubPage() {
         setTotal(d.pagination?.total || 0);
       })
       .finally(() => setLoading(false));
-  }, [team?.id, listFilter, sortBy]);
+  }, [team?.id, listFilter, sortBy, currentPage, searchTerm]);
+
+  // Reset to page 0 when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [listFilter, sortBy, searchTerm]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const startIndex = currentPage * PAGE_SIZE + 1;
+  const endIndex = Math.min((currentPage + 1) * PAGE_SIZE, total);
 
   const withPhone = leads.filter((l) => l.phone);
 
@@ -223,35 +247,56 @@ export default function CampaignHubPage() {
     <TeamSection>
       <TeamHeader title="Campaign Hub" />
 
-      {/* FILTERS + SORT */}
-      <div className="px-6 pt-4 flex flex-wrap gap-4 items-center">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4" />
-          <span className="text-sm font-medium">List:</span>
-          {LIST_SOURCES.map((src) => (
-            <Button
-              key={src.value}
-              variant={listFilter === src.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setListFilter(src.value)}
-            >
-              {src.label}
+      {/* SEARCH + FILTERS + SORT */}
+      <div className="px-6 pt-4 space-y-3">
+        {/* SEARCH BAR */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search company, name, industry, address..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {searchTerm && (
+            <Button variant="ghost" size="sm" onClick={() => setSearchTerm("")}>
+              Clear
             </Button>
-          ))}
+          )}
         </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <ArrowUpDown className="w-4 h-4" />
-          <span className="text-sm font-medium">Sort:</span>
-          {SORT_OPTIONS.map((opt) => (
-            <Button
-              key={opt.value}
-              variant={sortBy === opt.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSortBy(opt.value)}
-            >
-              {opt.label}
-            </Button>
-          ))}
+
+        {/* FILTERS + SORT ROW */}
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            <span className="text-sm font-medium">List:</span>
+            {LIST_SOURCES.map((src) => (
+              <Button
+                key={src.value}
+                variant={listFilter === src.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setListFilter(src.value)}
+              >
+                {src.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <ArrowUpDown className="w-4 h-4" />
+            <span className="text-sm font-medium">Sort:</span>
+            {SORT_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                variant={sortBy === opt.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortBy(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -369,7 +414,7 @@ export default function CampaignHubPage() {
                 </tr>
               </thead>
               <tbody>
-                {leads.slice(0, 200).map((lead) => (
+                {leads.map((lead) => (
                   <tr
                     key={lead.id}
                     onClick={() => {
@@ -430,11 +475,49 @@ export default function CampaignHubPage() {
             </table>
           </div>
         </div>
-        {leads.length > 200 && (
-          <p className="text-center text-muted-foreground mt-3 text-sm">
-            Showing 200 of {leads.length}. Use "Select 2,000" to batch.
-          </p>
-        )}
+        {/* PAGINATION CONTROLS */}
+        <div className="flex items-center justify-between mt-4 px-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex.toLocaleString()} - {endIndex.toLocaleString()} of {total.toLocaleString()} leads
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(0)}
+              disabled={currentPage === 0 || loading}
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 0 || loading}
+            >
+              Previous
+            </Button>
+            <span className="text-sm font-medium px-3">
+              Page {currentPage + 1} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1 || loading}
+            >
+              Next
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages - 1)}
+              disabled={currentPage >= totalPages - 1 || loading}
+            >
+              Last
+            </Button>
+          </div>
+        </div>
 
         {/* DEBUG: Show what columns exist in the CSV data */}
         {leads.length > 0 && leads[0].originalData && (
