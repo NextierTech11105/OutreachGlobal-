@@ -160,32 +160,36 @@ export class SubscriptionService implements OnModuleInit {
       const existing = result.rows?.[0];
 
       if (!existing) {
-        await this.db.insert(plansTable).values({
-          slug: DEFAULT_PLAN_SLUG,
-          name: "Starter",
-          priceMonthly: 9900,
-          priceYearly: 99000,
-          limits: {
-            users: 3,
-            leads: 5000,
-            searches: 500,
-            sms: 1000,
-            skipTraces: 100,
-            apiAccess: false,
-            powerDialer: true,
-            whiteLabel: false,
-          },
-          features: [
-            { text: "Up to 5,000 leads", included: true },
-            { text: "1,000 SMS/month", included: true },
-            { text: "Power Dialer", included: true },
-            { text: "3 Team Members", included: true },
-            { text: "Email Support", included: true },
-          ],
-          isActive: true,
-          sortOrder: 1,
-        });
-        this.logger.log("Created starter plan");
+        // Use onConflictDoNothing to handle race conditions during startup
+        await this.db
+          .insert(plansTable)
+          .values({
+            slug: DEFAULT_PLAN_SLUG,
+            name: "Starter",
+            priceMonthly: 9900,
+            priceYearly: 99000,
+            limits: {
+              users: 3,
+              leads: 5000,
+              searches: 500,
+              sms: 1000,
+              skipTraces: 100,
+              apiAccess: false,
+              powerDialer: true,
+              whiteLabel: false,
+            },
+            features: [
+              { text: "Up to 5,000 leads", included: true },
+              { text: "1,000 SMS/month", included: true },
+              { text: "Power Dialer", included: true },
+              { text: "3 Team Members", included: true },
+              { text: "Email Support", included: true },
+            ],
+            isActive: true,
+            sortOrder: 1,
+          })
+          .onConflictDoNothing();
+        this.logger.log("Created starter plan (or already exists)");
       } else {
         this.logger.log("Starter plan already exists");
       }
@@ -209,7 +213,7 @@ export class SubscriptionService implements OnModuleInit {
       where: (t, { eq }) => eq(t.slug, DEFAULT_PLAN_SLUG),
     });
 
-    // Create starter plan if it doesn't exist
+    // Create starter plan if it doesn't exist (use ON CONFLICT to handle race conditions)
     if (!plan) {
       const [newPlan] = await this.db
         .insert(plansTable)
@@ -238,8 +242,17 @@ export class SubscriptionService implements OnModuleInit {
           isActive: true,
           sortOrder: 1,
         })
+        .onConflictDoNothing()
         .returning();
-      plan = newPlan;
+
+      // If insert returned nothing due to conflict, fetch existing plan
+      if (!newPlan) {
+        plan = await this.db.query.plans.findFirst({
+          where: (t, { eq }) => eq(t.slug, DEFAULT_PLAN_SLUG),
+        });
+      } else {
+        plan = newPlan;
+      }
     }
 
     // Create the subscription
