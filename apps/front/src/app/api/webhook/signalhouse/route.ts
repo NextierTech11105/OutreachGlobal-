@@ -834,11 +834,30 @@ export async function POST(request: NextRequest) {
     let payload: SignalHouseWebhookPayload | null = null;
 
     try {
-      payload = await request.json();
+      // Read raw text first - this lets us remove a UTF-8 BOM if present
+      // which otherwise causes Fastify/JSON parser to throw.
+      let raw = await request.text();
+      if (raw && raw.charCodeAt(0) === 0xfeff) {
+        // Strip BOM and log for observability
+        raw = raw.slice(1);
+        console.warn(`[SignalHouse] [${requestId}] Stripped UTF-8 BOM from payload`);
+      }
+
+      try {
+        payload = JSON.parse(raw) as SignalHouseWebhookPayload;
+      } catch (err) {
+        // If parsing fails, fall back to runtime JSON parser
+        try {
+          payload = await request.json();
+        } catch {
+          payload = null;
+        }
+      }
+
       eventType = payload?.event || "unknown";
       fromNumber = payload?.from || "";
       toNumber = payload?.to || "";
-    } catch {
+    } catch (e) {
       // Payload parsing failed - continue with auth check
     }
 
