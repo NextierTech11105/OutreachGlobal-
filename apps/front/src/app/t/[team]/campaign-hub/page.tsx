@@ -5,19 +5,11 @@ import { TeamSection } from "@/features/team/layouts/team-section";
 import { TeamHeader } from "@/features/team/layouts/team-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -38,7 +30,8 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Filter,
+  ChevronRight,
+  X,
 } from "lucide-react";
 
 interface Lead {
@@ -74,7 +67,7 @@ export default function CampaignHubPage() {
     campaign: 0,
   });
   const [smsMessage, setSmsMessage] = useState("");
-  const [activeTab, setActiveTab] = useState("data-lake");
+  const [activePanel, setActivePanel] = useState<"sms" | "enrich" | "queue" | null>("sms");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -84,14 +77,12 @@ export default function CampaignHubPage() {
       if (!team?.id) return;
 
       try {
-        // Fetch pipeline stats
         const statsRes = await fetch(`/api/pipeline/stats?teamId=${team.id}`);
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData);
         }
 
-        // Fetch leads (first 100 for now)
         const leadsRes = await fetch(`/api/leads?teamId=${team.id}&limit=100&status=${statusFilter}`);
         if (leadsRes.ok) {
           const leadsData = await leadsRes.json();
@@ -125,22 +116,21 @@ export default function CampaignHubPage() {
     }
   };
 
+  const select2KBatch = () => {
+    const leadsWithPhone = leads.filter((l) => l.phone);
+    const batch = leadsWithPhone.slice(0, 2000);
+    setSelectedLeads(new Set(batch.map((l) => l.id)));
+  };
+
   const handleSkipTrace = async () => {
     if (selectedLeads.size === 0) return;
-
     try {
       const res = await fetch("/api/skip-trace/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: team?.id,
-          leadIds: Array.from(selectedLeads),
-        }),
+        body: JSON.stringify({ teamId: team?.id, leadIds: Array.from(selectedLeads) }),
       });
-
-      if (res.ok) {
-        alert(`Skip trace queued for ${selectedLeads.size} leads`);
-      }
+      if (res.ok) alert(`Skip trace queued for ${selectedLeads.size} leads`);
     } catch (error) {
       console.error("Skip trace failed:", error);
     }
@@ -148,20 +138,13 @@ export default function CampaignHubPage() {
 
   const handleValidate = async () => {
     if (selectedLeads.size === 0) return;
-
     try {
       const res = await fetch("/api/phone-validate/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: team?.id,
-          leadIds: Array.from(selectedLeads),
-        }),
+        body: JSON.stringify({ teamId: team?.id, leadIds: Array.from(selectedLeads) }),
       });
-
-      if (res.ok) {
-        alert(`Phone validation queued for ${selectedLeads.size} leads`);
-      }
+      if (res.ok) alert(`Phone validation queued for ${selectedLeads.size} leads`);
     } catch (error) {
       console.error("Validation failed:", error);
     }
@@ -169,18 +152,12 @@ export default function CampaignHubPage() {
 
   const handleBulkSMS = async () => {
     if (selectedLeads.size === 0 || !smsMessage.trim()) return;
-
     try {
       const res = await fetch("/api/signalhouse/bulk-send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: team?.id,
-          leadIds: Array.from(selectedLeads),
-          message: smsMessage,
-        }),
+        body: JSON.stringify({ teamId: team?.id, leadIds: Array.from(selectedLeads), message: smsMessage }),
       });
-
       if (res.ok) {
         const data = await res.json();
         alert(`SMS campaign created: ${data.queued} messages queued`);
@@ -190,13 +167,6 @@ export default function CampaignHubPage() {
     } catch (error) {
       console.error("Bulk SMS failed:", error);
     }
-  };
-
-  const createCampaignBatch = () => {
-    // Select first 2000 leads with phones
-    const leadsWithPhone = leads.filter((l) => l.phone);
-    const batch = leadsWithPhone.slice(0, 2000);
-    setSelectedLeads(new Set(batch.map((l) => l.id)));
   };
 
   const filteredLeads = leads.filter((lead) => {
@@ -216,377 +186,294 @@ export default function CampaignHubPage() {
     <TeamSection>
       <TeamHeader title="Campaign Hub" />
 
-      <div className="container py-6">
-        {/* Stats Bar */}
-        <div className="grid grid-cols-5 gap-4 mb-6">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{stats.raw.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Raw Leads</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{stats.skipTraced.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Skip Traced</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{stats.validated.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Validated</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-green-600">{stats.ready.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">SMS Ready</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.campaign.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">In Campaign</div>
-            </CardContent>
-          </Card>
+      <div className="flex h-[calc(100vh-120px)]">
+        {/* LEFT PANEL - Lead List */}
+        <div className="flex-1 flex flex-col border-r">
+          {/* Stats Bar */}
+          <div className="flex gap-2 p-3 border-b bg-gray-50">
+            <Badge variant="outline" className="px-3 py-1">
+              <Database className="w-3 h-3 mr-1" />
+              {stats.raw.toLocaleString()} Raw
+            </Badge>
+            <Badge variant="outline" className="px-3 py-1">
+              <Search className="w-3 h-3 mr-1" />
+              {stats.skipTraced.toLocaleString()} Traced
+            </Badge>
+            <Badge variant="outline" className="px-3 py-1">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              {stats.validated.toLocaleString()} Valid
+            </Badge>
+            <Badge variant="default" className="px-3 py-1 bg-green-600">
+              <Send className="w-3 h-3 mr-1" />
+              {stats.ready.toLocaleString()} Ready
+            </Badge>
+          </div>
+
+          {/* Filters & Actions */}
+          <div className="flex gap-2 p-3 border-b">
+            <Input
+              placeholder="Search leads..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="raw">Raw</SelectItem>
+                <SelectItem value="traced">Traced</SelectItem>
+                <SelectItem value="ready">Ready</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={select2KBatch}>
+              <Users className="w-4 h-4 mr-1" />
+              2K Batch
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Selection Bar */}
+          {selectedLeads.size > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-blue-50 border-b">
+              <Badge>{selectedLeads.size} selected</Badge>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedLeads(new Set())}>
+                <X className="w-3 h-3 mr-1" /> Clear
+              </Button>
+              <div className="flex-1" />
+              <Button size="sm" variant="outline" onClick={() => setActivePanel("enrich")}>
+                <Zap className="w-3 h-3 mr-1" /> Enrich
+              </Button>
+              <Button size="sm" onClick={() => setActivePanel("sms")}>
+                <Send className="w-3 h-3 mr-1" /> SMS
+              </Button>
+            </div>
+          )}
+
+          {/* Lead List */}
+          <ScrollArea className="flex-1">
+            {loading ? (
+              <div className="p-8 text-center text-muted-foreground">Loading leads...</div>
+            ) : filteredLeads.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No leads found</div>
+            ) : (
+              <div className="divide-y">
+                {/* Select All Header */}
+                <div className="flex items-center gap-3 p-3 bg-gray-50 sticky top-0">
+                  <Checkbox
+                    checked={selectedLeads.size === leads.length && leads.length > 0}
+                    onCheckedChange={selectAll}
+                  />
+                  <span className="text-sm font-medium">Select All ({filteredLeads.length})</span>
+                </div>
+
+                {filteredLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer ${
+                      selectedLeads.has(lead.id) ? "bg-blue-50" : ""
+                    }`}
+                    onClick={() => toggleLeadSelection(lead.id)}
+                  >
+                    <Checkbox
+                      checked={selectedLeads.has(lead.id)}
+                      onCheckedChange={() => toggleLeadSelection(lead.id)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">
+                        {lead.firstName} {lead.lastName}
+                      </div>
+                      <div className="text-sm text-muted-foreground truncate">
+                        {lead.company}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {lead.phone ? (
+                        <div className="font-mono text-sm">{lead.phone}</div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">No phone</div>
+                      )}
+                      <Badge
+                        variant={
+                          lead.enrichmentStatus === "ready" ? "default" :
+                          lead.enrichmentStatus === "traced" ? "secondary" : "outline"
+                        }
+                        className="text-xs"
+                      >
+                        {lead.enrichmentStatus || "raw"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="data-lake">
-              <Database className="w-4 h-4 mr-2" />
-              Data Lake
-            </TabsTrigger>
-            <TabsTrigger value="enrich">
-              <Zap className="w-4 h-4 mr-2" />
+        {/* RIGHT PANEL - Actions */}
+        <div className="w-96 flex flex-col bg-gray-50">
+          {/* Panel Tabs */}
+          <div className="flex border-b">
+            <button
+              className={`flex-1 p-3 text-sm font-medium ${activePanel === "sms" ? "bg-white border-b-2 border-blue-500" : ""}`}
+              onClick={() => setActivePanel("sms")}
+            >
+              <MessageSquare className="w-4 h-4 inline mr-1" />
+              SMS
+            </button>
+            <button
+              className={`flex-1 p-3 text-sm font-medium ${activePanel === "enrich" ? "bg-white border-b-2 border-blue-500" : ""}`}
+              onClick={() => setActivePanel("enrich")}
+            >
+              <Zap className="w-4 h-4 inline mr-1" />
               Enrich
-            </TabsTrigger>
-            <TabsTrigger value="sms">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              SMS Campaign
-            </TabsTrigger>
-            <TabsTrigger value="queue">
-              <Clock className="w-4 h-4 mr-2" />
+            </button>
+            <button
+              className={`flex-1 p-3 text-sm font-medium ${activePanel === "queue" ? "bg-white border-b-2 border-blue-500" : ""}`}
+              onClick={() => setActivePanel("queue")}
+            >
+              <Clock className="w-4 h-4 inline mr-1" />
               Queue
-            </TabsTrigger>
-          </TabsList>
+            </button>
+          </div>
 
-          {/* Data Lake Tab */}
-          <TabsContent value="data-lake">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="flex items-center gap-2">
-                    <Database className="w-5 h-5" />
-                    Lead Data Lake ({leads.length.toLocaleString()} loaded)
-                  </CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={createCampaignBatch}>
-                      <Users className="w-4 h-4 mr-2" />
-                      Select 2K Batch
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Refresh
-                    </Button>
-                  </div>
+          {/* SMS Panel */}
+          {activePanel === "sms" && (
+            <div className="flex-1 p-4 space-y-4 overflow-auto">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Message</label>
+                <Textarea
+                  placeholder="Hey {firstName}, just wanted to reach out..."
+                  value={smsMessage}
+                  onChange={(e) => setSmsMessage(e.target.value)}
+                  rows={5}
+                />
+                <div className="text-xs text-muted-foreground mt-1">
+                  {smsMessage.length}/480 characters
                 </div>
-              </CardHeader>
-              <CardContent>
-                {/* Filters */}
-                <div className="flex gap-4 mb-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Search leads..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="max-w-sm"
-                    />
-                  </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Leads</SelectItem>
-                      <SelectItem value="raw">Raw</SelectItem>
-                      <SelectItem value="traced">Skip Traced</SelectItem>
-                      <SelectItem value="validated">Validated</SelectItem>
-                      <SelectItem value="ready">SMS Ready</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              </div>
 
-                {/* Selection Actions */}
-                {selectedLeads.size > 0 && (
-                  <div className="flex gap-2 mb-4 p-3 bg-blue-50 rounded-lg">
-                    <Badge variant="secondary">{selectedLeads.size} selected</Badge>
-                    <Button size="sm" variant="outline" onClick={handleSkipTrace}>
-                      <Search className="w-4 h-4 mr-2" />
-                      Tracerfy Skip Trace
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleValidate}>
-                      <Phone className="w-4 h-4 mr-2" />
-                      Trestle Validate
-                    </Button>
-                    <Button size="sm" onClick={() => setActiveTab("sms")}>
-                      <Send className="w-4 h-4 mr-2" />
-                      Send SMS
-                    </Button>
-                  </div>
-                )}
+              <div className="flex gap-1 flex-wrap">
+                {["{firstName}", "{lastName}", "{company}", "{city}"].map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="cursor-pointer hover:bg-gray-100"
+                    onClick={() => setSmsMessage((m) => m + tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
 
-                {/* Leads Table */}
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12">
-                          <Checkbox
-                            checked={selectedLeads.size === leads.length && leads.length > 0}
-                            onCheckedChange={selectAll}
-                          />
-                        </TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Company</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Score</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
-                            Loading leads...
-                          </TableCell>
-                        </TableRow>
-                      ) : filteredLeads.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
-                            No leads found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredLeads.map((lead) => (
-                          <TableRow key={lead.id}>
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedLeads.has(lead.id)}
-                                onCheckedChange={() => toggleLeadSelection(lead.id)}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {lead.firstName} {lead.lastName}
-                            </TableCell>
-                            <TableCell>{lead.company}</TableCell>
-                            <TableCell>
-                              {lead.phone ? (
-                                <span className="font-mono">{lead.phone}</span>
-                              ) : (
-                                <span className="text-muted-foreground">No phone</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  lead.enrichmentStatus === "ready"
-                                    ? "default"
-                                    : lead.enrichmentStatus === "traced"
-                                    ? "secondary"
-                                    : "outline"
-                                }
-                              >
-                                {lead.enrichmentStatus || "raw"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {lead.score !== null && lead.score !== undefined ? (
-                                <span className={lead.score >= 70 ? "text-green-600 font-bold" : ""}>
-                                  {lead.score}
-                                </span>
-                              ) : (
-                                "-"
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Enrich Tab */}
-          <TabsContent value="enrich">
-            <div className="grid grid-cols-2 gap-6">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Search className="w-5 h-5" />
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Recipients:</span>
+                    <span className="font-bold">{selectedLeads.size}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Daily Limit:</span>
+                    <span className="font-bold">2,000/day</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Batches:</span>
+                    <span className="font-bold">{Math.ceil(selectedLeads.size / 2000) || 0}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleBulkSMS}
+                disabled={selectedLeads.size === 0 || !smsMessage.trim()}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Send to {selectedLeads.size} Leads
+              </Button>
+
+              {selectedLeads.size === 0 && (
+                <p className="text-sm text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  Select leads from the list first
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Enrich Panel */}
+          {activePanel === "enrich" && (
+            <div className="flex-1 p-4 space-y-4 overflow-auto">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Search className="w-4 h-4" />
                     Tracerfy Skip Trace
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Enrich leads with phone numbers, emails, and address data.
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Get phone numbers, emails, addresses
                   </p>
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span>Selected leads:</span>
-                      <span className="font-bold">{selectedLeads.size}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Cost estimate:</span>
-                      <span className="font-bold">${(selectedLeads.size * 0.12).toFixed(2)}</span>
-                    </div>
-                    <Button
-                      className="w-full"
-                      onClick={handleSkipTrace}
-                      disabled={selectedLeads.size === 0}
-                    >
-                      <Zap className="w-4 h-4 mr-2" />
-                      Run Skip Trace ({selectedLeads.size} leads)
-                    </Button>
+                  <div className="flex justify-between text-sm">
+                    <span>Selected:</span>
+                    <span className="font-bold">{selectedLeads.size}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Est. Cost:</span>
+                    <span className="font-bold">${(selectedLeads.size * 0.12).toFixed(2)}</span>
+                  </div>
+                  <Button className="w-full" onClick={handleSkipTrace} disabled={selectedLeads.size === 0}>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Skip Trace {selectedLeads.size} Leads
+                  </Button>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Phone className="w-5 h-5" />
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
                     Trestle Phone Validation
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Validate phone numbers for deliverability and line type.
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Verify line type & deliverability
                   </p>
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span>Selected leads:</span>
-                      <span className="font-bold">{selectedLeads.size}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Cost estimate:</span>
-                      <span className="font-bold">${(selectedLeads.size * 0.02).toFixed(2)}</span>
-                    </div>
-                    <Button
-                      className="w-full"
-                      onClick={handleValidate}
-                      disabled={selectedLeads.size === 0}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Validate Phones ({selectedLeads.size} leads)
-                    </Button>
+                  <div className="flex justify-between text-sm">
+                    <span>Selected:</span>
+                    <span className="font-bold">{selectedLeads.size}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Est. Cost:</span>
+                    <span className="font-bold">${(selectedLeads.size * 0.02).toFixed(2)}</span>
+                  </div>
+                  <Button className="w-full" onClick={handleValidate} disabled={selectedLeads.size === 0}>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Validate {selectedLeads.size} Phones
+                  </Button>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          )}
 
-          {/* SMS Campaign Tab */}
-          <TabsContent value="sms">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Bulk SMS via SignalHouse
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold mb-4">Compose Message</h3>
-                    <Textarea
-                      placeholder="Hey {firstName}, just wanted to reach out about..."
-                      value={smsMessage}
-                      onChange={(e) => setSmsMessage(e.target.value)}
-                      rows={6}
-                      className="mb-2"
-                    />
-                    <div className="text-sm text-muted-foreground mb-4">
-                      {smsMessage.length}/480 characters
-                    </div>
-                    <div className="flex gap-2 flex-wrap mb-4">
-                      <Badge variant="outline" className="cursor-pointer" onClick={() => setSmsMessage(m => m + "{firstName}")}>
-                        {"{firstName}"}
-                      </Badge>
-                      <Badge variant="outline" className="cursor-pointer" onClick={() => setSmsMessage(m => m + "{lastName}")}>
-                        {"{lastName}"}
-                      </Badge>
-                      <Badge variant="outline" className="cursor-pointer" onClick={() => setSmsMessage(m => m + "{company}")}>
-                        {"{company}"}
-                      </Badge>
-                      <Badge variant="outline" className="cursor-pointer" onClick={() => setSmsMessage(m => m + "{city}")}>
-                        {"{city}"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-4">Campaign Summary</h3>
-                    <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between">
-                        <span>Recipients:</span>
-                        <span className="font-bold">{selectedLeads.size}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>SignalHouse Daily Limit:</span>
-                        <span className="font-bold">2,000/day</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Batches needed:</span>
-                        <span className="font-bold">{Math.ceil(selectedLeads.size / 2000)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Est. delivery time:</span>
-                        <span className="font-bold">{Math.ceil(selectedLeads.size / 2000)} days</span>
-                      </div>
-                    </div>
-
-                    <Button
-                      className="w-full mt-4"
-                      size="lg"
-                      onClick={handleBulkSMS}
-                      disabled={selectedLeads.size === 0 || !smsMessage.trim()}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Launch Campaign ({selectedLeads.size} leads)
-                    </Button>
-
-                    {selectedLeads.size === 0 && (
-                      <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        Select leads from the Data Lake tab first
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Queue Tab */}
-          <TabsContent value="queue">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  SMS Queue
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Active campaigns and scheduled messages will appear here.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          {/* Queue Panel */}
+          {activePanel === "queue" && (
+            <div className="flex-1 p-4">
+              <div className="text-center text-muted-foreground py-8">
+                <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No active campaigns</p>
+                <p className="text-sm">Send an SMS campaign to see it here</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </TeamSection>
   );
