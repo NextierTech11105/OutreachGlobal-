@@ -432,6 +432,24 @@ export default function CampaignHubPage() {
             Showing 200 of {leads.length}. Use "Select 2,000" to batch.
           </p>
         )}
+
+        {/* DEBUG: Show what columns exist in the CSV data */}
+        {leads.length > 0 && leads[0].originalData && (
+          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500 rounded-lg">
+            <h3 className="font-bold text-yellow-600 mb-2">DEBUG: Columns in first lead&apos;s CSV data:</h3>
+            <div className="text-xs font-mono bg-black/20 p-2 rounded max-h-[200px] overflow-auto">
+              {Object.entries(leads[0].originalData).map(([key, value]) => (
+                <div key={key}>
+                  <span className="text-blue-400">{key}</span>: <span className="text-green-400">{String(value) || "(empty)"}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-yellow-600 mt-2">
+              If you don&apos;t see &quot;annual_revenue&quot;, &quot;employees&quot;, &quot;sic_code&quot;, etc. above,
+              your CSV didn&apos;t have those columns. Import a USBizData CSV with those fields.
+            </p>
+          </div>
+        )}
       </div>
     </TeamSection>
   );
