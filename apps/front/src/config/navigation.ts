@@ -192,6 +192,14 @@ export const navigationGroups: NavGroup[] = [
     icon: Send,
     items: [
       {
+        label: "Campaign Hub",
+        href: "/campaign-hub",
+        icon: Rocket,
+        badge: "HUB",
+        badgeVariant: "destructive",
+        description: "Data Lake → Enrich → SMS → Queue",
+      },
+      {
         label: "Campaign Builder",
         href: "/campaign-builder",
         icon: Zap,
