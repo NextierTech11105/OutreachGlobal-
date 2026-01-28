@@ -141,7 +141,19 @@ export class SignalHouseWebhookController {
       return false;
     }
 
-    return token === this.webhookToken;
+    // Support a short-lived secondary token to allow graceful rotation.
+    const secondaryToken = this.configService.get<string>(
+      "SIGNALHOUSE_WEBHOOK_TOKEN_SECONDARY",
+    );
+
+    if (token === this.webhookToken) return true;
+
+    if (secondaryToken && token === secondaryToken) {
+      this.logger.warn("SignalHouse webhook accepted using secondary token (rotation in progress)");
+      return true;
+    }
+
+    return false;
   }
 
   /**
