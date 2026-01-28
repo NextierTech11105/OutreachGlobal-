@@ -8,11 +8,19 @@ jobs:
   run-webhook-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Run a simple curl to SignalHouse webhook
+      - name: Print runner info
+        run: |
+          echo "Runner: $(uname -a)"
+          echo "Date (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "curl version:"
+          curl --version || true
+          echo "GITHUB_RUN_ID=${GITHUB_RUN_ID}"
+      - name: Run curl to SignalHouse webhook and capture output
+        env:
+          SIGNALHOUSE_TOKEN: ${{ secrets.SIGNALHOUSE_TEST_TOKEN }}
         run: |
           echo "Posting test payload to SignalHouse webhook endpoint"
-          curl -v -k -H "Authorization: Bearer 3e76b00eb2fe8cee7e2cab219ba41e16757d4f0b7a5a6a1b9044eaae880497e9" \
-            -H "Content-Type: application/json" --data @- https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse << 'JSON'
+          cat > payload.json <<'JSON'
 {
   "event": "message.received",
   "from": "+15551231234",
@@ -23,4 +31,15 @@ jobs:
   "campaign_id": "CJRCU60"
 }
 JSON
-          echo "Done"
+          printf "\n--- CURL VERBOSE OUTPUT ---\n" > curl.log
+          curl -v -k -H "Authorization: Bearer ${SIGNALHOUSE_TOKEN}" -H "Content-Type: application/json" --data @payload.json "https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse" >> curl.log 2>&1 || true
+          printf "\n--- HTTP STATUS ---\n" >> curl.log
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -k -H "Authorization: Bearer ${SIGNALHOUSE_TOKEN}" -H "Content-Type: application/json" --data @payload.json "https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse" ) || HTTP_STATUS="000"
+          echo "$HTTP_STATUS" >> curl.log
+          echo "Saved curl.log"
+      - name: Upload curl log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-webhook-curl-log
+          path: curl.log
