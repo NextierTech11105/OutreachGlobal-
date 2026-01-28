@@ -206,8 +206,8 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
               phone_number: phoneNumber,
               friendly_name: campaignName || "Nextier Campaign",
-              sms_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://api.nextierglobal.ai"}/api/webhooks/signalhouse/sms`,
-              voice_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://api.nextierglobal.ai"}/api/webhooks/signalhouse/voice`,
+              sms_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://api.nxtier.ai"}/api/webhooks/signalhouse/sms`,
+              voice_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://api.nxtier.ai"}/api/webhooks/signalhouse/voice`,
             }),
           },
         );

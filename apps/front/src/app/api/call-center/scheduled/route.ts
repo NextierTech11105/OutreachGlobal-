@@ -22,7 +22,7 @@ const CALL_QUEUE_KEY = "call:queue";
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || "";
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.nextier.ai";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.nxtier.ai";
 
 interface CallQueueItem {
   id: string;

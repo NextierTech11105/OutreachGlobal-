@@ -11,7 +11,7 @@
   ],
   "host_permissions": [
     "https://monkfish-app-mb7h3.ondigitalocean.app/*",
-    "https://api.nextierglobal.ai/*",
+    "https://api.nxtier.ai/*",
     "https://*.signalhouse.io/*"
   ],
   "action": {

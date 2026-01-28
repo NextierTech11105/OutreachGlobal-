@@ -77,7 +77,7 @@ interface DomainConfig {
 const DEFAULT_DOMAINS: DomainConfig[] = [
   {
     id: "1",
-    domain: "nextierglobal.ai",
+    domain: "nxtier.ai",
     type: "marketing",
     verified: false,
     dnsRecords: [
@@ -85,19 +85,19 @@ const DEFAULT_DOMAINS: DomainConfig[] = [
         type: "A",
         name: "@",
         value: "(your hosting IP)",
-        purpose: "Main marketing site",
+        purpose: "Main marketing site (www.nxtier.ai is primary)",
       },
       {
         type: "CNAME",
         name: "www",
-        value: "nextierglobal.ai",
-        purpose: "WWW redirect",
+        value: "nxtier.ai",
+        purpose: "WWW redirect (primary domain: www.nxtier.ai)",
       },
     ],
   },
   {
     id: "2",
-    domain: "app.nextierglobal.ai",
+    domain: "app.nxtier.ai",
     type: "app",
     target: "monkfish-app-mb7h3.ondigitalocean.app",
     verified: false,
@@ -106,7 +106,7 @@ const DEFAULT_DOMAINS: DomainConfig[] = [
         type: "CNAME",
         name: "app",
         value: "monkfish-app-mb7h3.ondigitalocean.app",
-        purpose: "Nextier app (DigitalOcean)",
+        purpose: "NXTIER app (DigitalOcean)",
       },
     ],
   },
