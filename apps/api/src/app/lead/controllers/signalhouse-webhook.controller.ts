@@ -187,7 +187,27 @@ export class SignalHouseWebhookController {
       return res.status(401).send({ error: "Invalid or missing token" });
     }
 
-    const { event, data } = payload;
+    // Normalize event and payload shapes to handle alternate provider formats
+    let event = payload.event;
+    // payload.data is the standard shape; some senders use top-level fields
+    let data = (payload as any).data as SignalHouseWebhookPayload['data'] | undefined;
+
+    // Handle alternate SignalHouse event name and top-level message fields
+    if (event === "message.received") {
+      this.logger.warn("Normalizing SignalHouse event 'message.received' -> 'SMS_RECEIVED'");
+      event = "SMS_RECEIVED";
+      if (!data || typeof data !== "object") {
+        data = {
+          from: (payload as any).from,
+          to: (payload as any).to,
+          message: (payload as any).text || (payload as any).body || (payload as any).message,
+          messageId: (payload as any).message_id || (payload as any).messageId,
+          timestamp: (payload as any).timestamp,
+          campaignId: (payload as any).campaign_id || (payload as any).campaignId,
+        } as SignalHouseWebhookPayload['data'];
+      }
+    }
+
     this.logger.log(`SignalHouse webhook: ${event}`, { data });
 
     try {
