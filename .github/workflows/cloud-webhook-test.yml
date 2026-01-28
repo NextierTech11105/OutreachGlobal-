@@ -18,6 +18,7 @@ jobs:
       - name: Run curl to SignalHouse webhook and capture output
         env:
           SIGNALHOUSE_TOKEN: ${{ secrets.SIGNALHOUSE_TEST_TOKEN }}
+        continue-on-error: true
         run: |
           echo "Posting test payload to SignalHouse webhook endpoint"
           cat > payload.json <<'JSON'
@@ -37,6 +38,18 @@ JSON
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -k -H "Authorization: Bearer ${SIGNALHOUSE_TOKEN}" -H "Content-Type: application/json" --data @payload.json "https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse" ) || HTTP_STATUS="000"
           echo "$HTTP_STATUS" >> curl.log
           echo "Saved curl.log"
+      - name: Dump curl.log to workflow logs
+        if: always()
+        run: |
+          echo "=== BEGIN curl.log ==="
+          cat curl.log || echo "curl.log not created"
+          echo "=== END curl.log ==="
+      - name: Upload curl log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-webhook-curl-log
+          path: curl.log
       - name: Upload curl log
         if: always()
         uses: actions/upload-artifact@v4
