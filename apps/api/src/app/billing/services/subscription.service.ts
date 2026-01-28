@@ -72,7 +72,10 @@ export class SubscriptionService implements OnModuleInit {
       await this.ensureStarterPlanExists();
     } catch (error: any) {
       // Log full error and stack for better observability in production logs
-      this.logger.error("Failed to initialize billing tables:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      this.logger.error(
+        "Failed to initialize billing tables:",
+        JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      );
       this.logger.error(error?.stack);
       // Re-throw to ensure the application fails fast when billing initialization is broken
       throw error;
@@ -199,17 +202,23 @@ export class SubscriptionService implements OnModuleInit {
       }
     } catch (error: any) {
       // Log full error object to capture underlying database errors (e.g., pg details)
-      this.logger.error("Error ensuring starter plan:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      this.logger.error(
+        "Error ensuring starter plan:",
+        JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      );
       this.logger.error(error?.stack);
 
       try {
         // Attempt to introspect the plans table columns to help diagnose schema mismatches
         const cols = await this.db.execute(
-          sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'plans' ORDER BY ordinal_position`
+          sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'plans' ORDER BY ordinal_position`,
         );
         this.logger.log(`plans table columns: ${JSON.stringify(cols.rows || cols)}`);
       } catch (introspectErr: any) {
-        this.logger.warn("Failed to introspect plans table:", introspectErr?.message || introspectErr);
+        this.logger.warn(
+          "Failed to introspect plans table:",
+          introspectErr?.message || introspectErr,
+        );
       }
 
       // Re-throw the error so startup fails loudly and readiness checks reflect the issue
