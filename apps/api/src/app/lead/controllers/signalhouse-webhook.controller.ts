@@ -178,6 +178,7 @@ export class SignalHouseWebhookController {
   async handleWebhook(
     @Headers("authorization") authHeader: string | undefined,
     @Headers("x-webhook-token") webhookTokenHeader: string | undefined,
+    @Headers("x-debug-webhook") debugHeader: string | undefined,
     @Query("token") queryToken: string | undefined,
     @Body() payload: SignalHouseWebhookPayload,
     @Res() res: FastifyReply,
@@ -185,6 +186,13 @@ export class SignalHouseWebhookController {
     if (!this.validateToken(authHeader, webhookTokenHeader, queryToken)) {
       this.logger.warn("SignalHouse webhook rejected: invalid or missing token");
       return res.status(401).send({ error: "Invalid or missing token" });
+    }
+
+    // Temporary debug: if the request contains X-Debug-Webhook header, log a unique marker and the raw payload.
+    // This is short-lived and will be removed after verification.
+    if (debugHeader) {
+      this.logger.warn(`TEST_MARKER: received debug webhook marker=${debugHeader}`);
+      this.logger.warn("TEST_MARKER payload:", payload as any);
     }
 
     // Normalize event and payload shapes to handle alternate provider formats
