@@ -12,7 +12,15 @@ jobs:
         run: |
           echo "Posting test payload to SignalHouse webhook endpoint"
           curl -v -k -H "Authorization: Bearer 3e76b00eb2fe8cee7e2cab219ba41e16757d4f0b7a5a6a1b9044eaae880497e9" \
-            -H "Content-Type: application/json" \
-            -d '{ "event": "message.received", "from": "+15551231234", "to": "+15164079249", "text": "Yes, I\'m interested", "message_id": "gha-msg-123", "timestamp": "2026-01-28T00:00:00Z", "campaign_id": "CJRCU60" }' \
-            https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse
+            -H "Content-Type: application/json" --data @- https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse << 'JSON'
+{
+  "event": "message.received",
+  "from": "+15551231234",
+  "to": "+15164079249",
+  "text": "Yes, I'm interested",
+  "message_id": "gha-msg-123",
+  "timestamp": "2026-01-28T00:00:00Z",
+  "campaign_id": "CJRCU60"
+}
+JSON
           echo "Done"
