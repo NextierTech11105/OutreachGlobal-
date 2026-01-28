@@ -208,17 +208,33 @@ export class SignalHouseWebhookController {
       }
     }
 
-    this.logger.log(`SignalHouse webhook: ${event}`, { data });
+    // Validate required data for events that need it
+    if (
+      ["SMS_RECEIVED", "SMS_SENT", "SMS_DELIVERED", "SMS_FAILED"].includes(
+        event,
+      ) &&
+      (!data || typeof data !== "object")
+    ) {
+      this.logger.warn(`Missing 'data' object for SignalHouse event ${event}`, {
+        payload,
+      });
+      return res.status(400).send({ error: "Missing data object" });
+    }
+
+    const safeData = data as SignalHouseWebhookPayload['data'];
+    this.logger.log(`SignalHouse webhook: ${event}`, { data: safeData });
 
     try {
       switch (event) {
         case "SMS_RECEIVED":
-          await this.handleInboundSms(data);
+          //safeData is guaranteed for SMS events due to previous validation guard
+          await this.handleInboundSms(safeData!);
           break;
         case "SMS_SENT":
         case "SMS_DELIVERED":
         case "SMS_FAILED":
-          await this.handleDeliveryStatus(event, data);
+          //safeData is guaranteed for delivery events
+          await this.handleDeliveryStatus(event, safeData!);
           break;
         case "NUMBER_PURCHASED":
         case "NUMBER_PROVISIONED":

@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { campaigns } from "@/lib/db/schema";
+import { apiAuth } from "@/lib/api-auth";
 
 // Area codes by state for SignalHouse number provisioning
 const STATE_AREA_CODES: Record<string, string> = {
@@ -183,8 +186,8 @@ export async function POST(request: NextRequest) {
         id: lead.id,
         propertyId: lead.propertyId,
         name: lead.ownerName,
-        phone: lead.phones[0] || null,
-        email: lead.emails[0] || null,
+        phone: (lead.phones && lead.phones[0]) || null,
+        email: (lead.emails && lead.emails[0]) || null,
         address: lead.address,
         city: lead.city,
         state: lead.state,
@@ -216,8 +219,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    // Store in localStorage-like storage (would be database in production)
-    // For now, we'll return success and store client-side
+    // Build result metadata
     const result: CampaignPushResult = {
       campaignId,
       campaignName,
@@ -226,10 +228,9 @@ export async function POST(request: NextRequest) {
       status: scheduleStart ? "scheduled" : "ready",
     };
 
-    // Assign SignalHouse phone number
+    // Assign SignalHouse phone number (best-effort)
     if (assignNumber) {
       try {
-        // Call SignalHouse API to provision number
         const signalHouseResponse = await fetch(
           `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/signalhouse`,
           {
@@ -237,7 +238,7 @@ export async function POST(request: NextRequest) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "provision_number",
-              campaignName: name,
+              campaignName: campaignName,
               areaCode: validLeads[0]?.state
                 ? getAreaCodeForState(validLeads[0].state)
                 : undefined,
@@ -252,14 +253,12 @@ export async function POST(request: NextRequest) {
             `[Campaign Push] SignalHouse number assigned: ${result.phoneAssigned}`,
           );
         } else {
-          // Fallback: Use placeholder until SignalHouse is configured
           result.phoneAssigned = `+1${Math.floor(Math.random() * 9000000000 + 1000000000)}`;
           console.log(
             `[Campaign Push] SignalHouse not configured, using placeholder: ${result.phoneAssigned}`,
           );
         }
       } catch (err) {
-        // SignalHouse not available, use placeholder
         result.phoneAssigned = `+1${Math.floor(Math.random() * 9000000000 + 1000000000)}`;
         console.log(`[Campaign Push] SignalHouse error, using placeholder`);
       }
@@ -267,27 +266,53 @@ export async function POST(request: NextRequest) {
 
     // Simulate AI SDR assignment
     if (assignAiSdr) {
-      // In production: Assign from aiSdrAvatarsTable
       result.aiSdrAssigned = aiSdrId || "sabrina_default";
       console.log(`[Campaign Push] Assigned AI SDR: ${result.aiSdrAssigned}`);
     }
 
-    // Store campaign for retrieval
-    if (typeof globalThis !== "undefined") {
-      (globalThis as any).__campaigns = (globalThis as any).__campaigns || [];
-      (globalThis as any).__campaigns.push(campaignData);
+    // Persist campaign to database (team-scoped)
+    try {
+      const { userId, teamId: authTeamId } = await apiAuth();
+      const effectiveTeamId = (body as any).teamId || authTeamId;
+
+      if (!effectiveTeamId) {
+        return NextResponse.json(
+          { error: "teamId required or authorized user with team" },
+          { status: 400 },
+        );
+      }
+
+      const [newCampaign] = await db
+        .insert(campaigns)
+        .values({
+          id: campaignId,
+          teamId: effectiveTeamId,
+          name: campaignName,
+          description: campaignData.settings?.initialMessageId || null,
+          status: result.status,
+          metadata: campaignData.settings || {},
+          estimatedLeadsCount: validLeads.length,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      console.log(`[Campaign Push] Persisted campaign ${newCampaign.id} for team ${effectiveTeamId}`);
+      result.campaignId = newCampaign.id;
+
+      // Optionally: attach campaignId to leads or enqueue mapping job (future)
+
+      return NextResponse.json({ success: true, campaign: result, id: newCampaign.id, message: `Created campaign "${campaignName}" with ${validLeads.length} leads` });
+    } catch (err) {
+      console.error('[Campaign Push] DB persist error:', err);
+      // Fallback to in-memory storage for backward compatibility
+      if (typeof globalThis !== "undefined") {
+        (globalThis as any).__campaigns = (globalThis as any).__campaigns || [];
+        (globalThis as any).__campaigns.push(campaignData);
+      }
+
+      return NextResponse.json({ success: true, campaign: result, data: campaignData, message: `Created campaign "${campaignName}" (persist failed, using in-memory storage)` });
     }
-
-    console.log(
-      `[Campaign Push] Success: ${result.leadsAdded} leads added to "${campaignName}"`,
-    );
-
-    return NextResponse.json({
-      success: true,
-      campaign: result,
-      data: campaignData,
-      message: `Created campaign "${campaignName}" with ${validLeads.length} leads`,
-    });
   } catch (error: any) {
     console.error("[Campaign Push] Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

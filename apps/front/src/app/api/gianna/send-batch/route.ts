@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm"; 
 import { sendSMS } from "@/lib/signalhouse/client";
 import { gianna } from "@/lib/gianna/gianna-service";
 import { luciService } from "@/lib/luci";
@@ -76,16 +76,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch leads from database
+    // Fetch leads from database and enforce team scoping
     const leadsData = await db
       .select()
       .from(leads)
-      .where(inArray(leads.id, leadIds));
+      .where(and(eq(leads.teamId, teamId), inArray(leads.id, leadIds)));
 
     if (leadsData.length === 0) {
       return NextResponse.json(
-        { error: "No leads found with provided IDs" },
+        { error: "No leads found with provided IDs for this team" },
         { status: 404 },
+      );
+    }
+
+    // If some requested IDs do not belong to this team, reject to avoid cross-tenant actions
+    if (leadsData.length !== leadIds.length) {
+      return NextResponse.json(
+        {
+          error: "One or more leads not found for this team",
+          requested: leadIds.length,
+          found: leadsData.length,
+        },
+        { status: 403 },
       );
     }
 

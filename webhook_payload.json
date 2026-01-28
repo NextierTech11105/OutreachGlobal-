@@ -1,0 +1,8 @@
+﻿{
+    "event":  "message.received",
+    "text":  "YES I AM INTERESTED",
+    "timestamp":  "2026-01-27T18:21:10.7823007-05:00",
+    "to":  "+15164079249",
+    "from":  "+15551234567",
+    "message_id":  "test_valid_1769538070.78122"
+}

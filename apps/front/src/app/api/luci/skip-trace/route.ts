@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm"; 
 import { apiAuth } from "@/lib/api-auth";
 import { getSkipTraceService } from "@/lib/services/skip-trace-service";
 
@@ -43,16 +43,27 @@ export async function POST(request: NextRequest) {
       `[LUCI Skip Trace] Processing ${leadIds.length} leads for team ${effectiveTeamId}`
     );
 
-    // Fetch lead data from database
+    // Fetch lead data from database and enforce auth team scoping
     const leadRecords = await db
       .select()
       .from(leads)
-      .where(inArray(leads.id, leadIds));
+      .where(and(eq(leads.teamId, effectiveTeamId), inArray(leads.id, leadIds)));
 
     if (leadRecords.length === 0) {
       return NextResponse.json(
-        { error: "No leads found", success: false },
+        { error: "No leads found for this team", success: false },
         { status: 404 }
+      );
+    }
+
+    if (leadRecords.length !== leadIds.length) {
+      return NextResponse.json(
+        {
+          error: "One or more leads not found for this team",
+          requested: leadIds.length,
+          found: leadRecords.length,
+        },
+        { status: 403 }
       );
     }
 
