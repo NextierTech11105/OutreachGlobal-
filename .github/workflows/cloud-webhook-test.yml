@@ -21,17 +21,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "Posting test payload to SignalHouse webhook endpoint"
-          cat > payload.json <<'JSON'
-{
-  "event": "message.received",
-  "from": "+15551231234",
-  "to": "+15164079249",
-  "text": "Yes, I'm interested",
-  "message_id": "gha-msg-123",
-  "timestamp": "2026-01-28T00:00:00Z",
-  "campaign_id": "CJRCU60"
-}
-JSON
+          printf "%s\n" "{\"event\": \"message.received\", \"from\": \"+15551231234\", \"to\": \"+15164079249\", \"text\": \"Yes, I'm interested\", \"message_id\": \"gha-msg-123\", \"timestamp\": \"2026-01-28T00:00:00Z\", \"campaign_id\": \"CJRCU60\"}" > payload.json
           printf "\n--- CURL VERBOSE OUTPUT ---\n" > curl.log
           curl -v -k -H "Authorization: Bearer ${SIGNALHOUSE_TOKEN}" -H "Content-Type: application/json" --data @payload.json "https://monkfish-app-mb7h3.ondigitalocean.app/api/webhook/signalhouse" >> curl.log 2>&1 || true
           printf "\n--- HTTP STATUS ---\n" >> curl.log
