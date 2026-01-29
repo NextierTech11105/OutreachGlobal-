@@ -326,7 +326,9 @@ export async function POST(request: NextRequest) {
 
         // Step 4: Generate shareable link
         const shareableLink = saveData.shareableUrl
-          ? `${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}${saveData.shareableUrl}`
+          ? (saveData.shareableUrl.startsWith("http")
+              ? saveData.shareableUrl
+              : `${process.env.NEXT_PUBLIC_APP_URL || "https://monkfish-app-mb7h3.ondigitalocean.app"}${saveData.shareableUrl}`)
           : null;
 
         // Step 5: Send SMS with valuation link
