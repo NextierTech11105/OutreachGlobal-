@@ -729,7 +729,9 @@ export default function ValuationPage() {
       const shareLink =
         data.htmlUrl ||
         (data.shareableUrl
-          ? `${window.location.origin}${data.shareableUrl}`
+          ? (data.shareableUrl.startsWith("http")
+              ? data.shareableUrl
+              : `${window.location.origin}${data.shareableUrl}`)
           : null);
       if (shareLink) {
         setShareableLink(shareLink);
